@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Max+</title>
+    %sveltekit.head%
+  </head>
+  <body data-sveltekit-preload-data="hover">
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
+  <style>
+    @font-face {
+      font-family: 'Inter Medium';
+      src: url('/public/fonts/Inter_18pt-Medium.ttf') format('ttf');
+      font-weight: 600;
+      font-style: normal;
+    }
+    
+    body {
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Inter Medium', sans-serif;
+      background-color: #17181c;
+    }
+    
+    * {
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      -o-user-select: none;
+      user-select: none;
+    }
+    
+    .allow-selection {
+      -webkit-user-select: text;
+      -khtml-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      -o-user-select: text;
+      user-select: text;
+    }
+  </style>
+</html>

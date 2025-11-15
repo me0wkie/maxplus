@@ -1,0 +1,33 @@
+[package]
+name = "rumax"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rumax"
+path = "src/lib.rs"
+
+[[example]]
+name = "login"
+path = "examples/login.rs"
+
+[[example]]
+name = "token"
+path = "examples/token.rs"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+http = "1.3.1"
+yawc = { version = "0.2" }
+tokio = { version = "1", features = ["full"] }
+futures-util = "0.3"
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+url = "2.5"
+
+log = "0.4"
+env_logger = "0.10"
+thiserror = "1.0"
+phf = { version = "0.13.1", features = ["macros"] }
+rand = { version = "0.8.5" }

@@ -1,0 +1,17 @@
+@keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.animated-panel {
+    background: linear-gradient(270deg, #3b82f6, #8b5cf6), #3498db;
+    background-size: 400% 400%;
+    animation: gradientFlow 8s ease infinite;
+}
+
+.animated-panel-opacity-075 {
+    background: linear-gradient(270deg, #3b82f6aa, #8b5cf6aa), #3498dbaa;
+    background-size: 400% 400%;
+    animation: gradientFlow 8s ease infinite;
+}
