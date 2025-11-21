@@ -16,8 +16,8 @@
   {#each [{id: 0, title: 'Все'}, ...$currentFolders] as folder (folder.id)}
     <button 
       class="tab"
-      class:active={folder.title === activeFolder}
-      on:click={() => selectFolder(folder.title)}
+      class:active={activeFolder ? folder === activeFolder : !folder.id}
+      on:click={() => selectFolder(folder)}
     >
       <span>{folder.title}</span>
     </button>
@@ -26,12 +26,6 @@
 <button class="edit-btn" on:click={() => dispatch('editFolders')}></button>
 
 <style>
-  .folder-tabs-container {
-      display: flex;
-      align-items: center;
-      padding: 0 10px;
-  }
-
   .tabs {
       display: flex;
       overflow-x: auto;

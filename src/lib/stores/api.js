@@ -1,9 +1,33 @@
 import { LazyStore } from '@tauri-apps/plugin-store';
+import { listen } from '@tauri-apps/api/event';
 import { writable, get } from 'svelte/store';
 import MockApi from '../api/MockApi.js';
+import MobileApi from '../api/MobileApi.js';
 
-const SELECTED = 'mock';
-let apiInstance = SELECTED === 'mock' ? new MockApi() : null;
+const SELECTED = 'mobile';
+const Apis = {
+    'mock': MockApi,
+    'mobile': MobileApi,
+}
+
+let apiInstance = new Apis[SELECTED]();
+
+listen('max', (event) => {
+    const { payload: response } = event;
+    
+    const opc = response.opcode;
+    console.log(opc, response)
+    
+    if (opc === 128) {
+        // TODO event handler
+        const message = response.payload.message;
+        message.chatId = response.payload.chatId;
+        receivedMessage.set(message);
+    }
+    else if (opc == 129) {
+        // typing
+    }
+});
 
 const users = new LazyStore('users.json');
 const chats = new LazyStore('chats.json');
@@ -13,7 +37,7 @@ export const currentSessionChats = writable(undefined);
 export const currentSessionContacts = writable(undefined);
 export const currentlySyncing = writable(false);
 export const currentFolders = writable([]);
-export const receivedMessages = writable([]); // heap
+export const receivedMessage = writable(undefined); // heap
 export default writable(apiInstance);
 
 export const usersDb = users;
@@ -37,15 +61,16 @@ export async function clearKeys() {
 }
 
 export const chatMessages = {
-    get: chatId => {
+    get: async chatId => {
         const meId = get(currentUser)
         if (!meId) throw "No session!"
+        console.log('GET', `chat-${meId}-${chatId}`)
         return chats.get(`chat-${meId}-${chatId}`)
     },
-    set: (chatId, sorted) => {
+    set: async (chatId, sorted) => {
         const meId = get(currentUser)
         if (!meId) throw "No session!"
-        console.log('SET', sorted)
+        console.log('SET', `chat-${meId}-${chatId}`, sorted)
         return chats.set(`chat-${meId}-${chatId}`, sorted)
     }
 }
@@ -73,6 +98,7 @@ currentUser.subscribe(async user => {
             currentUser.set(null)
         }
         else {
+            await apiInstance.loadDevice();
             apiInstance._userDetails = _currentUser;
             apiInstance._user = _currentUserId;
             updateChats(undefined, _currentUserId);

@@ -15,7 +15,7 @@
             error = "Начните номер с +"
         }
         else {
-            const response = await $API.login(phone)
+            const response = await $API.startAuth(phone)
             console.log(response)
             if(response.success) goto('/auth/verify');
             else error = "Не удалось выполнить запрос!"

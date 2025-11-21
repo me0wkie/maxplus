@@ -23,7 +23,8 @@
     "@tauri-apps/plugin-store": "~2",
     "@tauri-apps/plugin-stronghold": "~2",
     "fflate": "^0.8.2",
-    "libsodium-wrappers-sumo": "^0.7.15"
+    "libsodium-wrappers-sumo": "^0.7.15",
+    "svelte-tiny-virtual-list": "^3.0.1"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.9",

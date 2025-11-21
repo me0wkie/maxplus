@@ -6,7 +6,6 @@
     import '$lib/styles/AnimatedPanel.css';
     
     import API from '$lib/stores/api';
-    import { register } from '$lib/max/raw.js';
     
     let error = '';
     let code = '';
@@ -23,10 +22,11 @@
                 error = "Длина кода - 6 символов!"
             }
             else {
-                const response = await $API.verifyLogin(code)
+                const response = await $API.login(code)
                 console.log(response)
                 if(response.payload.error) {
                     error = "Ошибка проверки"
+                    alert(JSON.stringify(response.payload))
                 }
                 else {
                     goto('/');
@@ -35,10 +35,13 @@
         }
         /* Регистрация */
         else {
-            const response = await register(token, code, name)
+            const response = await $API.register(code, name)
+            
             console.log(response)
+            
             if (!response.success) {
-                error = response.error || "Ошибка проверки!";
+                error = "Ошибка проверки!";
+                alert(JSON.stringify(response.payload))
             }
             else {
                 error = "Успешно! Теперь перезайдите и авторизуйтесь"

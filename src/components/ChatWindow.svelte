@@ -1,15 +1,22 @@
 <script>
     import { createEventDispatcher, onMount } from 'svelte';
+    import VirtualList from 'svelte-tiny-virtual-list';
     import { fade, fly } from 'svelte/transition';
     import { writable, get } from 'svelte/store';
-    import Message from '$lib/components/ChatWindow/Message.svelte';
+    import Message from '$components/ChatWindow/Message.svelte';
+    import Bubbles from '$components/Bubbles.svelte';
     
     import '$lib/styles/AnimatedPanel.css';
     
-    import API, { currentUser, currentSessionContacts, receivedMessages, chatMessages, chatKeys } from '$lib/stores/api'
+    import API, { currentUser, currentSessionContacts, receivedMessage, chatMessages, chatKeys } from '$lib/stores/api'
     
     import { createIdentity, getEncrypted, handleIncomingEnvelope, bufToBase64Url, publicIdentityPack } from '$lib/crypto/async_encryption.js';
     import { obfuscate, deobfuscate, isObfuscated } from '$lib/crypto/messages.js';
+    
+    /*
+     * TODO
+     * Разбить компонент на 2-3 части
+     */
     
     export let chat;
     
@@ -25,7 +32,7 @@
     
     onMount(getKeys);
     async function getKeys() {
-        chatKeysCached = await chatKeys.get(chat.cid);
+        chatKeysCached = await chatKeys.get(chat.id);
         console.log('setup chat keys', chatKeysCached)
         
         loadHistory();
@@ -38,15 +45,15 @@
     let initialized = false;
     
     const messages = writable([])
+    
     messages.subscribe(async _messages => {
         // todo refactor, join with loadHistory
-        console.log('SETTING MESSAGES',_messages)
-        if (_messages.length) await chatMessages.set(chat.cid, _messages);
+        if (_messages.length) await chatMessages.set(chat.id, _messages);
     })
 
-    const BATCH_SIZE = 40;
+    const BATCH_SIZE = 200;
 
-    // TODO выяснить как ставятся аватары (ну наверно не так как говно ведь)
+    // TODO выяснить как ставятся аватары
     const avatarUserId = Object.keys(chat.participants).find(x => +x !== $currentUser)
     
     /*contacts.subscribe(contacts => {
@@ -61,7 +68,16 @@
     const sortMessages = (messages) => {
         return messages.sort((a, b) => b.time - a.time);
     };
-
+    
+    function uniqueById(arr) {
+      const seen = new Set();
+      return arr.filter(item => {
+        if (seen.has(item.id)) return false;
+        seen.add(item.id);
+        return true;
+      });
+    }
+    
     const loadHistory = async () => {
         if (loading || all_loaded) return;
         loading = true;
@@ -69,15 +85,18 @@
         console.log('Requesting... initialized:', initialized);
 
         if (!initialized) {
-            const cachedHistory = await chatMessages.get(chat.cid);
-            console.log(cachedHistory, await chatMessages.get(chat.cid))
-            const initialCachedMessages = cachedHistory?.slice(0, BATCH_SIZE) || [];
-            const messageMap = new Map(initialCachedMessages.map(m => [m.id, m]));
-
-            messages.set(sortMessages(initialCachedMessages));
+            const cachedHistory = await chatMessages.get(chat.id);
+            const cachedMessages = cachedHistory?.slice(0, BATCH_SIZE) || [];
+            messages.set(cachedMessages);
             
-            const latestServerMessages = await $API.getMessages(chat.cid, null, 0, BATCH_SIZE);
-            const serverIds = new Set(latestServerMessages.map(m => m.id));
+            const messageMap = new Map(cachedMessages.map(m => [m.id, m]));
+            
+            console.log('Cached', cachedMessages)
+            
+            const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
+            if (error) return alert(error)
+            
+            const serverIds = new Set(syncedMessages.map(m => m.id));
             
             messageMap.forEach((message, id) => {
                 if (!serverIds.has(id)) {
@@ -85,13 +104,13 @@
                 }
             });
             
-            latestServerMessages.forEach(serverMsg => {
+            syncedMessages.forEach(serverMsg => {
                 messageMap.set(serverMsg.id, serverMsg);
             });
             
-            messages.set(sortMessages(Array.from(messageMap.values())));
+            messages.set(uniqueById(sortMessages(Array.from(messageMap.values()))));
             
-            if (latestServerMessages.length < BATCH_SIZE) {
+            if (syncedMessages.length < BATCH_SIZE) {
                 all_loaded = true;
             }
             initialized = true;
@@ -105,17 +124,19 @@
             }
             const fromTime = lastMessage.time;
 
-            const serverHistory = await $API.getMessages(chat.cid, fromTime, 0, BATCH_SIZE);
-            console.log('Loaded older serverHistory', serverHistory.length);
+            const { error, messages: syncedMessages } = await $API.getMessages(chat.id, fromTime);
+            if (error) return alert(error)
             
-            if (serverHistory.length > 0) {
+            console.log('Loaded older messages', syncedMessages.length);
+            
+            if (syncedMessages.length > 0) {
                 const existingIds = new Set(_messages.map(m => m.id));
-                const newMessages = serverHistory.filter(m => !existingIds.has(m.id));
+                const newMessages = syncedMessages.filter(m => !existingIds.has(m.id));
                 _messages.push(...newMessages.reverse());
                 messages.set(_messages);
             }
 
-            if (serverHistory.length < BATCH_SIZE) {
+            if (syncedMessages.length < BATCH_SIZE) {
                 all_loaded = true;
             }
         }
@@ -127,7 +148,7 @@
         checkForEncryptionRequest(check);
         
         // funny bug lol (you can send this to any user)
-        //await $Client.sendMessage(null, chat.cid, { attaches: [{ _type: 'CONTROL', event: 'botStarted' }], notify: true, })
+        //await $Client.sendMessage(null, chat.id, { attaches: [{ _type: 'CONTROL', event: 'botStarted' }], notify: true, })
     };
     
     let newMessage = '';
@@ -144,34 +165,37 @@
     let participants = Object.keys(chat.participants).filter(x => x === $currentUser);
     let isFavorites = Object.keys(chat.participants).length === 1; // TODO change
     
-    receivedMessages.subscribe(async _messages => {
-        const newMessages = _messages.filter(msg => {
-            return msg.chatId === chat.cid && !_messages.find(x => x.id === msg.id)
-        })
-
-        if (newMessages.length) {
-            _messages.unshift(...newMessages.sort((a, b) => b.time - a.time));
-            messages.set(_messages);
-            console.log('new messages (from subscriber)', newMessages)
+    receivedMessage.subscribe(async message => {
+        if (!message || message.chatId !== chat.id) return;
+        
+        messages.update(_messages => {
+            const idx = _messages.indexOf(x => +x.id === message.id)
+            console.log('exists?', idx)
             
-            checkForEncryptionRequest(newMessages)
-        }
+            if (idx !== -1) {
+                _messages.splice(idx, 1, message)
+            }
+            else _messages.unshift(message);
+            
+            return _messages;
+        })
+        
+        console.log(checkForEncryptionRequest, message)
+        
+        checkForEncryptionRequest([ message ])
     })
 
     async function sendMessage() {
         if (!newMessage.trim()) return;
         
-        const encrypt = chatKeysCached?.current !== undefined;
-        console.log(chatKeysCached)
+        const encrypt = !!chatKeysCached?.current;
         
         let text = encrypt ? await encryptMessage(newMessage) : newMessage;
         
-        let chatId = chat.cid;
+        let chatId = chat.id;
         let replyToId = replyTo;
         
         newMessage = ''; replyTo = null;
-        
-        document.getElementById(`textarea-${chat.cid}`).style.height = 'auto';
         
         const id = Date.now()
         
@@ -188,31 +212,40 @@
         _messages.unshift(displayMessageEarlyEntry);
         messages.set(_messages);
         
-        const createdMessageResponse = await $API.sendMessage(text, chatId, { notify: true, replyTo: replyToId })
+        const response = await $API.sendMessage(text, chatId, { notify: true, ...(replyToId && { replyTo: replyToId })})
         
-        if(!createdMessageResponse.text) {
-            /*chatMessages.update(array => {
-                const entry = array.find(x => x.id === id)
-                if (entry) array.splice(array.indexOf(entry), 1);
-                return array;
-            })*/
-            //chatMessages.set()
-        } else {
-            console.log('Message successfully sent', createdMessageResponse)
-            const entry = _messages.find(x => x.id === id)
-            if (entry !== undefined) {
-                entry.id = createdMessageResponse.id;
-                console.log('set id ' + id + ' -> ' + createdMessageResponse.id)
-            }
-            chatMessages.set(chatId, _messages)
+        console.log(response)
+        const message = response?.message || {}
+        
+        if (!message) {
+            messages.update(msgs => {
+                msgs.find(x => x.id === id).deleted = true;
+                return msgs;
+            })
+        }
+        
+        if (message) {
+            const msgId = message.id;
+            message.chatId = chat.id;
+            
+            receivedMessage.set(message)
+            
+            messages.update(msgs => {
+                //msgs.find(x => x.id === id).id = msgId
+                //console.log('set id ' + id + ' -> ' + msgId)
+                const element = msgs.indexOf(displayMessageEarlyEntry)
+                if (element !== -1) msgs.splice(element, 1)
+                console.log('insert', message)
+                
+                return msgs;
+            })
             
             if (encrypt) {
-                const { id } = createdMessageResponse;
                 const entry = chatKeysCached.messages.find(entry => entry.key === chatKeysCached.current);
                 if (!entry)
-                    chatKeysCached.messages.push({ from: id, to: id, key: chatKeysCached.current })
+                    chatKeysCached.messages.push({ from: msgId, to: msgId, key: chatKeysCached.current })
                 else {
-                    entry.to = id;
+                    entry.to = msgId;
                 }
             }
         }
@@ -286,13 +319,12 @@
         }
     }
     
-    const checkForEncryptionRequest = async (newMessages) => {
+    const checkForEncryptionRequest = async newMessages => {
         let encryptionRequest = null;
         let encryptionResponse = null;
         
         newMessages.forEach(msg => {
             const dmsg = getDeobfuscatedMessage(msg)
-            console.log(dmsg)
             if (dmsg && dmsg.slice(0, 3) === 'idx' && !encryptionRequest) {
                 encryptionRequest = { sender: msg.sender, data: dmsg };
             }
@@ -300,8 +332,6 @@
                 encryptionResponse = { sender: msg.sender, data: dmsg };
             }
         })
-        
-        console.log(encryptionRequest, encryptionResponse)
         
         if (encryptionRequest && (isFavorites || encryptionRequest.sender !== $currentUser)) {
             const [ _, userId, ed_public, cv_public ] = encryptionRequest.data.split('|')
@@ -345,10 +375,8 @@
         const otherId = +Object.keys(chat.participants).find(x => x !== $currentUser)
         const keys = chatKeysCached.keys[chatKeysCached.current];
         const otherIdentityPacked = publicIdentityPack(keys, otherId)
-        console.log(keys, otherIdentityPacked)
         const envelope = await getEncrypted($currentUser, keys, [ otherIdentityPacked ], text)
         
-        console.log(envelope)
         return obfuscate(envelope, 'zh')
     }
     
@@ -374,7 +402,6 @@
     
     async function tryDecryptMessage(dmsg) {
         const prefix = dmsg.slice(0, dmsg.indexOf('|'));
-        console.log(prefix)
         if (prefix === 'idx') {
             return "<b>Запрос на включение шифрования</b>";
         }
@@ -395,6 +422,7 @@
         
         if (action === 'agree') {
             const identity = await createIdentity($currentUser)
+            console.log(identity)
             await sendMyIdentity(identity, 'idy')
             
             const keys = {
@@ -463,16 +491,20 @@
 
     <svelte:window/>
 <div class="chat-window">
+    <Bubbles/>
+    
     <header>
-        <span class="title">{title}</span>
-        <div class="controls">
-<button class="icon-button" on:click|stopPropagation={() => showSettings = !showSettings}>
-                <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-            </button>
+        <div class="align-left">
             <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
                 <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
             </button>
-            </div>
+            <a>{ title }</a>
+        </div>
+        <div class="align-right">
+            <button class="icon-button" on:click|stopPropagation={() => showSettings = !showSettings}>
+                <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+            </button>
+        </div>
     </header>
     
     {#if showSettings}
@@ -499,7 +531,7 @@
                     
                     <div class="warning-box">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                        <p><strong>Внимание:</strong> после выхода из аккаунта вы, скорее всего, не сможете прочитать сообщения из этого чата</p>
+                        <p><strong>Внимание:</strong> после выхода из аккаунта вы, скорее всего, не сможете прочесть сообщения из этого чата</p>
                     </div>
                 </div>
 
@@ -546,7 +578,7 @@
     <div class="input-area">
         <div class="input-controls">
              <textarea 
-                id="textarea-{chat.cid}"
+                id="textarea-{chat.id}"
                 rows="1" 
                 placeholder="Сообщение" 
                 bind:value={newMessage} 
@@ -566,16 +598,14 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    border-radius: 16px;
     overflow: hidden;
     color: #ccc;
-    z-index: 2;
+    z-index: 20;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: url("telegram_background.jpg");
-    background-size: contain;
+    background-color: #113;
   }
   
   header {
@@ -583,13 +613,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 10px 16px;
-    min-height: 32px;
-    user-select: none;
+    height: 32px;
     cursor: grab;
     flex-shrink: 0;
   }
-  header:active { cursor: grabbing; }
-  .fullscreen header { cursor: default; }
   
   header .title {
     color: white;
@@ -597,12 +624,7 @@
     font-size: 18px;
     letter-spacing: 1px;
   }
-
-  .controls { 
-    display: flex; 
-    align-items: center; 
-    gap: 8px; 
-  }
+  
   .icon-button {
     background: none;
     border: none;
@@ -615,19 +637,15 @@
     justify-content: center;
     transition: background-color 0.2s;
   }
+  
   .icon-button:hover { background-color: rgba(255,255,255,0.2); }
+  
   .icon-button svg { 
     width: 24px; 
     height: 24px; 
     fill: currentColor; 
   }
 
-  .resize-handle {
-    position: absolute;
-    z-index: 20;
-    background: transparent;
-  }
-  
   .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -648,7 +666,6 @@
     padding: 24px;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -729,7 +746,6 @@
 
   .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   }
   .btn:active {
     transform: translateY(0);
@@ -803,7 +819,6 @@
     z-index: 1000;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -890,24 +905,12 @@
     height: 24px; 
   }
 
-  .replying-to {
-    background: rgba(0,0,0,0.05);
-    padding: 8px 12px;
-    margin-bottom: 8px;
-    border-radius: 12px;
-    font-size: 14px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
   .settings-dropout {
     position: absolute;
     top: 55px;
     right: 10px;
     background: white;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     padding: 15px;
     width: 300px;
     z-index: 10;
@@ -939,36 +942,4 @@
 
   .settings-button:hover { opacity: 0.9; }
 
-  .pinned-messages-container {
-    display: flex;
-    align-items: center;
-    padding: 8px 12px;
-    background: rgba(0,0,0,0.05);
-    flex-shrink: 0;
-  }
-
-  .pinned-message-content {
-    flex-grow: 1;
-    font-size: 14px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .pinned-message-content span { 
-    opacity: 0.7; 
-    margin-left: 5px; 
-  }
-
-  .pin-nav {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    padding: 0 8px;
-  }
-
-  .pin-nav:disabled { 
-    opacity: 0.3; 
-    cursor: default; 
-  }
 </style>

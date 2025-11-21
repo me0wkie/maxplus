@@ -1,23 +1,12 @@
 <script>
   export let placeholder;
-  export let search; // func
+  export let input; // func
   
-  let query = '';
-  let results = [];
-  let isSearching = false;
   let focused = false;
-  
-  $: showResults = focused && query.length > 0;
-  
-  const setSearchQuery = q => { query = q; };
-  const setSearchResults = q => { results = q; };
+  let query = "";
   
   // Реактивный поиск
-  $: if (query) {
-    search(setSearchQuery, setSearchResults, query);
-  } else {
-    results = [];
-  }
+  $: input && input(query);
 
   function handleClickOutside(event) {
   const isOutside = !['.search-block','.search-overlay'].some(x => event.target.closest(x))

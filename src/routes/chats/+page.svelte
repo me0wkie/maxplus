@@ -1,4 +1,5 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
     import { invoke } from '@tauri-apps/api/core';
     import { onMount } from 'svelte';
     import { flip } from 'svelte/animate';
@@ -7,63 +8,26 @@
     
     import '$lib/styles/AnimatedPanel.css';
     
-    import ChatItem from '$lib/components/chats/ChatItem.svelte';
-    import FolderTabs from '$lib/components/chats/FolderTabs.svelte';
-    import ChatWindow from '$lib/components/ChatWindow.svelte';
-    import AddContactBtn from '$lib/components/main/AddContactBtn.svelte';
-    import Search from '$lib/components/main/Search.svelte';
+    import ChatItem from '$components/chats/ChatItem.svelte';
+    import FolderTabs from '$components/chats/FolderTabs.svelte';
+    import AddContactBtn from '$components/main/AddContactBtn.svelte';
+    import Search from '$components/main/Search.svelte';
     
-    import API, { currentSessionChats, currentlySyncing } from '$lib/stores/api.js';
+    import API, { currentSessionChats, currentlySyncing, currentUser } from '$lib/stores/api.js';
+    import Session from '$lib/stores/session.js';
     
-    import { appDataDir } from '@tauri-apps/api/path';
-import { join } from '@tauri-apps/api/path';
-
-async function getStorePath(storeFileName) {
-  // Получаем директорию приложения для хранения данных
-  const dir = await appDataDir();
-  // Полный путь к файлу стора
-  const storePath = await join(dir, storeFileName);
-  console.log('Store file path:', storePath);
-  return storePath;
-}
-
-// Использование
-getStorePath('users.json');
+    let activeFolder = null;
     
+    const dispatch = createEventDispatcher()
     
-    let activeFolder = 'Все';
-    let openChats = [];
-    
-    let isMenuOpen = false;
-    
-    /*function messageHandler(payload) {
-        console.log('New Message', payload.message.text)
-        // TODO уже сортируется по времени, maybe вставка по prevMessageId бессмысленна
-        if($chatMessages[$currentUserId].find(x => x.id === payload.message.id)) return console.warn("Дубликат")
-        const idx = $chatMessages[$currentUserId].find(x => x.id === payload.prevMessageId)
-        if(idx !== -1) {
-            console.log('adding', payload.message.text)
-            chatMessages.update(object => {
-                object[$currentUserId].splice(idx, 0, { chatId: payload.chatId, ...payload.message });
-                return array;
-            })
-        }
-        else console.error('Не удалось найти индекс для размещения')
-    }*/
-    
-    function openChat(chat) {
-        const exists = openChats.find(c => c.id === chat.id);
-        if (exists) {
-            openChats = [...openChats.filter(c => c.id !== chat.id), exists];
-        } else {
-            openChats = [...openChats, { ...chat, minimized: false, x: 50, y: 50 }];
-        }
-    }
-    
-    function closeChat(chatId) { openChats = openChats.filter(c => c.id !== chatId); }
-    function minimizeChat(chatId) { openChats = openChats.map(c => c.id === chatId ? { ...c, minimized: true } : c); }
-    function restoreChat(chatId) { openChats = openChats.map(c => c.id === chatId ? { ...c, minimized: false } : c); }
-    function updateChatPosition(chatId, x, y) { openChats = openChats.map(c => c.id === chatId ? { ...c, x, y } : c); }
+    $: sortedChats = ($currentSessionChats || [])
+      .sort((a,b) => b.lastEventTime - a.lastEventTime)
+      .filter(chat => {
+          if (!activeFolder || activeFolder.title === 'Все') return true;
+          if (activeFolder.filters?.includes('UNREAD') && !chat.newMessages) return false;
+          if (!activeFolder.filters) return false;
+          return true; // TODO folder editor
+      })
     
     // TODO подгрузка 40+ чатов
     function handleScroll(e) {
@@ -77,6 +41,25 @@ getStorePath('users.json');
     onMount(() => {
         console.log('on mount syncing')
         $API.sync();
+    })
+    
+    currentUser.subscribe(async user => {
+        if (user === undefined) return;
+        if (Session.get("synced")) return;
+        
+        console.log(user)
+        
+        if (user === null) return;
+        
+        if (!$API.getToken()) {
+            await $API.loadToken()
+        }
+        
+        if (!Session.get("connected")) {
+            await $API.init()
+        }
+        
+        $API.sync()
     })
 </script>
 
@@ -101,31 +84,26 @@ getStorePath('users.json');
     </div>
     
     <div class="chat-list">
-        {#each $currentSessionChats as chat (chat.id)}
-            <ChatItem {chat} on:open={() => openChat(chat)} />
+        {#each sortedChats as chat (chat.id)}
+            <ChatItem {chat} on:open={() => dispatch('chat', chat.id)} />
         {/each}
         {#if $currentlySyncing}<div class="loading">Синхронизация...</div>{/if}
     </div>
   </div>
 
-  {#each openChats as chat (chat.id)}
-    <ChatWindow {chat}
-      on:close={() => closeChat(chat.id)}
-      on:minimize={() => minimizeChat(chat.id)}
-      on:restore={() => restoreChat(chat.id)}
-      on:updatePosition={(e) => updateChatPosition(chat.id, e.detail.x, e.detail.y)}
-    />
-  {/each}
-
 <style>
   .chats {
-    overflow-y: auto;
     color: #999;
+    flex: 1;
+    min-height: 0; 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 
   header {
-    z-index: 10;
     display: flex;
+    flex-shrink: 0;
     flex-direction: column;
     align-items: center;
     gap: 10px;
@@ -177,26 +155,14 @@ getStorePath('users.json');
     cursor: pointer;
   }
 
-  .column {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: calc(100%);
-    gap: 10px;
-  }
-
   @media (max-width: 600px) {
   }
 
   .folders {
+    flex-shrink: 0;
     position: sticky;
     top: 0;
     display: flex;
-  }
-
-  .menu-btn {
-    position: absolute;
-    font-size: 24px; background:none; border:none; color:white; cursor:pointer;
   }
 
   .chat-list {
@@ -204,7 +170,19 @@ getStorePath('users.json');
     padding: 12px;
     display: flex;
     flex-direction: column;
+    flex: 1; 
+    
+    /* Включаем скролл */
+    overflow-y: auto; 
+    
+    display: flex;
+    flex-direction: column;
     gap: 20px;
+  }
+  
+  .chat-list > * {
+    flex-shrink: 0;
+    min-height: 150px;
   }
 
   .loading { text-align: center; color: #888; padding: 10px; }

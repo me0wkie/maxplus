@@ -16,7 +16,9 @@
   
   function displaySystemMessage() {
     const event = msg.attaches?.[0]?.event
-    if(event === 'botStarted') return "Вы запустили бота!"
+    if (event === 'botStarted') return "Вы запустили бота!"
+    else if (event === 'new') return "Чат " + msg.attaches[0].title + " создан"
+    else if (event === 'icon') return "Фото чата изменено"
     else return event;
   }
   
@@ -124,16 +126,21 @@
         100% { background-position: 0% 50%; }
     }
     
-    .message-bubble.is-me {
-        background: linear-gradient(270deg, #3b82f6, #8b5cf6), #3498db;
+    .message-row.is-me .message-bubble {
+        background: linear-gradient(270deg, #2b72d6, #7b4cd6), #3498db;
         background-size: 400% 400%;
-        animation: gradientFlow 8s ease infinite;
+        animation: gradientFlow 16s ease infinite;
     }
     
     .message-row.is-system .message-bubble { 
-        background-color: #ded;
-        margin: 20px 0;
+        background: linear-gradient(270deg, #2b72d6, #7b4cd6), #3498db;
+        background-size: 400% 400%;
+        animation: gradientFlow 16s ease infinite;
+        margin: 5px 0;
         text-align: center;
+        padding: 5px;
+        display: flex;
+        justify-content: center;
     }
 
     .message-row.is-deleted .message-bubble {
@@ -159,10 +166,17 @@
         float: right;
         clear: both;
     }
+    
 
     .timestamp { 
         font-size: 11px; 
         color: #999; 
+    }
+
+    .message-row.is-system .timestamp {
+        position: absolute;
+        right: 5px;
+        color: white;
     }
 
     .message-status {

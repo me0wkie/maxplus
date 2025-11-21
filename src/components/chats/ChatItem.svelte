@@ -1,38 +1,39 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import API, { currentUser, currentSessionChats, currentSessionContacts } from '$lib/stores/api'
+  import { get, writable } from 'svelte/store';
+  import API, { currentUser, currentSessionChats, currentSessionContacts, receivedMessage } from '$lib/stores/api'
   
-  export let user;
   export let chat;
   
   let title = null;
   // TODO выяснить как ставятся аватары
   const avatarUserId = +Object.keys(chat.participants).find(x => +x !== $currentUser)
   
-  $: avatar = $currentSessionContacts?.[avatarUserId]?.avatar;
+  const avatar = writable(null);
   const dispatch = createEventDispatcher();
   
-  /*chatMessages.subscribe(updatedMessages => {
-      const latest = updatedMessages[0]
-      if(latest?.chatId === chat.id) text = latest.text
-  })*/
+  receivedMessage.subscribe(message => {
+      if (!message || message.chatId !== chat.id) return;
+      text = message.text;
+      date = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  })
   
-  /*contacts.subscribe(contacts => {
-    console.log(contacts[avatarUserId])
-    if(avatar && title || !avatarUserId) return;
+  currentSessionContacts.subscribe(contacts => {
+    if (!contacts) return;
+    if (get(avatar) && title || isNaN(avatarUserId)) return;
     const contact = contacts[avatarUserId]
-    if(contact) {
-      avatar = contact.avatar;
+    if (contact && get(avatar) !== contact.avatar) {
+      avatar.set(contact.avatar);
       title = contact.names[0].name;
     }
-  })*/
+  })
   
-  const text = chat.lastMessage?.text || "";
-  const date = chat.lastMessage?.time ? new Date(chat.lastMessage.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : "";
+  let text = chat.lastMessage?.text || "";
+  let date = chat.lastMessage?.time ? new Date(chat.lastMessage.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : "";
 </script>
 
 <div class="chat-item" on:click={() => dispatch('open', chat)}>
-  <img src={avatar} alt={title} class="avatar"/>
+  <div style={($avatar ? `background-image: url(${$avatar})` : "background: #556;")} class="avatar"></div>
   <div class="chat-details">
     <div class="align-left">
       <div class="header">
@@ -53,7 +54,6 @@
   .chat-item {
     display: flex;
     cursor: pointer;
-    overflow: hidden;
   }
 
   .avatar {
@@ -62,6 +62,8 @@
     border-radius: 50%;
     margin-right: 12px;
     flex-shrink: 0;
+    background-size: cover;
+    background-position: center;
   }
 
   .chat-details { 
@@ -108,14 +110,6 @@
   .message-preview p { 
     margin: 0;
     font-size: 14px;
-  }
-
-  .align-right {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    flex-shrink: 0;
   }
 
   .time { 

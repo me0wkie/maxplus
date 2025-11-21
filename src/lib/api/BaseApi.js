@@ -8,6 +8,7 @@ export default class API {
     
     _user = null;
     _userDetails = null;
+    _device = null;
     folders = [];
     chats = [];
     
@@ -28,12 +29,37 @@ export default class API {
         else usersDb.set('token-' + this._user, token);
     }
     
+    async loadToken() {
+        throw "loadToken: Unimplemented"
+    }
+    
+    async loadDevice() {
+        let device = await usersDb.get('device-' + this._user);
+        if (!device) {
+            device = this.generateDevice();
+            await usersDb.set('device-' + this._user, device);
+        }
+        this._device = device;
+    }
+    
+    generateDevice() {
+        return {
+            id: crypto.randomUUID().replace(/-/g,''),
+            mt: crypto.randomUUID(),
+        }
+    }
+    
+    getDevice() { // TODO deletion
+        return this._device;
+    }
+    
     setUserDetails(contact) {
         this._userDetails = contact;
         if(contact === undefined) usersDb.delete('user-' + this._user);
         else usersDb.set('user-' + this._user, contact);
     }
     
+    getUser() { return this._user; }
     getToken() { return this._token; }
     getUserDetails() { return this._userDetails; }
     
@@ -42,28 +68,27 @@ export default class API {
     setUserDetails(details) { this.#userDetails = details; }
     setUser(user) { this.#user = user; }*/
     
-    connect() { throw "Unimplemented" }
-    logout() { throw "Unimplemented" }
+    connect() { throw "connect: Unimplemented" }
+    logout() { throw "logout: Unimplemented" }
     
-    _telemetry() { throw "Unimplemented" }
+    _telemetry() { throw "_telemetry: Unimplemented" }
     
-    login() { throw "Unimplemented" }
-    register() { throw "Unimplemented" }
-    verifyLogin() { throw "Unimplemented" }
-    verifyRegister() { throw "Unimplemented" }
+    startAuth() { throw "startAuth: Unimplemented" }
+    login() { throw "login: Unimplemented" }
+    register() { throw "register: Unimplemented" }
     
-    sync() { throw "Unimplemented" }
-    getFolders() { throw "Unimplemented" }
-    getMessages() { throw "Unimplemented" }
-    sendMessage() { throw "Unimplemented" }
-    pinMessage() { throw "Unimplemented" }
-    reaction() { throw "Unimplemented" }
-    addContact() { throw "Unimplemented" }
-    removeContact() { throw "Unimplemented" }
-    search() { throw "Unimplemented" }
+    sync() { throw "sync: Unimplemented" }
+    getFolders() { throw "getFolders: Unimplemented" }
+    getMessages() { throw "getMessages: Unimplemented" }
+    sendMessage() { throw "sendMessage: Unimplemented" }
+    pinMessage() { throw "pinMessage: Unimplemented" }
+    reaction() { throw "reaction: Unimplemented" }
+    addContact() { throw "addContact :Unimplemented" }
+    removeContact() { throw "removeContact: Unimplemented" }
+    search() { throw "search: Unimplemented" }
     
-    onCall() { throw "Unimplemented" }
-    onMessage() { throw "Unimplemented" }
+    onCall() { throw "onCall: Unimplemented" }
+    onMessage() { throw "onMessage: Unimplemented" }
 }
 
 const clone = o => JSON.parse(JSON.stringify(o))

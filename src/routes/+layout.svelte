@@ -8,6 +8,7 @@
     import { checkUpdates } from '$lib/utils/updater.js'
     
     let settings;
+    let loaded = false;
 
     onMount(async () => {
         checkUpdates().then(result => {
@@ -20,6 +21,8 @@
         if (!settings.includes('tokenEncType')) {
             goto('/setup/tokens');
         }
+        
+        loaded = true;
     })
     
     currentUser.subscribe(user => {
@@ -32,8 +35,12 @@
     
 </style>
 
-{#key $page.url.pathname}
-    <main in:fade={{ delay: 150, duration: 150 }}>
-        <slot />
-    </main>
-{/key}
+{#if loaded}
+  {#key $page.url.pathname}
+      <main in:fade={{ delay: 150, duration: 150 }}>
+          <slot />
+      </main>
+  {/key}
+{:else}
+  <a>Загрузка...</a>
+{/if}

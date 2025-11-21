@@ -1,22 +1,57 @@
 <script>
+    import { createEventDispatcher } from 'svelte';
     import { goto } from '$app/navigation';
-    import { currentSessionContacts } from '$lib/stores/api';
-    import Search from '$lib/components/main/Search.svelte';
+    import { currentSessionContacts, currentUser } from '$lib/stores/api';
+    import Search from '$components/main/Search.svelte';
     
-    import AddContactBtn from '$lib/components/main/AddContactBtn.svelte';
+    import AddContactBtn from '$components/main/AddContactBtn.svelte';
     
     import '$lib/styles/AnimatedPanel.css';
     
-    let contacts = []
+    const dispatch = createEventDispatcher()
+    
+    $: data = Object.values($currentSessionContacts || {}).map((c, id) => ({ id, ...c }));
+    let grouped = []
+    let filter = ""
     
     currentSessionContacts.subscribe(data => {
-        contacts = Object.values(data || {}).map((c, id) => ({ id, ...c }))
+        updateGroups(); // TODO optimize(?)
     })
     
-    let visible = contacts;
+    function updateGroups() {
+        if (!data) return;
+        
+        const contacts = data.filter(x => x.id !== $currentUser 
+                         && (!filter?.length || x.names[0].name.match(new RegExp(filter, 'i'))))
+        
+        contacts.sort((a, b) => {
+          const nameA = a.names?.[0]?.name || '';
+          const nameB = b.names?.[0]?.name || '';
+          return nameA.localeCompare(nameB, 'ru');
+        });
+        
+        grouped = contacts.reduce((acc, c) => {
+          const name = c.names?.[0]?.name || '';
+          const letter = name.charAt(0).toUpperCase();
+
+          if (!acc[letter]) acc[letter] = [];
+          acc[letter].push(c);
+
+          return acc;
+        }, {});
+    }
     
-    const search = (setSearchQuery, setSearchResults, openChat, searchQuery) => {
-      
+    const search = query => {
+        console.log('set', query)
+        filter = query;
+        updateGroups();
+    }
+    
+    const open = contact => {
+        const chatId = $currentUser ^ contact.id;
+        console.log("Opening chat " + chatId)
+        console.log(chatId);
+        dispatch('chat', chatId);
     }
     
 </script>
@@ -29,25 +64,34 @@
          <AddContactBtn/>
       </div>
       </div>
-      <Search search={search} placeholder="Имя, фамилия или ник"/>
+      <Search input={search} placeholder="Имя, фамилия или ник"/>
     </header>
 
     <main class="content">
-      {#each contacts as contact (contact.id)}
-        <div class="contact">
+      {#each Object.keys(grouped) as letter}
+        <a>{ letter }</a>
+        {#each grouped[letter] as contact}
+        <div class="contact"
+             on:click={() => open(contact)}
+             >
             <img src={ contact.avatar } alt={ contact.names[0].firstName } class="avatar"/>
             <div class="column">
               <div class="name">
-                  { contact.names[0].firstName + " " + contact.names[0].lastName }
+                  { contact.names[0].name }
               </div>
               <a>Был(а) недавно</a>
             </div>
         </div>
+        {/each}
       {/each}
     </main>
 </div>
 
 <style>
+  .container {
+    overflow: hidden;
+  }
+  
   header {
     z-index: 10;
     display: flex;
@@ -82,11 +126,14 @@
   
 
   .content {
+    height: calc(100% - 120px);
     color: #ccc;
     padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 20px;
+    overflow-y: scroll;
+    overflow-x: hidden;
   }
   
   .contact {
@@ -120,37 +167,5 @@
     border-radius: 50%;
     margin-right: 15px;
     flex-shrink: 0;
-  }
-
-  .header {
-    display: flex;
-    align-items: center;
-    margin-bottom: 24px;
-  }
-
-  .header h1 {
-    font-size: 28px;
-    font-weight: 700;
-    margin: 0;
-    margin-left: 16px;
-  }
-
-  .back-button {
-    display: flex;
-    align-items: center;
-    text-decoration: none;
-    color: #1877f2;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 8px;
-    border-radius: 50%;
-  }
-  
-  .back-button:hover {
-    background-color: #e7f3ff;
-  }
-  
-  .back-button span {
-    display: none;
   }
 </style>

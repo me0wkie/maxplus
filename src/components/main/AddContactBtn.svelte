@@ -1,5 +1,5 @@
 <script>
-  import AddContactModal from '$lib/components/chats/AddContactModal.svelte';
+  import AddContactModal from '$components/chats/AddContactModal.svelte';
   
   let addContactModal = false;
   let addContactVisible = true;

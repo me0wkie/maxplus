@@ -1,7 +1,7 @@
 <script>
     import { goto } from '$app/navigation';
     import Session from '$lib/stores/session.js';
-    import { startAuth } from '$lib/max/raw.js';
+    import API from '$lib/stores/api';
     
     import '$lib/styles/AnimatedPanel.css';
 
@@ -16,10 +16,11 @@
     async function handleRegister() {
         error = "Ожидайте..."
         console.log('Запрос на регистрацию:', { phone, name });
-        const response = await startAuth(phone)
+        const response = await $API.startAuth(phone)
         console.log(response)
         if(!response.token) {
             error = "Ошибка!"
+            alert(response.localizedMessage)
         } else {
             Session.set('token', response.token)
             Session.set('name', name)
