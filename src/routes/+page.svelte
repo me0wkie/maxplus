@@ -30,8 +30,16 @@
         if (exists) {
             openChats = [...openChats.filter(c => c.id !== chatId), exists];
         } else {
-            const chat = $currentSessionChats.find(x => x.id === chatId)
-            if (!chat) throw "Can't open chat: id doesn't exist"
+            let chat = $currentSessionChats.find(x => x.id === chatId)
+            if (!chat) {
+                const participants = {}
+                participants[$currentUser] = Date.now()
+                participants[chatId] = Date.now()
+                chat = {
+                    id: chatId,
+                    participants
+                }
+            }
             openChats = [...openChats, { ...chat }];
         }
     }

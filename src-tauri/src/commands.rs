@@ -126,12 +126,46 @@ pub async fn send_message(
 }
 
 #[tauri::command]
+pub async fn add_reaction(
+    state: State<'_, AppState>,
+    chat_id: i64,
+    message_id: String,
+    reaction: String,
+) -> Result<Value, String> {
+    let cor: u64 = message_id.parse().unwrap();
+    state.client.add_reaction(chat_id, cor, reaction)
+        .await
+        .map_err(|e| e.to_string())
+        .and_then(|r| {
+            serde_json::to_value(r.payload)
+                .map_err(|e| e.to_string())
+        })
+}
+
+#[tauri::command]
+pub async fn remove_reaction(
+    state: State<'_, AppState>,
+    chat_id: i64,
+    message_id: String,
+) -> Result<Value, String> {
+    let cor: u64 = message_id.parse().unwrap();
+    state.client.remove_reaction(chat_id, cor)
+        .await
+        .map_err(|e| e.to_string())
+        .and_then(|r| {
+            serde_json::to_value(r.payload)
+                .map_err(|e| e.to_string())
+        })
+}
+
+#[tauri::command]
 pub async fn fetch_history(
     state: State<'_, AppState>,
     chat_id: i64,
     from_time: Option<u64>,
+    amount: Option<u32>,
 ) -> Result<Value, String> {
-    state.client.fetch_history(chat_id, from_time, 0, 200)
+    state.client.fetch_history(chat_id, from_time, 0, amount.unwrap_or(200))
         .await
         .map_err(|e| e.to_string())
         .and_then(|r| {
@@ -169,7 +203,7 @@ pub async fn add_contact(
 }
 
 #[tauri::command]
-pub async fn delete_contact(
+pub async fn remove_contact(
     state: State<'_, AppState>,
     contact_id: u64
 ) -> Result<Value, String> {

@@ -1,16 +1,13 @@
 import { usersDb, chatsDb } from '$lib/stores/api'
 
 export default class API {
-    /*#users = [];
-    #user = null;
-    #token = null;
-    #userDetails = null;*/
-    
     _user = null;
     _userDetails = null;
     _device = null;
     folders = [];
+    
     chats = [];
+    savedMessages = {};
     
     constructor(token) {
         this._token = token;

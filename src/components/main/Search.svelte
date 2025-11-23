@@ -18,7 +18,9 @@
 
 <div class="search-block" class:active={ focused }>
   <img src="icons/search.svg"/>
-  <a>{ placeholder }</a>
+  {#if !query.length}
+    <a>{ placeholder }</a>
+  {/if}
   <input
     type="text"
     placeholder=""

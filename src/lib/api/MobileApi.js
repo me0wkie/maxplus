@@ -131,7 +131,6 @@ export default class MobileApi extends BaseAPI {
         
         try {
             res = await invoke('sync_client')
-            console.log(res)
         } catch (e) {
             alert(e)
             console.error(e)
@@ -140,8 +139,13 @@ export default class MobileApi extends BaseAPI {
         }
         
         const { chats, config } = res;
+        
+        console.log('Ответ sync', res)
             
         currentFolders.set(config.chatFolders.FOLDERS);
+        
+        //const reactions = config.server['reactions-menu'];
+        //const callsEndpoint = config.server['calls-endpoint'];
         
         const currentChats = get(currentSessionChats) || [];
         const currentContacts = get(currentSessionContacts) || {};
@@ -180,7 +184,9 @@ export default class MobileApi extends BaseAPI {
                 })
             }
         })
-        console.log(requireInfo)
+        
+        console.log('Необходимые для обновления контакты', requireInfo)
+        
         if(requireInfo.size) {
             const response = await this.fetchContacts([ ...requireInfo ]);
             console.log('Got contacts', response)
@@ -199,14 +205,13 @@ export default class MobileApi extends BaseAPI {
                 }
             })
         }
-        console.log(currentSessionChats, currentChats, currentContacts)
+        
         currentSessionChats.set(currentChats);
         currentSessionContacts.set(currentContacts);
         
         console.log('Синхронизация завершена!')
         
         await new Promise(r => setTimeout(r, 5000));
-        //Session.set("syncing", false);
     }
     
     async fetchContacts(userIds) {
@@ -214,15 +219,47 @@ export default class MobileApi extends BaseAPI {
     }
     
     async getMessages(chatId, fromTime) {
-        return await invoke('fetch_history', { chatId, fromTime })
+        return await invoke('fetch_history', { chatId, fromTime, amount: 20 })
     }
     
     async sendMessage(message, chatId, params) {
         return await invoke('send_message', { message, chatId, params })
     }
     
+    async react(chatId, messageId, reaction) {
+        if (!reaction) return await invoke('remove_reaction', { chatId, messageId })
+        return await invoke('add_reaction', { chatId, messageId, reaction })
+    }
+    
     async addContact(name, phone) {
+        const response = await invoke('get_by_phone', { phone })
+        console.log(response)
         
+        const contact = response.contact;
+        if (!contact) return { success: false, error: 'not-found' }
+        
+        const contactId = contact.id;
+        
+        const result = await invoke('add_contact', { contactId })
+        
+        if (!result) return { success: false, error: 'denied' }
+        
+        console.log(result)
+        
+        contact.avatar = contact.baseUrl;
+        
+        currentSessionContacts.update(contacts => {
+            contacts[contactId] = contact;
+            return contacts;
+        })
+        
+        return { success: true };
+    }
+    
+    async removeContact(contactId) {
+        const response = await invoke('remove_contact', { contactId })
+        console.log(response)
+        return { success: true };
     }
 }
 

@@ -13,6 +13,9 @@ export default defineConfig(async () => ({
       $components: path.resolve('./src/components')
     }
   },
+  css: {
+    devSourcemap: true, // Попробуйте включить это
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

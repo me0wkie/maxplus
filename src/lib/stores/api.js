@@ -29,8 +29,8 @@ listen('max', (event) => {
     }
 });
 
-const users = new LazyStore('users.json');
-const chats = new LazyStore('chats.json');
+const users = new LazyStore('users.bin');
+const chats = new LazyStore('chats.bin');
 
 export const currentUser = writable(undefined)
 export const currentSessionChats = writable(undefined);
@@ -145,6 +145,7 @@ const updateChats = async (_chats, user) => {
 
 const updateContacts = async (_contacts, user) => {
     if (!user) return;
+    
     if (_contacts === undefined) {
         const fromDb = await chats.get('contacts-' + user);
         currentSessionContacts.set(fromDb || {});
@@ -168,3 +169,4 @@ const updateFolders = async (_folders, user) => {
     
     console.log('folders hook did something', await chats.get('folders-' + user))
 }
+

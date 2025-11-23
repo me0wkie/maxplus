@@ -18,6 +18,17 @@
         
         const response = await $API.addContact(addContactName, addContactPhone)
         
+        if (!response.success) {
+            if (response.error === 'not-found') {
+                addContactPhoneWrong = true;
+            }
+            else if (response.error === 'denied') {
+                alert("Контакт уже добавлен или запрещен к добавлению")
+            }
+            
+            return;
+        }
+        
         console.log(response)
         
         addContactName = "";
@@ -26,7 +37,7 @@
     }
     
     const handleClickOutsideContactModal = event => {
-        const isOutside = !['.add-contact-modal'].some(x => event.target.closest(x))
+        const isOutside = !['.add-contact-modal'].some(x => event.target.closest(x));
 		    if (isOutside) dispatch('close');
     }
 </script>
@@ -41,7 +52,7 @@
               <a>Имя</a>
               <input class:error={addContactNameWrong}
                      on:click={() => { addContactNameWrong = false }}
-                     bind:value={addContactName} placeholder="Необязательно"/>
+                     bind:value={addContactName} placeholder="Имя пока не работает"/>
           </div>
           <div class="row">
               <a>Номер телефона</a>

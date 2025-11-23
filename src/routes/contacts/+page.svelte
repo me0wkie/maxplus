@@ -4,33 +4,40 @@
     import { currentSessionContacts, currentUser } from '$lib/stores/api';
     import Search from '$components/main/Search.svelte';
     
+    import API from '$lib/stores/api';
+    
     import AddContactBtn from '$components/main/AddContactBtn.svelte';
     
     import '$lib/styles/AnimatedPanel.css';
     
     const dispatch = createEventDispatcher()
     
-    $: data = Object.values($currentSessionContacts || {}).map((c, id) => ({ id, ...c }));
-    let grouped = []
-    let filter = ""
+    // TODO check if this window selected (optimize)
     
-    currentSessionContacts.subscribe(data => {
-        updateGroups(); // TODO optimize(?)
-    })
-    
-    function updateGroups() {
-        if (!data) return;
+    let grouped = {};
+    let filter = "";
+    let onlyRealChecked = false;
+
+    $: hasRealContacts = Object.values($currentSessionContacts || {}).some(x => x.options?.length);
+
+    $: grouped = (() => {
+        if (!$currentSessionContacts) return {};
+
+        const rawData = Object.values($currentSessionContacts).map((c, id) => ({ id, ...c }));
         
-        const contacts = data.filter(x => x.id !== $currentUser 
-                         && (!filter?.length || x.names[0].name.match(new RegExp(filter, 'i'))))
-        
+        const contacts = rawData.filter(x => 
+            x.id !== $currentUser 
+            && (!filter || x.names[0].name.match(new RegExp(filter, 'i')))
+            && (!onlyRealChecked || x.options?.includes("TT"))
+        );
+
         contacts.sort((a, b) => {
           const nameA = a.names?.[0]?.name || '';
           const nameB = b.names?.[0]?.name || '';
           return nameA.localeCompare(nameB, 'ru');
         });
-        
-        grouped = contacts.reduce((acc, c) => {
+
+        return contacts.reduce((acc, c) => {
           const name = c.names?.[0]?.name || '';
           const letter = name.charAt(0).toUpperCase();
 
@@ -39,19 +46,32 @@
 
           return acc;
         }, {});
+    })();
+
+    async function removeContact(id) {
+        const result = await $API.removeContact(id);
+        currentSessionContacts.update(contacts => {
+            if (contacts[id]) delete contacts[id]['options']; 
+            return contacts;
+        });
     }
-    
+
     const search = query => {
-        console.log('set', query)
-        filter = query;
-        updateGroups();
+        filter = query; 
     }
-    
-    const open = contact => {
-        const chatId = $currentUser ^ contact.id;
-        console.log("Opening chat " + chatId)
-        console.log(chatId);
-        dispatch('chat', chatId);
+
+    const filterSwap = event => {
+        onlyRealChecked = event?.target?.checked || false;
+    }
+
+    const open = (e, contact) => {
+        const toDelete = ['.delete'].some(x => e.target.closest(x));
+        if (toDelete) {
+            removeContact(contact.id);
+        } else {
+            const chatId = $currentUser ^ contact.id;
+            dispatch('chat', chatId);
+        }
     }
     
 </script>
@@ -66,24 +86,40 @@
       </div>
       <Search input={search} placeholder="Имя, фамилия или ник"/>
     </header>
+    
+    <div class="onlyReal">
+      <input type="checkbox" id="only-added" name="only-added" on:click={filterSwap}/>
+      <label for="only-added">Только добавленные контакты</label>
+      <span class="checkmark"></span>
+    </div>
 
     <main class="content">
       {#each Object.keys(grouped) as letter}
         <a>{ letter }</a>
         {#each grouped[letter] as contact}
         <div class="contact"
-             on:click={() => open(contact)}
+             on:click={e => open(e, contact)}
              >
-            <img src={ contact.avatar } alt={ contact.names[0].firstName } class="avatar"/>
+            <img src={ contact.avatar || contact.baseUrl } alt={ contact.names[0].firstName } class="avatar"/>
             <div class="column">
               <div class="name">
                   { contact.names[0].name }
               </div>
               <a>Был(а) недавно</a>
             </div>
+            <div class="action">
+                {#if contact.options}
+                  <a class="delete">Удалить</a>
+                {:else}
+                  <a>Не контакт</a>
+                {/if}
+            </div>
         </div>
         {/each}
       {/each}
+      {#if Object.keys(grouped).length === 0}
+        <a style="font-size:14px">Ничего не найдено!</a>
+      {/if}
     </main>
 </div>
 
@@ -124,9 +160,27 @@
     gap: 15px;
   }
   
+  .onlyReal {
+    color: #999;
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    font-size: 14px;
+    margin-left: -10px;
+    position: relative;
+  }
+
+  .onlyReal input {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+  }
+
+  
 
   .content {
-    height: calc(100% - 120px);
+    height: calc(100% - 140px);
     color: #ccc;
     padding: 10px;
     display: flex;
@@ -137,16 +191,12 @@
   }
   
   .contact {
+    position: relative;
     height: 40px;
     width: 100%;
     display: flex;
     flex-direction: row;
     cursor: pointer;
-    transition: margin 0.3s;
-  }
-  
-  .contact:hover {
-    margin-left: 10px;
   }
   
   .contact .name {
@@ -159,6 +209,16 @@
     color: #999;
     position: relative;
     bottom: 3px;
+  }
+  
+  .contact .delete {
+    color: #f88;
+  }
+  
+  .contact .action {
+    position: absolute;
+    right: 10px;
+    margin-bottom: 10px;
   }
 
   .avatar {
