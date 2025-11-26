@@ -11,7 +11,7 @@
     let addContactPhoneWrong = false;
     
     const addContactHandler = async () => {
-        addContactNameWrong = !addContactName || addContactName.length < 1 || addContactName.length > 30;
+        addContactNameWrong = !addContactName || addContactName.length < 0 || addContactName.length > 30;
         addContactPhoneWrong = addContactPhone[0] !== '+' || addContactPhone.length <= 2
         
         if (addContactNameWrong || addContactPhoneWrong) return;

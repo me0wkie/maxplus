@@ -13,15 +13,22 @@ const Apis = {
 let apiInstance = new Apis[SELECTED]();
 
 listen('max', (event) => {
-    const { payload: response } = event;
+    const { payload } = event;
     
-    if (response.type === "log") {
-        console.log(JSON.stringify(response));
+    if (payload.type === "log") {
+        console.log(JSON.stringify(payload));
         return;
     }
     
+    if (payload.type === 'tx') {
+        console.log('TX', JSON.stringify(payload.request));
+        return;
+    }
+    
+    // only RX
+    const { response } = payload;
     const opc = response.opcode;
-    console.log(opc, JSON.stringify(response))
+    console.log('Handling RX', opc, JSON.stringify(response))
     
     if (opc === 128) {
         // TODO event handler

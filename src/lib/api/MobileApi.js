@@ -154,14 +154,15 @@ export default class MobileApi extends BaseAPI {
             chats.forEach(chat => {
                 const { id, cid, title, admins, baseIconUrl: avatar,
                 adminParticipants, videoConversation, status, lastMessage,
-                lastEventTime, participants, newMessages } = chat
+                lastEventTime, participants, newMessages, type } = chat
                 const exists = currentChats.find(entry => entry.id === id)
-                if(!exists) currentChats.push({ id, title, status, avatar, lastMessage, lastEventTime, participants, newMessages })
+                if(!exists) currentChats.push({ id, type, title, status, avatar, lastMessage, lastEventTime, participants, newMessages })
                 else {
                     const before = updated ? null : JSON.stringify(exists)
                     exists.lastMessage = lastMessage;
                     exists.lastEventTime = lastEventTime;
                     exists.participantIds = participants;
+                    exists.type = type;
                     exists.newMessages = newMessages;
                     exists.avatar = avatar;
                     if(exists.title) exists.title = title;
@@ -189,7 +190,8 @@ export default class MobileApi extends BaseAPI {
             console.log('Необходимые для обновления контакты', requireInfo)
             
             if(requireInfo.size) {
-                const response = await this.fetchContacts([ ...requireInfo ]);
+                const response = await invoke('fetch_contacts', { userIds: [ ...requireInfo ] });
+                
                 console.log('Got contacts', response)
                 response.contacts.forEach(contact => {
                     if(currentContacts[contact.id]) currentContacts[contact.id].avatar = contact.baseUrl
@@ -257,7 +259,7 @@ export default class MobileApi extends BaseAPI {
         
         const contactId = contact.id;
         
-        const result = await invoke('add_contact', { contactId })
+        const result = await invoke('add_contact', { contactId, firstName: name })
         
         if (!result) return { success: false, error: 'denied' }
         

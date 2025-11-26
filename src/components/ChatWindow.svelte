@@ -253,6 +253,7 @@
             if (isOutside) {
                 dropoutActiveAt = null;
                 e.stopPropagation();
+                if (onBack.dropout) delete onBack['dropout'];
             }
         }
         
@@ -260,11 +261,12 @@
         const reactionClicked = ['.reaction'].some(x => e.target.closest(x))
         if (reactionClicked) {
             console.log(e.target.childNodes)
+            
             const reaction = e.target.childNodes[0].nodeValue.trim();
             const msgId = e.target.parentNode.dataset.msgId;
             handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
             messages.update(x => x);
-            e.stopPropagation()
+            e.stopPropagation();
         }
     }
     
@@ -328,30 +330,32 @@
     </div>
     
     <Dropout activeAt={dropoutActiveAt} chat={chat} on:close={handleDropout}/>
-
-    <div class="input-area">
-        <div class="input-controls">
-             <textarea 
-                id="textarea-{chat.id}"
-                rows="1" 
-                placeholder="Сообщение" 
-                bind:value={newMessage} 
-                on:keydown={async (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        await sendMessage(chat, chatKeysCached, messages, newMessage, replyTo);
-                        newMessage = "";
-                    }
-                }}
-            ></textarea>
-            <button class="send-button" on:click={async e => {
-                  await sendMessage(chat, chatKeysCached, messages, newMessage, replyTo);
-                  newMessage = "";
-              }}>
-                <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-            </button>
+    
+    {#if chat.type !== "CHANNEL"}
+        <div class="input-area">
+            <div class="input-controls">
+                 <textarea 
+                    id="textarea-{chat.id}"
+                    rows="1" 
+                    placeholder="Сообщение" 
+                    bind:value={newMessage} 
+                    on:keydown={async (e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            await sendMessage(chat, chatKeysCached, messages, newMessage, replyTo);
+                            newMessage = "";
+                        }
+                    }}
+                ></textarea>
+                <button class="send-button" on:click={async e => {
+                      await sendMessage(chat, chatKeysCached, messages, newMessage, replyTo);
+                      newMessage = "";
+                  }}>
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
         </div>
-    </div>
+    {/if}
 </div>
 
 <style>

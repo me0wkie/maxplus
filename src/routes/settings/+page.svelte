@@ -134,12 +134,20 @@
     display: flex;
     flex-direction: row;
     cursor: pointer;
+    align-items: center;
   }
   
   .buttons .group .icon {
     width: 24px;
     height: 24px;
     margin-right: 19px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
+  }
+  
+  .buttons .group .button a {
+    line-height: 1;
   }
   
   .buttons .group .button svg {

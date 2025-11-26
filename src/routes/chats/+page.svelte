@@ -13,21 +13,42 @@
     import AddContactBtn from '$components/main/AddContactBtn.svelte';
     import Search from '$components/main/Search.svelte';
     
-    import API, { currentSessionChats, currentlySyncing, currentUser } from '$lib/stores/api.js';
+    import API, { currentSessionChats, currentlySyncing, currentUser, receivedMessage } from '$lib/stores/api.js';
     import Session from '$lib/stores/session.js';
     
     let activeFolder = null;
     
     const dispatch = createEventDispatcher()
     
-    $: sortedChats = ($currentSessionChats || [])
-      .sort((a,b) => b.lastEventTime - a.lastEventTime)
+    $: sortedChats = (() => {
+      const filtered = ($currentSessionChats || [])
       .filter(chat => {
           if (!activeFolder || activeFolder.title === 'Все') return true;
           if (activeFolder.filters?.includes('UNREAD') && !chat.newMessages) return false;
           if (!activeFolder.filters) return false;
           return true; // TODO folder editor
       })
+      sortChats(filtered);
+      return filtered;
+    })();
+    
+    function sortChats(chatArray) {
+        chatArray.sort((a,b) => b.lastEventTime - a.lastEventTime);
+    }
+    
+    receivedMessage.subscribe(message => {
+        if (!sortedChats) return;
+        const index = sortedChats.findIndex(x => x.id === message.chatId);
+        if (index !== -1) {
+            const chat = sortedChats[index];
+            chat.lastEventTime = Date.now();
+            if (index > 0) {
+                sortedChats.splice(index, 1);
+                sortedChats.unshift(chat);
+            }
+            sortedChats = sortedChats;
+        }
+    })
     
     // TODO подгрузка 40+ чатов
     function handleScroll(e) {
@@ -40,7 +61,7 @@
     
     currentUser.subscribe(async user => {
         if (user === undefined) return;
-        if (Session.get("synced")) return;
+        if (Session.get("sync")) return;
         
         if (user === null) return;
         

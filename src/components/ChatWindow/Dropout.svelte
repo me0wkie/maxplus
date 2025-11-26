@@ -49,6 +49,8 @@
         handleReaction(chat, activeAt.msg, emoji)
         
         dispatch('close', { update: true });
+        
+        if (onBack.dropout) delete onBack['dropout'];
     }
         
     onDestroy(() => {

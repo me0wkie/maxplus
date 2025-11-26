@@ -9,15 +9,8 @@
   // TODO выяснить как ставятся аватары
   const avatarUserId = +Object.keys(chat.participants).find(x => +x !== $currentUser)
   
-  console.log(chat)
   const avatar = writable(chat.avatar || (chat.id === 0 ? 'saved.webp' : null));
   const dispatch = createEventDispatcher();
-  
-  receivedMessage.subscribe(message => {
-      if (!message || message.chatId !== chat.id) return;
-      text = message.text;
-      date = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-  })
   
   currentSessionContacts.subscribe(contacts => {
     if (!contacts) return;
@@ -31,6 +24,12 @@
   
   let text = chat.lastMessage?.text || "";
   let date = chat.lastMessage?.time ? new Date(chat.lastMessage.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : "";
+  
+  receivedMessage.subscribe(message => {
+      if (!message || message.chatId !== chat.id) return;
+      text = message.text;
+      date = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+  })
 </script>
 
 <div class="chat-item" on:click={() => dispatch('open', chat)}>
@@ -42,7 +41,12 @@
         <span class="time">{date}</span>
       </div>
       <div class="message-preview">
-        <p class="ellipsis">{text}</p>
+        <p class="ellipsis">
+          {#if chat.lastMessage.sender === $currentUser}
+          <a style="color:#99d">{"Вы: "}</a> 
+          {/if}
+          {text}
+        </p>
         {#if chat.newMessages > 0}
           <span class="unread-badge">{chat.newMessages}</span>
         {/if}
