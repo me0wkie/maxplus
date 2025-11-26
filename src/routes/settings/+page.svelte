@@ -17,11 +17,11 @@
     
     const buttons = [
       [
-        { icon: "", text: "Настройки шифрования", action: () => {} },
+        { icon: "crypto.svg", text: "Настройки шифрования", action: () => goto("setup/tokens?from=/") },
       ],
       [
-        { icon: "", text: "Выйти из аккаунта", action: handleLogout },
-        { icon: "", text: "О приложении", action: () => {} }
+        { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
+        { icon: "about.svg", text: "О приложении", action: () => {} }
       ]
     ]
     
@@ -43,8 +43,8 @@
 
 <div class="settings">
     <div class="top">
-      <a>QR</a>
-      <a>Edit</a>
+      <img src={ "icons/qr.svg" }/>
+      <img src={ "icons/edit.svg" }/>
     </div>
     
     <div class="info">
@@ -58,7 +58,7 @@
         <div class="group">
           {#each group as btn}
             <div on:click={ btn.action } class="button">
-              <img src={ btn.icon } class="icon"/>
+              <img src={ "icons/" + btn.icon } class="icon"/>
               <a>{ btn.text }</a>
               <svg width="40" height="20" viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
                 <polyline points="30,3 38,10 30,17" stroke="#999" fill="none" stroke-width="3"/>
@@ -83,8 +83,15 @@
     justify-content: space-between;
   }
   
+  .top img {
+    height: 35px;
+    width: 35px;
+    padding: 6px;
+    opacity: 0.7;
+  }
+  
   .info {
-    margin-top: 10px;
+    margin-top: 20px;
     top: 0;
     width: 100vw;
     display: flex;
@@ -123,15 +130,15 @@
   }
   
   .buttons .group .button {
-    padding: 14px 19px;
+    padding: 14px 20px;
     display: flex;
     flex-direction: row;
     cursor: pointer;
   }
   
   .buttons .group .icon {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     margin-right: 19px;
   }
   

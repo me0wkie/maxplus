@@ -1,5 +1,5 @@
 <script>
-    import { createEventDispatcher, onMount } from 'svelte';
+    import { createEventDispatcher, getContext, onMount, onDestroy } from 'svelte';
     import VirtualList from 'svelte-tiny-virtual-list';
     import { fade, fly } from 'svelte/transition';
     import { writable, get } from 'svelte/store';
@@ -65,16 +65,38 @@
         if (_messages.length) await chatMessages.set(chat.id, _messages);
     })
     
-    let all_loaded = messages.length < 20;
+    let all_loaded = messages.length < 200;
     
 
-    const BATCH_SIZE = 20;
+    const BATCH_SIZE = 200;
 
     // TODO выяснить как ставятся аватары
     const avatarUserId = Object.keys(chat.participants).find(x => +x !== $currentUser)
     
     
+    const onBack = getContext('onBack');
     
+    onBack['chat'] = () => {
+        dispatch('close');
+        console.log('close')
+        delete onBack['chat'];
+    };
+    
+    onDestroy(() => {
+        delete onBack['chat'];
+        if (onBack.dropout) delete onBack['dropout'];
+        if (onBack.chatSettings) delete onBack['chatSettings'];
+    });
+    
+    const openSettings = () => {
+        showSettings = !showSettings;
+        if (showSettings) {
+            onBack.chatSettings = () => showSettings = false;
+        } else {
+            delete onBack['chatSettings'];
+        }
+        if (onBack.dropout) onBack.dropout();
+    }
     
     function hasChanged(oldMsg, newMsg) {
         if (oldMsg.text !== newMsg.text) return true;
@@ -105,7 +127,7 @@
         loading = true;
         
         console.log('Requesting... initialized:', initialized);
-        console.log('saved', $messages.length)
+        console.log('previously saved', $messages.length)
         
         if (!initialized) {
             if (!$messages.length) {
@@ -180,8 +202,6 @@
                 }
             }
             
-            console.log(BATCH_SIZE)
-            
             if (syncedMessages.length < BATCH_SIZE) {
                 all_loaded = true;
             }
@@ -240,7 +260,7 @@
         const reactionClicked = ['.reaction'].some(x => e.target.closest(x))
         if (reactionClicked) {
             console.log(e.target.childNodes)
-            const reaction = e.target.childNodes[1].nodeValue.trim();
+            const reaction = e.target.childNodes[0].nodeValue.trim();
             const msgId = e.target.parentNode.dataset.msgId;
             handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
             messages.update(x => x);
@@ -256,15 +276,15 @@
     }
     
     function handleDropout(e) {
-        console.log(e)
+        console.log(e);
         dropoutActiveAt = null;
         if (e.detail?.update) {
             messages.update(x => x);
         }
     }
     
-    $: title = chat.title || $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
-    $: avatar = $currentSessionContacts?.[avatarUserId]?.avatar;
+    $: title = chat.title || $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name || "Избранное";
+    $: avatar = chat.avatar || (chat.id === 0 ? 'saved.webp' : $currentSessionContacts?.[avatarUserId]?.avatar);
 </script>
 <div class="chat-window" on:click|capture={handleClick}>
     <Bubbles/>
@@ -275,10 +295,13 @@
                 <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
             </button>
             <div class="avatar" style={"background-image: url(" + avatar + ")"}></div>
-            <a class="title">{ title }</a>
+            <div class="info">
+                <a class="title">{ title }</a>
+                <a class="presence">Был(а) недавно</a>
+            </div>
         </div>
         <div class="align-right">
-            <button class="icon-button" on:click|stopPropagation={() => showSettings = !showSettings}>
+            <button class="icon-button" on:click|stopPropagation={openSettings}>
                 <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
             </button>
         </div>
@@ -343,7 +366,7 @@
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: 100svh;
     background-color: #161621;
     scrollbar-width: none;
   }
@@ -357,17 +380,31 @@
     height: 32px;
     cursor: grab;
     flex-shrink: 0;
-    background-color: #242320;
+    background-color: #1e2024;
     z-index: 5;
+  }
+  
+  header .info {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  header .info .presence {
+    font-size: 12px;
   }
   
   header .title {
     color: white;
+    font-size: 16px;
+    width: 25vh;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   header .avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border-radius: 100px;
     background-size: cover;
     image-rendering: smooth;
@@ -437,7 +474,7 @@
   .input-area {
     padding: 8px;
     flex-shrink: 0;
-    background-color: #242320;
+    background-color: #1e2024;
     z-index: 5;
   }
   
@@ -449,9 +486,11 @@
   
   textarea {
     flex-grow: 1;
-    border-radius: 20px;
+    border-radius: 12px;
     padding: 10px 15px;
-    background-color: none;
+    background-color: #17191d;
+    color: #ddd;
+    border: none;
     resize: none;
     overflow-y: hidden;
     min-height: 42px;

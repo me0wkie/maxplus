@@ -64,8 +64,8 @@
                           <div class="reaction"
                             class:your={msg.reactionInfo.yourReaction === entry.reaction}
                           >
-                            <a class="amount">{ entry.count }</a>
                             { entry.reaction }
+                            <a class="amount">{ entry.count }</a>
                           </div>
                         {/each}
                       </div>
@@ -122,7 +122,7 @@
     }
     
     .message-bubble { 
-        background-color: #3e3859;
+        background: linear-gradient(90deg, #3e3859, #3a3c55);
         color: #fff;
         padding: 8px 12px;
         border-radius: 18px; 
@@ -151,7 +151,7 @@
     }
     
     .message-row.is-me .message-bubble {
-        background-color: #7b4cd6;
+        background: #7b4cd6;
     }
     
     .message-row.is-system .message-bubble { 

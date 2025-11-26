@@ -1,12 +1,6 @@
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
 .DS_Store
 build
 /captures
@@ -18,7 +12,11 @@ key.properties
 /.tauri
 /tauri.settings.gradle
 
-/app/src/main/
+/app/src/main/assets
+/app/src/main/java
+/app/src/main/jniLibs
+/app/src/main/res
 /app/buildSrc/
 /gradle**
 /settings.gradle
+/.idea

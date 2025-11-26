@@ -4,11 +4,15 @@
     import * as Settings from '$lib/stores/settings.js';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
+    import { onMount, setContext } from 'svelte';
     import { checkUpdates } from '$lib/utils/updater.js'
+    import { onBackButtonPress } from '@tauri-apps/api/app'
     
     let settings;
     let loaded = false;
+    const onBack = {};
+    
+    setContext('onBack', onBack);
 
     onMount(async () => {
         checkUpdates().then(result => {
@@ -22,6 +26,17 @@
             goto('/setup/tokens');
         }
         
+        const unlisten = await onBackButtonPress((payload) => {
+            console.log('Back button pressed', payload);
+            
+            console.log('Registered onBack handlers:', Object.keys(onBack))
+            
+            if (onBack.chatSettings) onBack.chatSettings();
+            else if (onBack.dropout) onBack.dropout()
+            else if (onBack.chat) onBack.chat();
+            else if (onBack.addContact) onBack.addContact();
+        });
+        
         loaded = true;
     })
     
@@ -32,7 +47,9 @@
 </script>
 
 <style>
-    
+  main {
+    overflow-x: hidden;
+  }
 </style>
 
 {#if loaded}

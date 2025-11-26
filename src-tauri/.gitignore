@@ -9,3 +9,4 @@
 /icons/
 
 Cargo.lock
+tauri.android.conf.json

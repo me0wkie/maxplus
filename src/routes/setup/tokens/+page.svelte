@@ -5,7 +5,7 @@
     
     import '$lib/styles/AnimatedPanel.css';
     
-    $: from = $page.url.searchParams.get('from');
+    $: from = $page.url.searchParams.get('from') || "/auth/login";
     
     async function selectProtection(method) {
         await set('tokenEncType', method);
@@ -23,8 +23,7 @@
                 break;
         }
         
-        if (from === 'settings') goto('/settings')
-        else goto('/auth/login');
+        goto(from)
     }
 </script>
 

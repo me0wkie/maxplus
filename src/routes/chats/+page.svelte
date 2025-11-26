@@ -38,16 +38,9 @@
       //TODO
     }
     
-    onMount(() => {
-        console.log('on mount syncing')
-        $API.sync();
-    })
-    
     currentUser.subscribe(async user => {
         if (user === undefined) return;
         if (Session.get("synced")) return;
-        
-        console.log(user)
         
         if (user === null) return;
         
@@ -70,9 +63,6 @@
         <h3 style="margin-left: 15px;">Чаты</h3>
         
         <div style="margin-right: 15px;" class="flex-end">
-         <div class="more top-btn">
-         
-         </div>
          <AddContactBtn/>
       </div>
       </div>
@@ -171,13 +161,21 @@
     display: flex;
     flex-direction: column;
     flex: 1; 
-    
-    /* Включаем скролл */
     overflow-y: auto; 
-    
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
+  
+  .chat-list::-webkit-scrollbar { 
+    display: none;
+    overflow: -moz-scrollbars-none;
+  }
+  
+  .chat-list {
+    overflow-y: scroll;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
   
   .chat-list > * {

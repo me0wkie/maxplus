@@ -10,6 +10,7 @@
     "opener:default",
     "store:default",
     "stronghold:default",
-    "notification:default"
+    "notification:default",
+    "notification:allow-is-permission-granted"
   ]
 }

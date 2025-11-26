@@ -15,8 +15,13 @@ let apiInstance = new Apis[SELECTED]();
 listen('max', (event) => {
     const { payload: response } = event;
     
+    if (response.type === "log") {
+        console.log(JSON.stringify(response));
+        return;
+    }
+    
     const opc = response.opcode;
-    console.log(opc, response)
+    console.log(opc, JSON.stringify(response))
     
     if (opc === 128) {
         // TODO event handler

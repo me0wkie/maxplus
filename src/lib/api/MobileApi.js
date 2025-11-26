@@ -6,6 +6,8 @@ import Session from '$lib/stores/session'
 import { goto } from '$app/navigation';
 
 export default class MobileApi extends BaseAPI {
+    resolve_sync = null;
+    synchronized = new Promise(resolve => this.resolve_sync = resolve);
     
     constructor(token) {
         super(token);
@@ -118,125 +120,140 @@ export default class MobileApi extends BaseAPI {
     }
     
     async sync() {
-        console.log(this.getToken(), this.getUser())
-        if (!this.getToken()) throw "No token set"
-        if (!this.getUser()) throw "No user ID, syncing cancelled"
-        if (Session.get("synced")) throw "Already synced!"
-        
-        console.warn('Синхронизируем!')
-        
-        Session.set("synced", true);
-        
-        let res;
-        
         try {
-            res = await invoke('sync_client')
+            if (!this.getToken()) throw "Ошибка: токен не установлен"
+            if (!this.getUser()) throw "Ошибка: User ID не установлен"
+            if (Session.get("sync")) {
+                console.warn("Уже синхронизовано!")
+                return;
+            }
+            
+            console.warn('Синхронизируем!')
+            
+            Session.set("sync", true);
+            
+            const res = await invoke('sync_client')
+            
+            const { chats, config, presence } = res;
+            
+            console.log('Ответ sync', res)
+                
+            currentFolders.set(config.chatFolders.FOLDERS);
+            
+            //const reactions = config.server['reactions-menu'];
+            //const callsEndpoint = config.server['calls-endpoint'];
+            
+            // TODO presence
+            
+            const currentChats = get(currentSessionChats) || [];
+            const currentContacts = get(currentSessionContacts) || {};
+            
+            // TODO wtf?
+            
+            let updated = false;
+            chats.forEach(chat => {
+                const { id, cid, title, admins, baseIconUrl: avatar,
+                adminParticipants, videoConversation, status, lastMessage,
+                lastEventTime, participants, newMessages } = chat
+                const exists = currentChats.find(entry => entry.id === id)
+                if(!exists) currentChats.push({ id, title, status, avatar, lastMessage, lastEventTime, participants, newMessages })
+                else {
+                    const before = updated ? null : JSON.stringify(exists)
+                    exists.lastMessage = lastMessage;
+                    exists.lastEventTime = lastEventTime;
+                    exists.participantIds = participants;
+                    exists.newMessages = newMessages;
+                    exists.avatar = avatar;
+                    if(exists.title) exists.title = title;
+                    if(exists.status) exists.status = status;
+                    if(exists.admins) {
+                        exists.admins = admins;
+                        exists.adminParticipants = adminParticipants;
+                    }
+                    if(exists.videoConversation) exists.videoConversation = videoConversation;
+                    if(exists.status) exists.status = status;
+                    if(!updated && before !== JSON.stringify(exists)) updated = true;
+                }
+            });
+            
+            let requireInfo = new Set();
+            
+            chats.forEach(chat => {
+                if(chat.type === 'DIALOG') {
+                    Object.keys(chat.participants).forEach(member => {
+                        if(!currentContacts[member]) requireInfo.add(+member)
+                    })
+                }
+            })
+            
+            console.log('Необходимые для обновления контакты', requireInfo)
+            
+            if(requireInfo.size) {
+                const response = await this.fetchContacts([ ...requireInfo ]);
+                console.log('Got contacts', response)
+                response.contacts.forEach(contact => {
+                    if(currentContacts[contact.id]) currentContacts[contact.id].avatar = contact.baseUrl
+                    else {
+                        currentContacts[contact.id] = {
+                            id: contact.id,
+                            avatar: contact.baseUrl,
+                            names: contact.names,
+                            gender: contact.gender,
+                            description: contact.description,
+                            updateTime: contact.updateTime,
+                            added: true,
+                        }
+                    }
+                })
+            }
+            
+            currentSessionChats.set(currentChats);
+            currentSessionContacts.set(currentContacts);
+            
+            console.log('Синхронизация завершена!');
+            this.resolve_sync();
+            //await new Promise(r => setTimeout(r, 5000));
         } catch (e) {
             alert(e)
             console.error(e)
             if (e.includes("login.token")) await this.logout();
-            return
         }
-        
-        const { chats, config } = res;
-        
-        console.log('Ответ sync', res)
-            
-        currentFolders.set(config.chatFolders.FOLDERS);
-        
-        //const reactions = config.server['reactions-menu'];
-        //const callsEndpoint = config.server['calls-endpoint'];
-        
-        const currentChats = get(currentSessionChats) || [];
-        const currentContacts = get(currentSessionContacts) || {};
-        
-        // TODO wtf?
-        
-        let updated = false;
-        chats.forEach(chat => {
-            const { id, cid, title, admins, adminParticipants, videoConversation, status, lastMessage, lastEventTime, participants, newMessages } = chat
-            const exists = currentChats.find(entry => entry.id === id)
-            if(!exists) currentChats.push({ id, title, status, lastMessage, lastEventTime, participants, newMessages })
-            else {
-                const before = updated ? null : JSON.stringify(exists)
-                exists.lastMessage = lastMessage;
-                exists.lastEventTime = lastEventTime;
-                exists.participantIds = participants;
-                exists.newMessages = newMessages;
-                if(exists.title) exists.title = title;
-                if(exists.status) exists.status = status;
-                if(exists.admins) {
-                    exists.admins = admins;
-                    exists.adminParticipants = adminParticipants;
-                }
-                if(exists.videoConversation) exists.videoConversation = videoConversation;
-                if(exists.status) exists.status = status;
-                if(!updated && before !== JSON.stringify(exists)) updated = true;
-            }
-        });
-        
-        let requireInfo = new Set();
-        
-        chats.forEach(chat => {
-            if(chat.type === 'DIALOG') {
-                Object.keys(chat.participants).forEach(member => {
-                    if(!currentContacts[member]) requireInfo.add(+member)
-                })
-            }
-        })
-        
-        console.log('Необходимые для обновления контакты', requireInfo)
-        
-        if(requireInfo.size) {
-            const response = await this.fetchContacts([ ...requireInfo ]);
-            console.log('Got contacts', response)
-            response.contacts.forEach(contact => {
-                if(currentContacts[contact.id]) currentContacts[contact.id].avatar = contact.baseUrl
-                else {
-                    currentContacts[contact.id] = {
-                        id: contact.id,
-                        avatar: contact.baseUrl,
-                        names: contact.names,
-                        gender: contact.gender,
-                        description: contact.description,
-                        updateTime: contact.updateTime,
-                        added: true,
-                    }
-                }
-            })
-        }
-        
-        currentSessionChats.set(currentChats);
-        currentSessionContacts.set(currentContacts);
-        
-        console.log('Синхронизация завершена!')
-        
-        await new Promise(r => setTimeout(r, 5000));
     }
     
     async fetchContacts(userIds) {
+        await this.synchronized;
         return invoke('fetch_contacts', { userIds })
     }
     
     async getMessages(chatId, fromTime) {
-        return await invoke('fetch_history', { chatId, fromTime, amount: 20 })
+        await this.synchronized;
+        return await invoke('fetch_history', { chatId, fromTime, amount: 200 })
     }
     
     async sendMessage(message, chatId, params) {
+        await this.synchronized;
         return await invoke('send_message', { message, chatId, params })
     }
     
     async react(chatId, messageId, reaction) {
+        await this.synchronized;
         if (!reaction) return await invoke('remove_reaction', { chatId, messageId })
         return await invoke('add_reaction', { chatId, messageId, reaction })
     }
     
     async addContact(name, phone) {
-        const response = await invoke('get_by_phone', { phone })
-        console.log(response)
+        await this.synchronized;
+        let contact;
         
-        const contact = response.contact;
-        if (!contact) return { success: false, error: 'not-found' }
+        try {
+            let response = await invoke('get_by_phone', { phone });
+            contact = response.contact;
+            if (!contact) throw new Error();
+        } catch (e) {
+            return { success: false, error: 'not-found' }
+        }
+        
+        console.log(contact)
         
         const contactId = contact.id;
         
@@ -257,6 +274,7 @@ export default class MobileApi extends BaseAPI {
     }
     
     async removeContact(contactId) {
+        await this.synchronized;
         const response = await invoke('remove_contact', { contactId })
         console.log(response)
         return { success: true };

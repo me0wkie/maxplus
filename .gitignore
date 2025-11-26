@@ -11,4 +11,3 @@ vite.config.ts.timestamp-*
 .vscode
 bun.lock
 .prevgit
-rumax

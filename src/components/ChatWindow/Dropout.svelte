@@ -1,5 +1,5 @@
 <script>
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, getContext, onDestroy } from 'svelte';
     import { fade, fly } from 'svelte/transition';
     import { tick } from 'svelte';
     
@@ -15,6 +15,8 @@
     let menuNode;
     
     const reactions = ["👍", "❤️", "🤣", "🔥", "💯", "💩", "😡"]
+    
+    const onBack = getContext('onBack');
     
     async function updatePosition(clientX, clientY) {
         await tick(); 
@@ -32,8 +34,13 @@
              if (y < 0) y = innerHeight - offsetHeight - 10;
         }
         menuPosition = { top: y, left: x };
+        if (onBack.chatSettings) onBack.chatSettings();
+        onBack['dropout'] = () => {
+            dispatch('close', { update: false });
+            delete onBack['dropout'];
+        };
     }
-
+    
     $: if (activeAt) {
       updatePosition(activeAt.e.clientX, activeAt.e.clientY);
     }
@@ -43,6 +50,10 @@
         
         dispatch('close', { update: true });
     }
+        
+    onDestroy(() => {
+        delete onBack['dropout'];
+    });
 </script>
 {#if activeAt}
     <div class="message-actions-dropout" 
@@ -79,7 +90,6 @@
     overflow: hidden;
     min-width: 150px;
     max-width: 200px;
-    transition: top 0.1s ease, left 0.1s ease;
   }
   
   .message-actions-dropout button {

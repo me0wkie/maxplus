@@ -21,6 +21,7 @@
         if (!response.success) {
             if (response.error === 'not-found') {
                 addContactPhoneWrong = true;
+                alert('Номер не зарегистрирован!')
             }
             else if (response.error === 'denied') {
                 alert("Контакт уже добавлен или запрещен к добавлению")

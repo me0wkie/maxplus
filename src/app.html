@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Max+</title>
     %sveltekit.head%
   </head>
@@ -26,7 +26,13 @@
       background-color: #17181c;
     }
     
+    html, body {
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    
     * {
+      -webkit-tap-highlight-color: transparent;
       -webkit-user-select: none;
       -khtml-user-select: none;
       -moz-user-select: none;

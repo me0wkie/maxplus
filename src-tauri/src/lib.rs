@@ -3,7 +3,7 @@ mod state;
 
 use serde_json::Value;
 use rumax::MaxClient;
-use tauri::{AppHandle, Runtime, Emitter}; // Manager здесь не обязателен, если не используется
+use tauri::{AppHandle, Runtime, Emitter, Manager}; // Добавлен Manager
 use tauri_plugin_store::{Store, StoreBuilder};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -34,14 +34,12 @@ type DeserializeFn = fn(&[u8]) -> Result<HashMap<String, Value>, Box<dyn std::er
 fn msgpack_serialize(
     cache: &HashMap<String, Value>,
 ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
-    // Сериализуем в MessagePack. Это поддерживает serde_json::Value
     rmp_serde::to_vec(cache).map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
 }
 
 fn msgpack_deserialize(
     bytes: &[u8],
 ) -> Result<HashMap<String, Value>, Box<dyn std::error::Error + Send + Sync>> {
-    // Десериализуем из MessagePack
     rmp_serde::from_slice(bytes).map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
 }
 
@@ -68,25 +66,37 @@ fn setup_custom_stores<R: Runtime>(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let client = MaxClient::new();
-    let mut event_stream = client.subscribe();
-    
-    // Используем расширение .msgpack или .bin, чтобы было понятно
+    // УБРАЛИ block_on отсюда. Инициализация теперь внутри builder.setup
+
     let custom_stores = &["users.bin", "chats.bin"];
     
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_os::init())
-        .manage(state::AppState {
-            client,
-        })
+        // .manage(state::AppState { ... }) // УБРАЛИ отсюда, перенесли в setup
         .setup(|app| {
+            // 1. Настройка хранилищ
             setup_custom_stores(app.handle(), custom_stores)
                 .expect("Failed to setup custom stores");
             
+            // 2. Инициализация MaxClient внутри контекста Tauri
+            // Теперь block_on безопасен, так как Tauri уже подготовил окружение
+            let (client, mut event_stream) = tauri::async_runtime::block_on(async {
+                let client = MaxClient::new();
+                let stream = client.subscribe();
+                (client, stream)
+            });
+
+            // 3. Регистрируем состояние (AppState)
+            // Важно сделать это здесь, до того как фронтенд начнет слать команды
+            app.manage(state::AppState {
+                client,
+            });
+
             let handle = app.handle().clone();
             
-            tokio::spawn(async move {
+            // 4. Запускаем слушатель событий в фоне
+            tauri::async_runtime::spawn(async move {
                 while let Ok(msg) = event_stream.recv().await {
                     if let Err(e) = handle.emit("max", msg) {
                         eprintln!("Failed to emit event: {}", e);

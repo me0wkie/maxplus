@@ -9,7 +9,8 @@
   // TODO выяснить как ставятся аватары
   const avatarUserId = +Object.keys(chat.participants).find(x => +x !== $currentUser)
   
-  const avatar = writable(null);
+  console.log(chat)
+  const avatar = writable(chat.avatar || (chat.id === 0 ? 'saved.webp' : null));
   const dispatch = createEventDispatcher();
   
   receivedMessage.subscribe(message => {
@@ -66,7 +67,7 @@
     background-position: center;
   }
 
-  .chat-details { 
+  .chat-details {
     display: flex;
     flex: 1;
     min-width: 0;
@@ -81,7 +82,7 @@
     min-width: 0;
   }
 
-  .header { 
+  .header {
     display: flex;
     justify-content: space-between;
     color: #ccc;
@@ -94,32 +95,35 @@
     font-size: 15px;
   }
 
-  .message-preview { 
+  .message-preview {
     display: flex;
     max-width: 100%;
     color: #888;
   }
 
   .ellipsis {
-    white-space: nowrap;
+    white-space: normal; 
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
+    word-break: break-word;
     flex: 1 1 0;
   }
 
-  .message-preview p { 
+  .message-preview p {
     margin: 0;
     font-size: 14px;
   }
 
-  .time { 
+  .time {
     font-size: 12px;
     color: #888; 
   }
 
-  .unread-badge { 
+  .unread-badge {
     background-color: #fff;
-    color: white;
+    color: #000;
     border-radius: 50%;
     height: 20px;
     width: 20px;
@@ -127,6 +131,7 @@
     align-items: center;
     justify-content: center;
     font-size: 12px;
+    align-self: center;
   }
 </style>
 
