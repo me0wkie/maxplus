@@ -182,3 +182,25 @@ const updateFolders = async (_folders, user) => {
     console.log('folders hook did something', await chats.get('folders-' + user))
 }
 
+receivedMessage.subscribe(message => {
+    if (!get(currentUser)) return;
+
+    currentSessionChats.update(chats => {
+        const index = chats.findIndex(x => x.id === message.chatId);
+        if (index === -1) return chats;
+
+        const now = Date.now();
+        const newChats = [...chats];
+
+        const updated = {
+            ...newChats[index],
+            lastEventTime: now
+        };
+
+        newChats.splice(index, 1);
+        newChats.unshift(updated);
+
+        return newChats;
+    });
+});
+

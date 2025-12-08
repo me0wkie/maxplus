@@ -6,6 +6,8 @@
     import Panel from '$components/Panel.svelte';
     import Card from '$components/main/Card.svelte'
     import ChatWindow from '$components/ChatWindow.svelte';
+
+    import ProfileModal from '$components/ProfileModal.svelte';
     
     import API, { currentSessionChats, currentlySyncing, currentUser } from '$lib/stores/api.js';
     
@@ -47,6 +49,31 @@
     function closeChat(chatId) {
         openChats = openChats.filter(c => c.id !== chatId);
     }
+
+    function swap() {
+
+    }
+
+    /* TODO перенести отсюда нахуй */
+    let profileData = null;
+    let profileType = 'user';
+
+    function openProfile({ detail: chatId }) {
+        const chat = $currentSessionChats.find(c => c.id === chatId);
+        profileData = chat;
+        console.log(chat);
+
+        profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
+
+        // const contact = $currentSessionContacts[chat.id];
+        // if (contact) profileData = { ...chat, ...contact };
+    }
+
+    function handleBlockUser(event) {
+        const userId = event.detail;
+        console.log('Блокируем пользователя:', userId);
+        // $API.blockUser(userId);
+    }
   
 </script>
 
@@ -56,7 +83,7 @@
       index={index}
       active={active}
     >
-      <svelte:component openChats={openChats} on:chat={openChat} this={page.component} />
+      <svelte:component openChats={openChats} on:profile={openProfile} on:chat={openChat} this={page.component} />
     </Card>
   {/each}
   
@@ -68,6 +95,15 @@
 </div>
 
 <Panel on:open={page} pages={pages} active={active} />
+
+{#if profileData}
+    <ProfileModal
+        peer={profileData}
+        type={profileType}
+        on:close={() => profileData = null}
+        on:block={handleBlockUser}
+    />
+{/if}
 
 <style>
   .container {

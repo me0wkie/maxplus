@@ -1,0 +1,183 @@
+<script>
+    import { fly, fade, scale } from 'svelte/transition';
+    import { cubicOut } from 'svelte/easing';
+    import { createEventDispatcher } from 'svelte';
+    import ConfirmModal from '$components/main/ConfirmModal.svelte';
+    import API, { currentUser, currentSessionContacts } from '$lib/stores/api'
+
+    export let peer = {};
+    export let type = 'user';
+
+    const dispatch = createEventDispatcher();
+
+    let showMenu = false;
+    let showBlockConfirm = false;
+
+    console.log(peer)
+    let participants = Object.keys(peer.participants).filter(x => x !== $currentUser);
+
+    $: title = peer.title || $currentSessionContacts?.[participants?.[0]]?.names?.[0]?.name || "Избранное";
+    $: avatar = $currentSessionContacts[participants?.[0]]?.avatar || null;
+    $: status = peer.type === 'DIALOG' ? (peer.online ? 'в сети' : 'был(а) недавно') : `${participants?.length || 0} участников`;
+
+    $: infoFields = [
+        { icon: 'phone', label: 'Мобильный', value: peer.phone || '+7 999 123-45-67', visible: type === 'user' },
+        { icon: 'at-sign', label: 'Имя пользователя', value: peer.username ? `@${peer.username}` : '@username', visible: true },
+        { icon: 'info', label: 'О себе', value: peer.bio || 'Дизайнер, разработчик.', visible: true }
+    ].filter(f => f.visible);
+
+    function toggleMenu() { showMenu = !showMenu; }
+
+    function handleAction(action) {
+        showMenu = false;
+        if (action === 'block') showBlockConfirm = true;
+        else if (action === 'delete') dispatch('delete', peer.id);
+    }
+
+    function confirmBlock() {
+        showBlockConfirm = false;
+        dispatch('block', peer.id);
+        dispatch('close');
+    }
+
+    function handleWindowClick(e) {
+        if (showMenu && !e.target.closest('.menu-container')) showMenu = false;
+    }
+
+    function getGradient(id) {
+        const colors = [['#f093fb', '#f5576c'], ['#5ee7df', '#b490ca'], ['#667eea', '#764ba2']];
+        const c = colors[(id || 0) % colors.length];
+        return `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 100%)`;
+    }
+</script>
+
+<svelte:window on:click={handleWindowClick} />
+
+<div class="profile-backdrop" transition:fade={{ duration: 300 }} on:click|self={() => dispatch('close')}>
+
+    <div
+        class="profile-panel"
+        transition:fly={{ x: 380, duration: 300, opacity: 1, easing: cubicOut }}
+    >
+
+        <div class="header-controls">
+            <button class="icon-btn" on:click={() => dispatch('close')}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            </button>
+
+            <div class="menu-container">
+                <button class="icon-btn" on:click|stopPropagation={toggleMenu}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                </button>
+
+                {#if showMenu}
+                    <div class="dropdown" transition:scale={{ duration: 150, start: 0.9 }}>
+                        <div class="menu-item" on:click={() => handleAction('edit')}>Изменить</div>
+                        {#if type === 'user'}
+                            <div class="menu-item danger" on:click={() => handleAction('block')}>Заблокировать</div>
+                            <div class="menu-item danger" on:click={() => handleAction('delete')}>Удалить контакт</div>
+                        {:else}
+                             <div class="menu-item danger" on:click={() => handleAction('leave')}>Покинуть</div>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
+        </div>
+
+        <div class="hero">
+            <div class="avatar-large">
+                {#if avatar}
+                    <img src={avatar} alt={title} />
+                {:else}
+                    <div class="avatar-placeholder" style="background: {getGradient(peer.id)}">
+                        {title.charAt(0).toUpperCase()}
+                    </div>
+                {/if}
+            </div>
+            <div class="hero-info">
+                <h2>{title}</h2>
+                <span class="status" class:online={peer.online}>{status}</span>
+            </div>
+        </div>
+
+        <div class="info-list">
+            <div class="info-item hoverable">
+                <div class="icon-wrap">🔔</div> <div class="info-content">
+                    <span class="label">Уведомления</span>
+                    <span class="value">Включены</span>
+                </div>
+                <div class="toggle-switch checked"><div class="knob"></div></div>
+            </div>
+            <div class="divider"></div>
+            {#each infoFields as field}
+                <div class="info-item">
+                    <div class="icon-wrap">ℹ️</div> <div class="info-content">
+                        <span class="value selectable">{field.value}</span>
+                        <span class="label">{field.label}</span>
+                    </div>
+                </div>
+            {/each}
+        </div>
+
+    </div>
+</div>
+
+{#if showBlockConfirm}
+    <ConfirmModal
+        title="Заблокировать?"
+        message="Вы уверены?"
+        confirmText="Блок"
+        on:confirm={confirmBlock}
+        on:cancel={() => showBlockConfirm = false}
+    />
+{/if}
+
+<style>
+    .profile-backdrop {
+        position: fixed; top: 0; right: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 100;
+        display: flex; justify-content: flex-end;
+        will-change: opacity;
+    }
+
+    .profile-panel {
+        width: 100%; max-width: 380px; height: 100%;
+        background: #1c1c1c;
+        border-left: 1px solid #333;
+        display: flex; flex-direction: column;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: -5px 0 30px rgba(0,0,0,0.5);
+
+        will-change: transform;
+        transform: translate3d(0,0,0);
+    }
+
+    .hero { padding: 80px 20px 30px; display: flex; flex-direction: column; align-items: center; background: linear-gradient(to bottom, #2a2a2a, #1c1c1c); border-bottom: 1px solid #333; }
+    .avatar-large { width: 120px; height: 120px; margin-bottom: 20px; border-radius: 50%; overflow: hidden; }
+    .avatar-large img, .avatar-placeholder { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-placeholder { display: flex; align-items: center; justify-content: center; font-size: 48px; color: #fff; }
+    .hero-info { text-align: center; }
+    .hero-info h2 { margin: 0; color: #fff; font-size: 22px; }
+    .status { color: #888; font-size: 14px; } .status.online { color: #4ade80; }
+
+    .info-list { background: #1c1c1c; padding: 10px 0; }
+    .info-item { display: flex; align-items: center; padding: 15px 20px; gap: 20px; }
+    .info-content { flex: 1; display: flex; flex-direction: column; }
+    .info-content .value { color: #eee; } .info-content .label { color: #777; font-size: 13px; }
+    .divider { height: 10px; background: #121212; width: 100%; border-top: 1px solid #252525; border-bottom: 1px solid #252525; }
+
+    .toggle-switch { width: 40px; height: 22px; background: #333; border-radius: 11px; position: relative; }
+    .toggle-switch.checked { background: #007afd; }
+    .knob { width: 18px; height: 18px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.2s; }
+    .checked .knob { transform: translateX(18px); }
+
+    .menu-container { position: relative; }
+    .dropdown { position: absolute; top: 40px; right: 0; background: #252525; width: 180px; border-radius: 12px; padding: 5px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 2px; z-index: 20; border: 1px solid #333; }
+    .menu-item { padding: 10px; color: #eee; font-size: 14px; cursor: pointer; border-radius: 6px; }
+    .menu-item:hover { background: #333; }
+    .menu-item.danger { color: #ff4b4b; }
+    .header-controls { position: absolute; top: 0; left: 0; width: 100%; padding: 15px; display: flex; justify-content: space-between; z-index: 10; box-sizing: border-box;}
+    .icon-btn { background: rgba(0,0,0,0.2); border: none; color: #fff; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(4px); }
+</style>

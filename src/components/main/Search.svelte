@@ -34,11 +34,12 @@
   .search-block {
     background-color: #2c2d31;
     color: #999;
-    width: 94%;
+    width: calc(100% - 25px);
     height: 30px;
     border-radius: 9px;
     display: flex;
     align-items: center;
+    align-self: center;
     position: relative;
     font-size: 14px;
     cursor: pointer;

@@ -1,141 +1,234 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import { get, writable } from 'svelte/store';
-  import API, { currentUser, currentSessionChats, currentSessionContacts, receivedMessage } from '$lib/stores/api'
-  
-  export let chat;
-  
-  let title = null;
-  // TODO выяснить как ставятся аватары
-  const avatarUserId = +Object.keys(chat.participants).find(x => +x !== $currentUser)
-  
-  const avatar = writable(chat.avatar || (chat.id === 0 ? 'saved.webp' : null));
-  const dispatch = createEventDispatcher();
-  
-  currentSessionContacts.subscribe(contacts => {
-    if (!contacts) return;
-    if (get(avatar) && title || isNaN(avatarUserId)) return;
-    const contact = contacts[avatarUserId]
-    if (contact && get(avatar) !== contact.avatar) {
-      avatar.set(contact.avatar);
-      title = contact.names[0].name;
+    import { createEventDispatcher } from 'svelte';
+    import { currentUser, currentSessionContacts } from '$lib/stores/api';
+
+    export let chat;
+    export let isSelected = false;    // Выбран ли этот чат
+    export let selectionMode = false; // Включен ли вообще режим выбора
+
+    const dispatch = createEventDispatcher();
+
+    $: peerId = chat.type === 'private' || !chat.title
+        ? +Object.keys(chat.participants || {}).find(id => +id !== $currentUser)
+        : null;
+
+    $: contact = peerId ? $currentSessionContacts?.[peerId] : null;
+
+    $: title = chat.id === 0
+        ? 'Избранное'
+        : (chat.title || contact?.names?.[0]?.name || 'Без названия');
+
+    $: avatarUrl = chat.avatar || (chat.id === 0 ? 'saved.webp' : contact?.avatar);
+
+    function getAvatarColor(id) {
+        const colors = ['#e17076', '#7bc862', '#65aadd', '#a695e7', '#ee7aae', '#6ec9cb'];
+        return colors[(id || 0) % colors.length];
     }
-  })
-  
-  let text = chat.lastMessage?.text || "";
-  let date = chat.lastMessage?.time ? new Date(chat.lastMessage.time).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : "";
-  
-  receivedMessage.subscribe(message => {
-      if (!message || message.chatId !== chat.id) return;
-      text = message.text;
-      date = new Date().toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-  })
+
+    function getInitials(name) {
+        if (!name) return '';
+        return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    }
+
+    $: lastMsg = chat.lastMessage;
+
+    $: msgText = (typeof lastMsg === 'string' ? lastMsg : lastMsg?.text)
+                || (lastMsg?.file ? '📎 Вложение' : '')
+                || 'Пустое сообщение';
+
+    $: timeDisplay = (() => {
+        if (!lastMsg?.time) return '';
+        const msgDate = new Date(lastMsg.time);
+        const now = new Date();
+        const isToday = msgDate.getDate() === now.getDate() &&
+                        msgDate.getMonth() === now.getMonth() &&
+                        msgDate.getFullYear() === now.getFullYear();
+        if (isToday) return msgDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        if (msgDate.getDate() === yesterday.getDate()) return 'Вчера';
+        return msgDate.toLocaleDateString([], {day: '2-digit', month: '2-digit'});
+    })();
+
+    $: isMe = lastMsg?.sender === $currentUser;
+    $: isRead = lastMsg?.read;
+
+    let pressTimer;
+    let isLongPress = false;
+
+    function handleStart() {
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            dispatch('longpress', chat);
+            if (navigator.vibrate) navigator.vibrate(50);
+        }, 250);
+    }
+
+    function handleEnd() {
+        clearTimeout(pressTimer);
+    }
+
+    function handleMove() {
+        clearTimeout(pressTimer);
+    }
+
+    function handleClick() {
+        if (isLongPress) return;
+
+        if (selectionMode) {
+            dispatch('toggle', chat);
+        } else {
+            dispatch('open', chat);
+        }
+    }
 </script>
 
-<div class="chat-item" on:click={() => dispatch('open', chat)}>
-  <div style={($avatar ? `background-image: url(${$avatar})` : "background: #556;")} class="avatar"></div>
-  <div class="chat-details">
-    <div class="align-left">
-      <div class="header">
-        <span class="name">{chat.id === 0 ? 'Избранное' : chat.title || title}</span>
-        <span class="time">{date}</span>
-      </div>
-      <div class="message-preview">
-        <p class="ellipsis">
-          {#if chat.lastMessage.sender === $currentUser}
-          <a style="color:#99d">{"Вы: "}</a> 
-          {/if}
-          {text}
-        </p>
-        {#if chat.newMessages > 0}
-          <span class="unread-badge">{chat.newMessages}</span>
+<div
+    class="chat-item"
+    class:selected={isSelected}
+    on:mousedown={handleStart}
+    on:touchstart|passive={handleStart}
+    on:mouseup={handleEnd}
+    on:touchend={handleEnd}
+    on:touchmove|passive={handleMove}
+    on:click={handleClick}
+    on:contextmenu|preventDefault={() => dispatch('longpress', chat)}
+>
+
+    <div class="avatar-wrapper">
+        {#if selectionMode}
+            <div class="selection-overlay" class:checked={isSelected}>
+                {#if isSelected}
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" color="white"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                {/if}
+            </div>
         {/if}
-      </div>
+
+        <div class="avatar-container">
+            {#if avatarUrl}
+                <img src={avatarUrl} alt={title} class="avatar-img" loading="lazy" />
+            {:else}
+                <div class="avatar-placeholder" style="background-color: {getAvatarColor(peerId || chat.id)}">
+                    {chat.id === 0 ? '⭐' : getInitials(title)}
+                </div>
+            {/if}
+
+            {#if contact?.online && !selectionMode}
+                <span class="online-badge"></span>
+            {/if}
+        </div>
     </div>
-  </div>
+
+    <div class="content">
+        <div class="row top">
+            <span class="name">{title}</span>
+            <div class="meta">
+                {#if isMe}
+                    <span class="status-icon" class:read={isRead}>
+                        {isRead ? '✓✓' : '✓'}
+                    </span>
+                {/if}
+                <span class="time">{timeDisplay}</span>
+            </div>
+        </div>
+
+        <div class="row bottom">
+            <p class="preview">
+                {#if isMe}<span class="you-prefix">Вы:</span>{/if}
+                {msgText}
+            </p>
+            {#if chat.newMessages > 0}
+                <div class="badge">
+                    {chat.newMessages > 99 ? '99+' : chat.newMessages}
+                </div>
+            {/if}
+        </div>
+    </div>
 </div>
 
 <style>
-  .chat-item {
-    display: flex;
-    cursor: pointer;
-  }
+    .chat-item {
+        display: flex;
+        padding: 8px 10px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        gap: 12px;
+        user-select: none;
+        position: relative;
+    }
 
-  .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    margin-right: 12px;
-    flex-shrink: 0;
-    background-size: cover;
-    background-position: center;
-  }
+    .chat-item:hover { background-color: rgba(255,255,255, 0.03); }
+    .chat-item.selected { background-color: rgba(59, 130, 246, 0.15); }
 
-  .chat-details {
-    display: flex;
-    flex: 1;
-    min-width: 0;
-    position: relative;
-    bottom: 3px;
-  }
+    .avatar-wrapper {
+        position: relative;
+        width: 50px;
+        height: 50px;
+        flex-shrink: 0;
+    }
 
-  .align-left {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 0;
-  }
+    .selection-overlay {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.4);
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    .selection-overlay.checked {
+        background: #3b82f6aa;
+    }
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    color: #ccc;
-  }
+    .avatar-container {
+        width: 100%; height: 100%;
+    }
 
-  .name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 15px;
-  }
+    .avatar-img, .avatar-placeholder {
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
 
-  .message-preview {
-    display: flex;
-    max-width: 100%;
-    color: #888;
-  }
+    .avatar-placeholder {
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-weight: 600; font-size: 18px;
+    }
 
-  .ellipsis {
-    white-space: normal; 
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-word;
-    flex: 1 1 0;
-  }
+    .online-badge {
+        position: absolute; bottom: 2px; right: 2px;
+        width: 12px; height: 12px;
+        background-color: #4ade80;
+        border: 2px solid #1e1e1e;
+        border-radius: 50%;
+        z-index: 1;
+    }
 
-  .message-preview p {
-    margin: 0;
-    font-size: 14px;
-  }
+    .content {
+        flex: 1; display: flex; flex-direction: column;
+        justify-content: center; min-width: 0; gap: 4px;
+    }
+    .row { display: flex; justify-content: space-between; align-items: center; }
 
-  .time {
-    font-size: 12px;
-    color: #888; 
-  }
+    .name { font-weight: 500; font-size: 16px; color: #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .meta { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+    .time { font-size: 12px; color: #888; }
 
-  .unread-badge {
-    background-color: #fff;
-    color: #000;
-    border-radius: 50%;
-    height: 20px;
-    width: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    align-self: center;
-  }
+    .status-icon { font-size: 12px; color: #888; }
+    .status-icon.read { color: #4ade80; }
+
+    .preview { margin: 0; font-size: 14px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .you-prefix { color: #fff; margin-right: 4px; }
+
+    .badge {
+        background-color: #3b82f6; color: white;
+        font-size: 11px; font-weight: bold;
+        width: 24px; height: 20px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        margin-left: 8px; flex-shrink: 0;
+    }
 </style>
-

@@ -1,7 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
-  import { isObfuscated } from '$lib/crypto/messages.js';
+  // Убрали импорт isObfuscated, если он не использовался напрямую в шаблоне
   
   const dispatch = createEventDispatcher()
   
@@ -21,8 +21,6 @@
     else if (event === 'system') return msg.attaches[0].message;
     else return event;
   }
-  
-  // line 47, vulnerable? fix
 </script>
 
 <div class="message-row"
@@ -30,9 +28,10 @@
   class:is-system={isSystem}
   class:is-deleted={msg.deleted}
   class:inactive={dropoutActiveAt && dropoutActiveAt?.msg?.id !== msg.id}
+  style="box-sizing: border-box;" 
   >
     {#if !isMe}
-        <img src={ $currentSessionContacts[msg.sender]?.avatar } alt={name} class="avatar"/>
+        <img src={ $currentSessionContacts[msg.sender]?.avatar } alt="avatar" class="avatar"/>
     {/if}
       
         <div class="message-bubble">
@@ -42,7 +41,7 @@
                       <p class="line allow-selection">{ displaySystemMessage() }</p>
                     {:else if deobfuscated}
                       {#await deobfuscated}
-                        <p class="line">Загрузка...</p>s
+                        <p class="line">Загрузка...</p>
                       {:then text}
                         <p class="line allow-selection">{@html text }</p>
                       {:catch err}
@@ -93,11 +92,15 @@
 </div>
 
 <style>
+    /* Все стили остались без изменений, они корректно работают внутри position: absolute */
     .message-row {
         display: flex;
         align-items: flex-end;
-        margin-bottom: 8px;
+        margin-bottom: 8px; /* Этот марджин будет учтен measureElement */
         width: 100%;
+        /* Важно: padding для виртуализации, чтобы сообщения не прилипали к краям контейнера */
+        padding-left: 4px;
+        padding-right: 4px;
     }
 
     .message-row.is-me {
@@ -128,7 +131,7 @@
         border-radius: 18px; 
         transition: opacity 0.1s;
         display: flex;
-        flex-direction: column;s
+        flex-direction: column;
         min-width: 32vw;
         max-width: 80%;
         font-size: 13px;
@@ -244,4 +247,10 @@
 
     p.allow-selection { user-select: text; }
     .sticker { max-width: 150px; }
+    
+    @keyframes gradientFlow {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
 </style>

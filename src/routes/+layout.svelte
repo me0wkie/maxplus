@@ -7,6 +7,7 @@
     import { onMount, setContext } from 'svelte';
     import { checkUpdates } from '$lib/utils/updater.js'
     import { onBackButtonPress } from '@tauri-apps/api/app'
+    import { type } from '@tauri-apps/plugin-os'
     
     let settings;
     let loaded = false;
@@ -15,10 +16,10 @@
     setContext('onBack', onBack);
 
     onMount(async () => {
-        checkUpdates().then(result => {
+        /*checkUpdates().then(result => {
             if (result.update) {} // TODO мини-уведомление об обновлении
             else if (result.meta === 'another_platform') {} // TODO мини-уведомление об обнове на другое устройство
-        })
+        })*/ // TODO ручное обновление
         
         settings = await Settings.keys();
         
@@ -26,16 +27,21 @@
             goto('/setup/tokens');
         }
         
-        const unlisten = await onBackButtonPress((payload) => {
-            console.log('Back button pressed', payload);
-            
-            console.log('Registered onBack handlers:', Object.keys(onBack))
-            
-            if (onBack.chatSettings) onBack.chatSettings();
-            else if (onBack.dropout) onBack.dropout()
-            else if (onBack.chat) onBack.chat();
-            else if (onBack.addContact) onBack.addContact();
-        });
+        const system = type();
+        console.log('Detected system', system);
+        
+        if (system === 'android' || system === 'ios') {
+            await onBackButtonPress((payload) => {
+                console.log('Back button pressed', payload);
+                
+                console.log('Registered onBack handlers:', Object.keys(onBack))
+                
+                if (onBack.chatSettings) onBack.chatSettings();
+                else if (onBack.dropout) onBack.dropout()
+                else if (onBack.chat) onBack.chat();
+                else if (onBack.addContact) onBack.addContact();
+            });
+        }
         
         loaded = true;
     })

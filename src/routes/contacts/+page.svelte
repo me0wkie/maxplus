@@ -3,6 +3,7 @@
     import { goto } from '$app/navigation';
     import { currentSessionContacts, currentUser } from '$lib/stores/api';
     import Search from '$components/main/Search.svelte';
+    import ConfirmModal from '$components/main/ConfirmModal.svelte';
     
     import API from '$lib/stores/api';
     
@@ -11,12 +12,11 @@
     import '$lib/styles/AnimatedPanel.css';
     
     const dispatch = createEventDispatcher()
-    
-    // TODO check if this window selected (optimize)
-    
+
     let grouped = {};
     let filter = "";
     let onlyRealChecked = false;
+    let showDeleteConfirm = false;
 
     $: hasRealContacts = Object.values($currentSessionContacts || {}).some(x => x.options?.length);
 
@@ -70,10 +70,23 @@
             removeContact(contact.id);
         } else {
             const chatId = $currentUser ^ contact.id;
-            dispatch('chat', chatId);
+            dispatch('profile', chatId);
         }
     }
     
+    function deleteSelected() {
+        if (selectedChats.size === 0) return;
+        showDeleteConfirm = true;
+    }
+
+    async function onConfirmDelete() {
+        await $API.removeContact(id);
+        console.log(`Удалено ${selectedChats.size} чат(ов)`);
+
+        clearSelection();
+        showDeleteConfirm = false;
+    }
+
 </script>
 
 <div class="container">
@@ -87,6 +100,17 @@
       <Search input={search} placeholder="Имя, фамилия или ник"/>
     </header>
     
+    {#if showDeleteConfirm}
+        <ConfirmModal
+            title="Удалить чаты?"
+            message={`Вы точно хотите удалить выбранные чаты (${selectedChats.size})? Это действие нельзя отменить.`}
+            confirmText="Удалить"
+            isDangerous={true}
+            on:cancel={() => showDeleteConfirm = false}
+            on:confirm={onConfirmDelete}
+        />
+    {/if}
+
     <div class="onlyReal">
       <input type="checkbox" id="only-added" name="only-added" on:click={filterSwap}/>
       <label for="only-added">Только добавленные контакты</label>
@@ -185,7 +209,7 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     overflow-y: scroll;
     overflow-x: hidden;
   }

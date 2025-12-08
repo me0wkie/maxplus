@@ -21,6 +21,7 @@
       ],
       [
         { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
+        //{ icon: "about.svg", text: "Сетевые логи", action: () => {} },
         { icon: "about.svg", text: "О приложении", action: () => {} }
       ]
     ]
@@ -39,13 +40,16 @@
       $API.logout();
       goto('/auth/login');
     }
-</script>
 
-<div class="settings">
+    /*
     <div class="top">
       <img src={ "icons/qr.svg" }/>
       <img src={ "icons/edit.svg" }/>
     </div>
+    */
+</script>
+
+<div class="settings">
     
     <div class="info">
       <img src={user?.baseUrl || '/default-avatar.jpg'} alt="avatar" class="avatar"/>
@@ -117,7 +121,7 @@
   }
   
   .buttons {
-    margin: 10px;
+    margin: 20px 10px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -130,7 +134,7 @@
   }
   
   .buttons .group .button {
-    padding: 14px 20px;
+    padding: 12px 15px;
     display: flex;
     flex-direction: row;
     cursor: pointer;
@@ -140,7 +144,7 @@
   .buttons .group .icon {
     width: 24px;
     height: 24px;
-    margin-right: 19px;
+    margin-right: 15px;
     object-fit: contain;
     display: block;
     flex-shrink: 0;
@@ -148,6 +152,7 @@
   
   .buttons .group .button a {
     line-height: 1;
+    letter-spacing: 0.5px;
   }
   
   .buttons .group .button svg {

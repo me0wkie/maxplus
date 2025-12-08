@@ -1,169 +1,207 @@
 <script>
-    import { fade } from 'svelte/transition';
+    import { fade, scale } from 'svelte/transition';
     import { createEventDispatcher } from 'svelte';
-    import API, { currentSessionChats, currentlySyncing } from '$lib/stores/api.js';
-    
+    import API from '$lib/stores/api.js';
+
     const dispatch = createEventDispatcher();
-    
-    let addContactName = "";
-    let addContactPhone = "+7";
-    let addContactNameWrong = false;
-    let addContactPhoneWrong = false;
-    
-    const addContactHandler = async () => {
-        addContactNameWrong = !addContactName || addContactName.length < 0 || addContactName.length > 30;
-        addContactPhoneWrong = addContactPhone[0] !== '+' || addContactPhone.length <= 2
-        
-        if (addContactNameWrong || addContactPhoneWrong) return;
-        
-        const response = await $API.addContact(addContactName, addContactPhone)
-        
+
+    let name = "";
+    let phone = "+7";
+    let isLoading = false;
+
+    // Объект для хранения ошибок
+    let errors = {
+        name: '',
+        phone: ''
+    };
+
+    const validate = () => {
+        let isValid = true;
+        errors = { name: '', phone: '' };
+
+        if (!name || name.length < 1) {
+            errors.name = "Введите имя контакта";
+            isValid = false;
+        }
+
+        // Простая валидация телефона (можно усложнить регуляркой)
+        const cleanPhone = phone.replace(/\s+/g, '');
+        if (!cleanPhone.startsWith('+') || cleanPhone.length < 5) {
+            errors.phone = "Некорректный формат (начните с +)";
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const submitHandler = async () => {
+        if (!validate() || isLoading) return;
+
+        isLoading = true;
+
+        // Эмуляция задержки сети для UX (опционально)
+        // await new Promise(r => setTimeout(r, 500));
+
+        const response = await $API.addContact(name, phone);
+
+        isLoading = false;
+
         if (!response.success) {
             if (response.error === 'not-found') {
-                addContactPhoneWrong = true;
-                alert('Номер не зарегистрирован!')
+                errors.phone = 'Номер не зарегистрирован в системе';
+            } else if (response.error === 'denied') {
+                errors.phone = 'Невозможно добавить этого пользователя';
+            } else {
+                errors.phone = 'Произошла неизвестная ошибка';
             }
-            else if (response.error === 'denied') {
-                alert("Контакт уже добавлен или запрещен к добавлению")
-            }
-            
             return;
         }
-        
-        console.log(response)
-        
-        addContactName = "";
-        addContactPhone = "+7";
+
         dispatch('close');
-    }
-    
-    const handleClickOutsideContactModal = event => {
-        const isOutside = !['.add-contact-modal'].some(x => event.target.closest(x));
-		    if (isOutside) dispatch('close');
-    }
+    };
+
+    const close = () => dispatch('close');
 </script>
 
-<div class="add-contact-modal-bg"
-     transition:fade={{ duration: 100 }}
-     on:click={ handleClickOutsideContactModal }>
-  <div class="add-contact-modal">
-      <a class="title">Добавление контакта</a>
-      <div class="center">
-          <div class="row">
-              <a>Имя</a>
-              <input class:error={addContactNameWrong}
-                     on:click={() => { addContactNameWrong = false }}
-                     bind:value={addContactName} placeholder="Имя пока не работает"/>
-          </div>
-          <div class="row">
-              <a>Номер телефона</a>
-              <input class:error={addContactPhoneWrong}
-                     on:click={() => { addContactPhoneWrong = false }}
-                     bind:value={addContactPhone}/>
-          </div>
-      </div>
-      <div on:click={addContactHandler} class="btn animated-panel">
-          <a>Добавить</a>
-      </div>
-  </div>
+<div class="modal-backdrop" transition:fade={{ duration: 200 }} on:click={close}>
+    <div class="modal" transition:scale={{ duration: 200, start: 0.95 }} on:click|stopPropagation>
+        <div class="header">
+            <h3>Новый контакт</h3>
+            <button class="close-btn" on:click={close}>&times;</button>
+        </div>
+
+        <div class="content">
+            <div class="input-group">
+                <label>Имя</label>
+                <div class="input-wrapper" class:has-error={errors.name}>
+                    <input
+                        type="text"
+                        bind:value={name}
+                        placeholder="Иван Иванов"
+                        on:input={() => errors.name = ''}
+                    />
+                </div>
+                {#if errors.name}<span class="error-msg" transition:fade>{errors.name}</span>{/if}
+            </div>
+
+            <div class="input-group">
+                <label>Номер телефона</label>
+                <div class="input-wrapper" class:has-error={errors.phone}>
+                    <input
+                        type="tel"
+                        bind:value={phone}
+                        placeholder="+7 999 000-00-00"
+                        on:input={() => errors.phone = ''}
+                    />
+                </div>
+                {#if errors.phone}<span class="error-msg" transition:fade>{errors.phone}</span>{/if}
+            </div>
+        </div>
+
+        <div class="footer">
+            <button class="btn cancel" on:click={close}>Отмена</button>
+            <button class="btn save" on:click={submitHandler} disabled={isLoading}>
+                {#if isLoading}
+                    ...
+                {:else}
+                    Добавить
+                {/if}
+            </button>
+        </div>
+    </div>
 </div>
 
 <style>
-  .add-contact-modal-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: #ffffff06;
-    width: 100vw;
-    height: 100vh;
-    z-index: 50;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  
-  .add-contact-modal {
-    height: 170px;
-    width: 300px;
-    background-color: #1c1d1f;
-    color: #ccc;
-    border-radius: 12px;
-    border: 2px solid #6663;
-    display: flex;
-    flex-direction: column;
-    padding: 20px 30px;
-  }
-  
-  @media (max-width: 400px) {
-    .add-contact-modal {
-      border-right-style: none;
-      border-left-style: none;
-      border-radius: 0;
-      width: 100%;
+    .modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 100;
+        display: flex; justify-content: center; align-items: center;
+        backdrop-filter: blur(2px);
     }
-    
-  }
-  
-  .add-contact-modal .title {
-    margin: 10px 0 0 10px;
-    font-weight: 1000;
-    font-size: 16px;
-  }
-  
-  .add-contact-modal .center {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-  
-  .add-contact-modal .row {
-    display: flex;
-    align-items: center;
-    height: 40px;
-    width: 100%;
-    font-size: 13px;
-  }
-  
-  .add-contact-modal .row a {
-    width: 80px;
-    flex-shrink: 0;
-    display: flex;
-    justify-content: center;
-    text-align: center;
-  }
-  
-  .add-contact-modal .row input {
-    height: 25px;
-    flex: 1;
-    text-indent: 10px;
-    border-radius: 100px;
-    border: 1px solid #0003;
-    transition: outline 0.1s;
-    color: #ccc;
-    background-color: #2c2d31;
-    outline: 1px solid #4c4d61;
-    outline-offset: -0.5px; # фиксация (не прыгает)
-  }
-  
-  .add-contact-modal .row input:focus {
-    outline: 1px solid #6f9;
-  }
-  
-  .add-contact-modal .row input.error {
-    outline: 1px solid #f69;
-  }
-  
-  .add-contact-modal .btn {
-    width: 120px;
-    height: 45px;
-    border-radius: 20px;
-    border: 3px solid #1111;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    align-self: flex-end;
-    opacity: 0.8;
-  }
+
+    .modal {
+        background: #252525;
+        width: 90%; max-width: 350px;
+        border-radius: 14px;
+        display: flex; flex-direction: column;
+        color: #fff;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        border: 1px solid #333;
+    }
+
+    .header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #333;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .header h3 { margin: 0; font-size: 17px; font-weight: 600; }
+    .close-btn { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; padding: 0; line-height: 1; }
+    .close-btn:hover { color: #fff; }
+
+    .content {
+        padding: 20px;
+        display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .input-group label {
+        display: block; margin-bottom: 8px; color: #aaa; font-size: 13px; font-weight: 500;
+    }
+
+    .input-wrapper {
+        background: #1a1a1a;
+        border: 1px solid #444;
+        border-radius: 8px;
+        transition: 0.2s;
+    }
+    .input-wrapper:focus-within {
+        border-color: #007afd;
+        background: #151515;
+    }
+    .input-wrapper.has-error {
+        border-color: #ff4b4b;
+    }
+
+    input {
+        width: 100%;
+        padding: 10px 12px;
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 15px;
+        outline: none;
+    }
+    input::placeholder { color: #555; }
+
+    .error-msg {
+        display: block;
+        color: #ff4b4b;
+        font-size: 12px;
+        margin-top: 5px;
+        padding-left: 2px;
+    }
+
+    .footer {
+        padding: 15px 20px;
+        border-top: 1px solid #333;
+        display: flex; justify-content: flex-end; gap: 10px;
+        background: #222;
+        border-radius: 0 0 14px 14px;
+    }
+
+    .btn {
+        padding: 8px 18px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+        transition: 0.2s;
+    }
+    .btn.cancel { background: transparent; color: #007afd; }
+    .btn.cancel:hover { background: rgba(0, 122, 253, 0.1); }
+
+    .btn.save { background: #007afd; color: #fff; }
+    .btn.save:hover { background: #006ce0; }
+    .btn.save:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
