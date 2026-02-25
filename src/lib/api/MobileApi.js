@@ -134,7 +134,7 @@ export default class MobileApi extends BaseAPI {
             
             const res = await invoke('sync_client')
             
-            const { chats, config, presence } = res;
+            const { chats, contacts, config, presence } = res;
             
             console.log('Ответ sync', res)
                 
@@ -186,6 +186,35 @@ export default class MobileApi extends BaseAPI {
                     })
                 }
             })
+
+            contacts.forEach(contact => {
+                const { /*accountStatus: status*/ baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime } = contact
+
+                //console.log(names[0].firstName)
+
+                if (!currentContacts[contact.id]) {
+                    currentContacts[contact.id] = {
+                        id,
+                        avatar,
+                        names,
+                        gender,
+                        description,
+                        updateTime,
+                        options,
+                        added: true
+                    }
+                } else {
+                    const prev = currentContacts[contact.id]
+                    if (avatar !== prev.avatar) prev.avatar = avatar;
+                    if (gender !== prev.gender) prev.gender = gender;
+                    if (names  !== prev.names) prev.names = names;
+                    if (description !== prev.description) prev.description = description;
+                    if (updateTime !== prev.updateTime) prev.updateTime = updateTime;
+                    if (options !== prev.options) prev.options = options;
+                }
+
+                requireInfo.delete(+id)
+            })
             
             console.log('Необходимые для обновления контакты', requireInfo)
             
@@ -194,7 +223,10 @@ export default class MobileApi extends BaseAPI {
                 
                 console.log('Got contacts', response)
                 response.contacts.forEach(contact => {
-                    if(currentContacts[contact.id]) currentContacts[contact.id].avatar = contact.baseUrl
+                    if(currentContacts[contact.id]) {
+                        currentContacts[contact.id].avatar = contact.baseUrl
+                        currentContacts[contant.id].options = contact.options
+                    }
                     else {
                         currentContacts[contact.id] = {
                             id: contact.id,
@@ -203,7 +235,8 @@ export default class MobileApi extends BaseAPI {
                             gender: contact.gender,
                             description: contact.description,
                             updateTime: contact.updateTime,
-                            added: true,
+                            options: contact.options,
+                            added: false
                         }
                     }
                 })

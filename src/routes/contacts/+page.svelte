@@ -15,7 +15,7 @@
 
     let grouped = {};
     let filter = "";
-    let onlyRealChecked = false;
+    let showAll = false;
     let showDeleteConfirm = false;
 
     $: hasRealContacts = Object.values($currentSessionContacts || {}).some(x => x.options?.length);
@@ -28,7 +28,7 @@
         const contacts = rawData.filter(x => 
             x.id !== $currentUser 
             && (!filter || x.names[0].name.match(new RegExp(filter, 'i')))
-            && (!onlyRealChecked || x.options?.includes("TT"))
+            && (showAll || x.options?.includes("TT"))
         );
 
         contacts.sort((a, b) => {
@@ -61,7 +61,7 @@
     }
 
     const filterSwap = event => {
-        onlyRealChecked = event?.target?.checked || false;
+        showAll = event?.target?.checked || false;
     }
 
     const open = (e, contact) => {
@@ -111,11 +111,16 @@
         />
     {/if}
 
-    <div class="onlyReal">
-      <input type="checkbox" id="only-added" name="only-added" on:click={filterSwap}/>
-      <label for="only-added">Только добавленные контакты</label>
+    <label class="showAll" style="margin-left: -15px;">
+      <input
+        type="checkbox"
+        id="only-added"
+        name="only-added"
+        on:click={filterSwap}
+      />
       <span class="checkmark"></span>
-    </div>
+      Отобразить полный кеш
+    </label>
 
     <main class="content">
       {#each Object.keys(grouped) as letter}
@@ -184,21 +189,54 @@
     gap: 15px;
   }
   
-  .onlyReal {
+  .showAll {
     color: #999;
     width: 100%;
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: flex-end;
+    gap: 8px;
     font-size: 14px;
-    margin-left: -10px;
-    position: relative;
+    cursor: pointer;
   }
 
-  .onlyReal input {
-      width: 16px;
-      height: 16px;
-      cursor: pointer;
+  .showAll input {
+    display: none;
+  }
+
+  .checkmark {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .checkmark::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 2px;
+    width: 4px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg) scale(0);
+    transition: transform 0.1s ease;
+  }
+
+  .showAll input:checked + .checkmark {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+  }
+
+  .showAll input:checked + .checkmark::after {
+    transform: rotate(45deg) scale(1);
+  }
+
+  .showAll:hover .checkmark {
+    border-color: #4f46e5;
   }
 
   
