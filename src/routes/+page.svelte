@@ -9,6 +9,7 @@
 
     import ProfileModal from '$components/ProfileModal.svelte';
     
+    import { page } from '$app/stores';
     import API, { currentSessionChats, currentlySyncing, currentUser } from '$lib/stores/api.js';
     
     const pages = [
@@ -18,12 +19,12 @@
       { name: "Настройки", icon: "settings", component: Settings },
     ]
     
-    let active = 2;
-    
+    let active = +$page.url.searchParams.get('card') || 2;
+
     let openChats = [];
     
-    const page = ({ detail }) => {
-        console.log(detail)
+    const openCard = ({ detail }) => {
+        console.log('Opening card', detail.index)
         active = detail.index;
     }
     
@@ -94,7 +95,7 @@
   {/each}
 </div>
 
-<Panel on:open={page} pages={pages} active={active} />
+<Panel on:open={openCard} pages={pages} active={active} />
 
 {#if profileData}
     <ProfileModal

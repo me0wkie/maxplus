@@ -4,6 +4,8 @@ import { writable, get } from 'svelte/store';
 import MockApi from '../api/MockApi.js';
 import MobileApi from '../api/MobileApi.js';
 
+import { add as addLog } from '$lib/stores/logs'
+
 const SELECTED = 'mobile';
 const Apis = {
     'mock': MockApi,
@@ -14,11 +16,10 @@ let apiInstance = new Apis[SELECTED]();
 
 listen('max', (event) => {
     const { payload } = event;
+
+    addLog(payload);
     
-    if (payload.type === "log") {
-        console.log(JSON.stringify(payload));
-        return;
-    }
+    if (payload.type === "log") return;
     
     if (payload.type === 'tx') {
         console.log('TX', JSON.stringify(payload.request));
