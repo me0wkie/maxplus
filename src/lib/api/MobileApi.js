@@ -187,10 +187,10 @@ export default class MobileApi extends BaseAPI {
                 }
             })
 
-            contacts.forEach(contact => {
-                const { /*accountStatus: status*/ baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime } = contact
+            console.log('contacts', contacts)
 
-                //console.log(names[0].firstName)
+            contacts.forEach(contact => {
+                const { /*accountStatus: status*/ baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime, status, accountStatus: acs } = contact
 
                 if (!currentContacts[contact.id]) {
                     currentContacts[contact.id] = {
@@ -201,7 +201,8 @@ export default class MobileApi extends BaseAPI {
                         description,
                         updateTime,
                         options,
-                        added: true
+                        status,
+                        accountStatus
                     }
                 } else {
                     const prev = currentContacts[contact.id]
@@ -211,6 +212,8 @@ export default class MobileApi extends BaseAPI {
                     if (description !== prev.description) prev.description = description;
                     if (updateTime !== prev.updateTime) prev.updateTime = updateTime;
                     if (options !== prev.options) prev.options = options;
+                    if (status !== prev.status) prev.status = status;
+                    if (acs !== prev.accountStatus) prev.accountStatus = acs;
                 }
 
                 requireInfo.delete(+id)
@@ -235,8 +238,7 @@ export default class MobileApi extends BaseAPI {
                             gender: contact.gender,
                             description: contact.description,
                             updateTime: contact.updateTime,
-                            options: contact.options,
-                            added: false
+                            options: contact.options
                         }
                     }
                 })
@@ -278,32 +280,43 @@ export default class MobileApi extends BaseAPI {
     
     async addContact(name, phone) {
         await this.synchronized;
-        let contact;
+        let oldContact;
         
         try {
             let response = await invoke('get_by_phone', { phone });
-            contact = response.contact;
-            if (!contact) throw new Error();
+            oldContact = response.contact;
+            if (!oldContact) throw new Error();
         } catch (e) {
             return { success: false, error: 'not-found' }
         }
         
-        console.log(contact)
+        console.log(oldContact)
         
-        const contactId = contact.id;
+        const contactId = oldContact.id;
         
-        const result = await invoke('add_contact', { contactId, firstName: name })
+        const { contact: result } = await invoke('add_contact', { contactId, firstName: name }) || {}
         
         if (!result) return { success: false, error: 'denied' }
-        
+
         console.log(result)
-        
-        contact.avatar = contact.baseUrl;
+
+        const contact = {
+            avatar: result.baseUrl,
+            accountStatus: result.accountStatus,
+            // country: result.country,
+            // photoId: result.photoId,
+            id: result.id,
+            names: result.names,
+            options: result.options,
+            status: result.status,
+            updateTime: result.updateTime,
+            gender: result.gender,
+            description: result.description,
+        }
         
         currentSessionContacts.update(contacts => {
-            contacts[contactId] = contact;
-            return contacts;
-        })
+            return { ...contacts, [contactId]: contact };
+        });
         
         return { success: true };
     }

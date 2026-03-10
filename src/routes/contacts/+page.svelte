@@ -23,28 +23,21 @@
     $: grouped = (() => {
         if (!$currentSessionContacts) return {};
 
-        const rawData = Object.values($currentSessionContacts).map((c, id) => ({ id, ...c }));
-        
-        const contacts = rawData.filter(x => 
-            x.id !== $currentUser 
+        const rawData = Object.entries($currentSessionContacts).map(([id, c]) => ({ id, ...c }));
+
+        const contacts = rawData.filter(x =>
+            x.id !== $currentUser
             && (!filter || x.names[0].name.match(new RegExp(filter, 'i')))
-            && (showAll || x.options?.includes("TT"))
+            && (showAll || x.options?.includes("TT") && x.status !== "REMOVED")
         );
 
-        contacts.sort((a, b) => {
-          const nameA = a.names?.[0]?.name || '';
-          const nameB = b.names?.[0]?.name || '';
-          return nameA.localeCompare(nameB, 'ru');
-        });
+        contacts.sort((a, b) => (a.names?.[0]?.name || '').localeCompare(b.names?.[0]?.name || '', 'ru'));
 
         return contacts.reduce((acc, c) => {
-          const name = c.names?.[0]?.name || '';
-          const letter = name.charAt(0).toUpperCase();
-
-          if (!acc[letter]) acc[letter] = [];
-          acc[letter].push(c);
-
-          return acc;
+            const letter = (c.names?.[0]?.name || '').charAt(0).toUpperCase();
+            if (!acc[letter]) acc[letter] = [];
+            acc[letter].push(c);
+            return acc;
         }, {});
     })();
 
@@ -69,8 +62,7 @@
         if (toDelete) {
             removeContact(contact.id);
         } else {
-            const chatId = $currentUser ^ contact.id;
-            dispatch('profile', chatId);
+            dispatch('profile', contact.id);
         }
     }
     
@@ -137,7 +129,7 @@
               <a>Был(а) недавно</a>
             </div>
             <div class="action">
-                {#if contact.options}
+                {#if contact.options?.includes("TT") && contact.status !== "REMOVED"}
                   <a class="delete">Удалить</a>
                 {:else}
                   <a>Не контакт</a>

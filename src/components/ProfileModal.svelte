@@ -13,18 +13,15 @@
     let showMenu = false;
     let showBlockConfirm = false;
 
-    console.log(peer)
-    let participants = Object.keys(peer.participants).filter(x => x !== $currentUser);
+    //let participants = Object.keys(peer.participants).filter(x => x !== $currentUser);
 
-    $: title = peer.title || $currentSessionContacts?.[participants?.[0]]?.names?.[0]?.name || "Избранное";
-    $: avatar = $currentSessionContacts[participants?.[0]]?.avatar || null;
-    $: status = peer.type === 'DIALOG' ? (peer.online ? 'в сети' : 'был(а) недавно') : `${participants?.length || 0} участников`;
+    $: title = type === 'user' ? peer.names[0].firstName : "Избранное";
+    $: avatar = peer.avatar;
 
     $: infoFields = [
-        { icon: 'phone', label: 'Мобильный', value: peer.phone || '+7 999 123-45-67', visible: type === 'user' },
-        { icon: 'at-sign', label: 'Имя пользователя', value: peer.username ? `@${peer.username}` : '@username', visible: true },
-        { icon: 'info', label: 'О себе', value: peer.bio || 'Дизайнер, разработчик.', visible: true }
-    ].filter(f => f.visible);
+        peer.description && { icon: 'info', label: 'Описание', value: peer.description },
+        peer.phone && { icon: 'phone', label: 'Мобильный', value: peer.phone }
+    ].filter(Boolean);
 
     function toggleMenu() { showMenu = !showMenu; }
 
@@ -96,19 +93,27 @@
             </div>
             <div class="hero-info">
                 <h2>{title}</h2>
-                <span class="status" class:online={peer.online}>{status}</span>
             </div>
         </div>
 
         <div class="info-list">
-            <div class="info-item hoverable">
+            <!--<div class="info-item hoverable">
                 <div class="icon-wrap">🔔</div> <div class="info-content">
                     <span class="label">Уведомления</span>
                     <span class="value">Включены</span>
                 </div>
                 <div class="toggle-switch checked"><div class="knob"></div></div>
             </div>
-            <div class="divider"></div>
+            <div class="divider"></div>-->
+            <div
+            class="info-item hoverable"
+            on:click={() => dispatch('chat')}
+            >
+                <div class="icon-wrap">💭</div> <div class="button">
+                    <span class="label">Перейти в чат</span>
+                </div>
+            </div>
+            <hr>
             {#each infoFields as field}
                 <div class="info-item">
                     <div class="icon-wrap">ℹ️</div> <div class="info-content">
@@ -154,6 +159,10 @@
         transform: translate3d(0,0,0);
     }
 
+    hr {
+        color: #3333;
+    }
+
     .hero { padding: 80px 20px 30px; display: flex; flex-direction: column; align-items: center; background: linear-gradient(to bottom, #2a2a2a, #1c1c1c); border-bottom: 1px solid #333; }
     .avatar-large { width: 120px; height: 120px; margin-bottom: 20px; border-radius: 50%; overflow: hidden; }
     .avatar-large img, .avatar-placeholder { width: 100%; height: 100%; object-fit: cover; }
@@ -167,6 +176,13 @@
     .info-content { flex: 1; display: flex; flex-direction: column; }
     .info-content .value { color: #eee; } .info-content .label { color: #777; font-size: 13px; }
     .divider { height: 10px; background: #121212; width: 100%; border-top: 1px solid #252525; border-bottom: 1px solid #252525; }
+    .info-item .button {
+        color: white;
+    }
+
+    .hoverable {
+        cursor: pointer;
+    }
 
     .toggle-switch { width: 40px; height: 22px; background: #333; border-radius: 11px; position: relative; }
     .toggle-switch.checked { background: #007afd; }

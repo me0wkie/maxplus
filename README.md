@@ -49,12 +49,12 @@
 > ❗ В будущем потребуется доступ к камере для покупки пива в Магните (по QR)
 
 ## Использование
-Предварительные версии будут доступны в разделе [Releases](https://github.com/me0wkie/maxplus/releases)
+Предварительные версии доступны в разделе [Releases](https://github.com/me0wkie/maxplus/releases)
 
 - <b>Что бы приложение запустилось, архитектура процессора должна совпасть</b>.  
 Например: устройство имеет процессор arm64, тогда устанавливаете maxplus-android-aarch64.apk
 
-- <b>Если не удается запустить, попробуйте заменить браузер на устройстве</b>
+- <b>Если не удается запустить, попробуйте заменить браузер по умолчанию на устройстве</b>
 
 ### Про обновления
 Обновления можно будет проверить, используя кнопку в настройках.  
@@ -100,7 +100,7 @@ $ JAVA_HOME=/usr/lib/путь_к_jdk_17 bun run tauri android dev
 - На Linux процесс может быть немного сложнее.
 
 ## Сборка проекта
-Для создания исполняемых файлов на Windows, Linux, iOS нужна предварительная настройка 
+Для сборки под Windows, Linux, iOS нужна предварительная настройка 
 ([Windows](https://v2.tauri.app/distribute/windows-installer/), [Debian](https://v2.tauri.app/distribute/debian/), [iOS](https://v2.tauri.app/distribute/app-store/), [macOS](https://v2.tauri.app/distribute/macos-application-bundle/))
 
 ### Android

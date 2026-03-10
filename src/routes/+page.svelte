@@ -10,7 +10,7 @@
     import ProfileModal from '$components/ProfileModal.svelte';
     
     import { page } from '$app/stores';
-    import API, { currentSessionChats, currentlySyncing, currentUser } from '$lib/stores/api.js';
+    import API, { currentSessionChats, currentSessionContacts, currentlySyncing, currentUser } from '$lib/stores/api.js';
     
     const pages = [
       { name: "Контакты", icon: "contacts", component: Contacts },
@@ -59,12 +59,14 @@
     let profileData = null;
     let profileType = 'user';
 
-    function openProfile({ detail: chatId }) {
-        const chat = $currentSessionChats.find(c => c.id === chatId);
-        profileData = chat;
-        console.log(chat);
+    function openProfile({ detail: userId }) {
+        const user = $currentSessionContacts[userId];
+        //const chat = $currentSessionChats.find(c => c.id === chatId);
+        profileData = user;
+        profileType = 'user';
+        //console.log(chat);
 
-        profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
+        //profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
 
         // const contact = $currentSessionContacts[chat.id];
         // if (contact) profileData = { ...chat, ...contact };
@@ -103,6 +105,7 @@
         type={profileType}
         on:close={() => profileData = null}
         on:block={handleBlockUser}
+        on:chat={() => { active = 2; openChat({ detail: $currentUser ^ profileData.id }); profileData = null; }}
     />
 {/if}
 
