@@ -28,14 +28,9 @@
         }
         
         const system = type();
-        console.log('Detected system', system);
         
         if (system === 'android' || system === 'ios') {
             await onBackButtonPress((payload) => {
-                console.log('Back button pressed', payload);
-                
-                console.log('Registered onBack handlers:', Object.keys(onBack))
-                
                 if (onBack.chatSettings) onBack.chatSettings();
                 else if (onBack.dropout) onBack.dropout()
                 else if (onBack.chat) onBack.chat();

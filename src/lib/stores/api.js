@@ -18,18 +18,15 @@ listen('max', (event) => {
     const { payload } = event;
 
     addLog(payload);
+
+    console.log(payload)
     
     if (payload.type === "log") return;
-    
-    if (payload.type === 'tx') {
-        console.log('TX', JSON.stringify(payload.request));
-        return;
-    }
+    if (payload.type === 'tx') return;
     
     // only RX
     const { response } = payload;
     const opc = response.opcode;
-    console.log('Handling RX', opc, JSON.stringify(response))
     
     if (opc === 128) {
         // TODO event handler
@@ -78,13 +75,11 @@ export const chatMessages = {
     get: async chatId => {
         const meId = get(currentUser)
         if (!meId) throw "No session!"
-        console.log('GET', `chat-${meId}-${chatId}`)
         return chats.get(`chat-${meId}-${chatId}`)
     },
     set: async (chatId, sorted) => {
         const meId = get(currentUser)
         if (!meId) throw "No session!"
-        console.log('SET', `chat-${meId}-${chatId}`, sorted)
         return chats.set(`chat-${meId}-${chatId}`, sorted)
     }
 }
@@ -103,8 +98,6 @@ export const chatKeys = {
 }
 
 currentUser.subscribe(async user => {
-    console.log('CurrentUser (id) ', user)
-    
     if (user === undefined) {
         const _currentUserId = await users.get('current');
         const _currentUser = await users.get('user-' + _currentUserId);
@@ -121,9 +114,7 @@ currentUser.subscribe(async user => {
             currentUser.set(_currentUserId);
         }
     }
-    else {
-        console.log('Good! ' + user)
-    }
+    else {}
 })
 
 currentSessionChats.subscribe(async _chats => {
@@ -153,8 +144,6 @@ const updateChats = async (_chats, user) => {
     else if (_chats.length) {
         await chats.set('chats-' + user, _chats);
     }
-    
-    console.log('chat hook did something', await chats.get('chats-' + user))
 }
 
 const updateContacts = async (_contacts, user) => {
@@ -167,8 +156,6 @@ const updateContacts = async (_contacts, user) => {
     else if (Object.keys(_contacts).length) {
         await chats.set('contacts-' + user, _contacts);
     }
-    
-    console.log('contact hook did something', await chats.get('contacts-' + user))
 }
 
 const updateFolders = async (_folders, user) => {
@@ -180,8 +167,6 @@ const updateFolders = async (_folders, user) => {
     else if (_folders.length) {
         await chats.set('folders-' + user, _folders);
     }
-    
-    console.log('folders hook did something', await chats.get('folders-' + user))
 }
 
 receivedMessage.subscribe(message => {

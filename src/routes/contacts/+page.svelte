@@ -74,7 +74,6 @@
 
     async function onConfirmDelete() {
         await $API.removeContact(id);
-        console.log(`Удалено ${selectedChats.size} чат(ов)`);
 
         clearSelection();
         showDeleteConfirm = false;

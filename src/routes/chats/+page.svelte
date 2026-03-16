@@ -102,12 +102,10 @@
     function deleteSelected() {
         if (!confirm(`Удалить ${selectedChats.size} чат(ов)?`)) return;
         // $API.deleteChats([...selectedChats]);
-        console.log('Deleting:', [...selectedChats]);
         clearSelection();
     }
 
     function pinSelected() {
-        console.log('Pinning:', [...selectedChats]);
         clearSelection();
     }
 

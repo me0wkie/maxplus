@@ -23,7 +23,6 @@
             }
             else {
                 const response = await $API.login(code)
-                console.log(response)
                 if(response.payload.error) {
                     error = "Ошибка проверки"
                     alert(JSON.stringify(response.payload))
@@ -36,8 +35,6 @@
         /* Регистрация */
         else {
             const response = await $API.register(code, name)
-            
-            console.log(response)
             
             if (!response.success) {
                 error = "Ошибка проверки!";

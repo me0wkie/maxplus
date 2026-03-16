@@ -30,8 +30,7 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
     messages.set(_messages);
     
     const response = await get(API).sendMessage(text, chatId, { notify: true, ...(replyToId && { replyTo: replyToId })})
-    
-    console.log(response)
+
     const message = response?.message || {}
     
     if (!message) {
@@ -53,7 +52,6 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
             //console.log('set id ' + id + ' -> ' + msgId)
             const element = msgs.indexOf(displayMessageEarlyEntry)
             if (element !== -1) msgs.splice(element, 1)
-            console.log('insert', message)
             
             return msgs;
         })

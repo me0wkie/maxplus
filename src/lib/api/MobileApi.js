@@ -14,11 +14,10 @@ export default class MobileApi extends BaseAPI {
     }
     
     _telemetry() {
-        console.log('Telemetry implemented in rust code')
+        /* Telemetry implemented in rust code */
     }
     
     async init() {
-        console.log('sending token', this.getToken().length)
         if (!this.getDevice()?.id) throw "No device id";
         
         const response = await invoke('init', {
@@ -27,7 +26,7 @@ export default class MobileApi extends BaseAPI {
             deviceId: this.getDevice().id,
             mtInstance: this.getDevice().mt,
         })
-        console.log(response)
+
         if (response.success) Session.set('connected', true);
         else alert(response);
     }
@@ -40,10 +39,7 @@ export default class MobileApi extends BaseAPI {
             mtInstance: this.getDevice().mt,
         })
         
-        console.log('connect', response)
-        
         const auth = await invoke("start_auth", { phone });
-        console.log(auth)
         
         return {
             success: !!auth.token,
@@ -54,13 +50,10 @@ export default class MobileApi extends BaseAPI {
     async login(code) {
         const checkCode = await invoke("check_code", { code });
         
-        console.log(checkCode)
-        
         const success = !!checkCode.profile
         if (success) {
             const { profile, tokenAttrs } = checkCode
             const userId = profile.contact.id
-            console.log(profile, tokenAttrs.LOGIN.token)
             
             await usersDb.get('device-' + userId, this._device);
             currentUser.set(userId)
@@ -77,17 +70,15 @@ export default class MobileApi extends BaseAPI {
     
     async register(code, first_name) {
         const checkCode = await invoke("check_code", { code });
-        console.log(checkCode)
+
         if (!checkCode.token) return { success: false, payload: checkCode }
         const register = await invoke("register", { first_name });
-        console.log(register)
         
         const success = !!register.profile
         if (success) {
             const { profile, tokenAttrs } = register
             const userId = profile.contact.id
-            console.log(profile)
-            
+
             await usersDb.get('device-' + userId, this._device);
             currentUser.set(userId)
             this.setUser(userId)
@@ -105,11 +96,9 @@ export default class MobileApi extends BaseAPI {
         if (!this._user) throw "Tried to load token, but no user was set in API instance";
         this._token = await usersDb.get('token-' + this._user);
         const res = await invoke('set_token', { token: this._token });
-        console.log('set_token', res, this._token.length);
     }
     
     async logout() {
-        console.log('logging out...')
         this.setToken(undefined);
         this.setUser(undefined);
         this.setUserDetails(undefined);
@@ -188,8 +177,6 @@ export default class MobileApi extends BaseAPI {
                 }
             })
 
-            console.log('contacts', contacts)
-
             contacts.forEach(contact => {
                 const { /*accountStatus: status*/ baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime, status, accountStatus: acs } = contact
 
@@ -219,13 +206,13 @@ export default class MobileApi extends BaseAPI {
 
                 requireInfo.delete(+id)
             })
-            
-            console.log('Необходимые для обновления контакты', requireInfo)
-            
+
             if(requireInfo.size) {
+                console.log('Необходимые для обновления контакты', requireInfo)
                 const response = await invoke('fetch_contacts', { userIds: [ ...requireInfo ] });
-                
-                console.log('Got contacts', response)
+
+                console.log('Ответ', response)
+
                 response.contacts.forEach(contact => {
                     if(currentContacts[contact.id]) {
                         currentContacts[contact.id].avatar = contact.baseUrl

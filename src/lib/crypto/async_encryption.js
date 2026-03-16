@@ -176,7 +176,6 @@ async function handleIncomingEnvelope(_envelope, myId, myIdentity) {
   await ready();
   try {
     const envelope = strToEnv(_envelope)
-    console.log(envelope)
     const sender_pk = base64UrlToBuf(envelope.k); // sender_ed25519_pk -> k
     const bytesForSign = canonicalizeForSign(envelope);
     const sig = base64UrlToBuf(envelope.g); // signature -> g

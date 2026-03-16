@@ -24,7 +24,6 @@
     let openChats = [];
     
     const openCard = ({ detail }) => {
-        console.log('Opening card', detail.index)
         active = detail.index;
     }
     
@@ -64,7 +63,6 @@
         //const chat = $currentSessionChats.find(c => c.id === chatId);
         profileData = user;
         profileType = 'user';
-        //console.log(chat);
 
         //profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
 
@@ -74,7 +72,6 @@
 
     function handleBlockUser(event) {
         const userId = event.detail;
-        console.log('Блокируем пользователя:', userId);
         // $API.blockUser(userId);
     }
   

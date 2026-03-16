@@ -3,7 +3,7 @@
     import { cubicOut } from 'svelte/easing';
     import { createEventDispatcher } from 'svelte';
     import ConfirmModal from '$components/main/ConfirmModal.svelte';
-    import API, { currentUser, currentSessionContacts, currentSessionPresence } from '$lib/stores/api'
+    import API, { currentUser, currentSessionContacts, currentPresence } from '$lib/stores/api'
     import Signature from '$lib/utils/Signature.svelte'
 
     export let peer = {};
@@ -95,7 +95,7 @@
             <div class="hero-info">
                 <h2>{title}</h2>
                 <a
-                class:online={ $currentSessionPresence[peer?.id]?.on === "ON" }
+                class:online={ $currentPresence[peer?.id]?.on === "ON" }
                 class="status"><Signature contact={peer} /></a>
             </div>
         </div>
