@@ -11,6 +11,7 @@
     import Settings from '$components/ChatWindow/Settings.svelte'
     import E2eModal from '$components/ChatWindow/E2eModal.svelte'
     import Dropout from '$components/ChatWindow/Dropout.svelte'
+    import Signature from '$lib/utils/Signature.svelte'
 
     export let chat;
 
@@ -266,7 +267,7 @@
             <div on:click={() => dispatch('profile')} class="avatar" style={"background-image: url(" + avatar + ")"}></div>
             <div on:click={() => dispatch('profile')} class="info">
                 <a class="title">{ title }</a>
-                <a class="presence">Был(а) недавно</a>
+                <a class="presence"><Signature chat={chat} /></a>
             </div>
         </div>
         <div class="align-right">

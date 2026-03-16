@@ -9,6 +9,7 @@
     
     import AddContactBtn from '$components/main/AddContactBtn.svelte';
     
+    import Signature from '$lib/utils/Signature.svelte';
     import '$lib/styles/AnimatedPanel.css';
     
     const dispatch = createEventDispatcher()
@@ -126,7 +127,7 @@
               <div class="name">
                   { contact.names[0].name }
               </div>
-              <a>Был(а) недавно</a>
+              <a><Signature contact={contact}/></a>
             </div>
             <div class="action">
                 {#if contact.options?.includes("TT") && contact.status !== "REMOVED"}

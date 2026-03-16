@@ -1,7 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import BaseAPI from './BaseApi'
 import { get } from 'svelte/store';
-import { usersDb, currentUser, currentSessionChats, currentSessionContacts, currentFolders, currentlySyncing } from '$lib/stores/api'
+import { usersDb, currentUser, currentSessionChats, currentSessionContacts, currentFolders, currentlySyncing, currentPresence } from '$lib/stores/api'
 import Session from '$lib/stores/session'
 import { goto } from '$app/navigation';
 
@@ -139,6 +139,7 @@ export default class MobileApi extends BaseAPI {
             console.log('Ответ sync', res)
                 
             currentFolders.set(config.chatFolders.FOLDERS);
+            currentPresence.set(presence);
             
             //const reactions = config.server['reactions-menu'];
             //const callsEndpoint = config.server['calls-endpoint'];

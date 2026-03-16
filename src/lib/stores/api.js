@@ -50,6 +50,7 @@ export const currentSessionChats = writable(undefined);
 export const currentSessionContacts = writable(undefined);
 export const currentlySyncing = writable(false);
 export const currentFolders = writable([]);
+export const currentPresence = writable({});
 export const receivedMessage = writable(undefined); // heap
 export default writable(apiInstance);
 

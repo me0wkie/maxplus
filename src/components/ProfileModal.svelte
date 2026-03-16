@@ -3,7 +3,8 @@
     import { cubicOut } from 'svelte/easing';
     import { createEventDispatcher } from 'svelte';
     import ConfirmModal from '$components/main/ConfirmModal.svelte';
-    import API, { currentUser, currentSessionContacts } from '$lib/stores/api'
+    import API, { currentUser, currentSessionContacts, currentSessionPresence } from '$lib/stores/api'
+    import Signature from '$lib/utils/Signature.svelte'
 
     export let peer = {};
     export let type = 'user';
@@ -93,6 +94,9 @@
             </div>
             <div class="hero-info">
                 <h2>{title}</h2>
+                <a
+                class:online={ $currentSessionPresence[peer?.id]?.on === "ON" }
+                class="status"><Signature contact={peer} /></a>
             </div>
         </div>
 
@@ -169,7 +173,7 @@
     .avatar-placeholder { display: flex; align-items: center; justify-content: center; font-size: 48px; color: #fff; }
     .hero-info { text-align: center; }
     .hero-info h2 { margin: 0; color: #fff; font-size: 22px; }
-    .status { color: #888; font-size: 14px; } .status.online { color: #4ade80; }
+    .status { color: #666; font-size: 14px; } .status.online { color: #4ade80; }
 
     .info-list { background: #1c1c1c; padding: 10px 0; }
     .info-item { display: flex; align-items: center; padding: 15px 20px; gap: 20px; }
