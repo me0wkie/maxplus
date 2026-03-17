@@ -69,6 +69,7 @@
 - <b>[Bun](https://bun.sh)</b> или [NodeJS](https://nodejs.org/)
 - [Rust](https://www.rust-lang.org/) (для Tauri и сборки)
 - [Android Studio](https://developer.android.com/studio) и зависимости для сборки под Android
+- Скачать либу [rumax](https://github.com/me0wkie/rumax) и <u>поместить в одной папке</u> с проектом ```maxplus```
 - Немного знания Svelte и Rust, либо наличие ChatGPT Pro
 
 ### Установка
@@ -76,7 +77,7 @@
 $ git clone https://github.com/me0wkie/maxplus
 cd maxplus
 bun install # Или: node install
-bun run tauri icon static/icon.svg # Важно для запуска
+bun run tauri icon static/favicon.png # Важно для запуска
 ```
 
 ### Запуск Development сервера

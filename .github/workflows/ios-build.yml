@@ -2,6 +2,9 @@ name: Build Max iOS
 on:
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: macos-14
@@ -24,38 +27,53 @@ jobs:
       - name: Rust cache
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: './src-tauri -> target'
+          workspaces: 'src-tauri'
 
       - name: Install dependencies
         run: bun install
 
+      - name: Generate Icons
+        run: bun run tauri icon static/favicon.png
+
       - name: Prepare Tauri iOS
-        run: bun tauri ios init --force
-        continue-on-error: true
+        run: |
+          rm -rf src-tauri/gen/apple
+          bun tauri ios init
+
+      - name: Patch Cargo.toml for CI
+        run: |
+          sed -i '' 's|path = "../../rumax"|git = "https://github.com/me0wkie/rumax.git", branch = "main"|g' src-tauri/Cargo.toml
+
+          echo "Cargo.toml updated for cloud build:"
+          cat src-tauri/Cargo.toml | grep rumax
 
       - name: Build Xcode Project
-        run: bun tauri ios build
-        env:
-          CODE_SIGNING_ALLOWED: NO
-          CODE_SIGNING_REQUIRED: NO
-          CODE_SIGN_IDENTITY: ""
-          PROVISIONING_PROFILE_SPECIFIER: ""
-          AD_HOC_CODE_SIGNING_ALLOWED: YES
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/bin
+          cat << 'EOF' > $GITHUB_WORKSPACE/bin/xcodebuild
+          #!/bin/bash
+          exec /usr/bin/xcodebuild "$@" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" PROVISIONING_PROFILE_SPECIFIER=""
+          EOF
+          chmod +x $GITHUB_WORKSPACE/bin/xcodebuild
+          export PATH="$GITHUB_WORKSPACE/bin:$PATH"
+
+          bun tauri ios build || true
 
       - name: Package IPA
         run: |
           mkdir -p Payload
-          APP_PATH=$(find src-tauri/gen/apple/build/arm64/Release-iphoneos -name "*.app" | head -n 1)
+
+          APP_PATH=$(find src-tauri/gen/apple -type d -name "*.app" | head -n 1)
 
           if [ -z "$APP_PATH" ]; then
             echo "Error: .app file not found!"
-            find src-tauri/gen/apple -name "*.app"
+            find src-tauri/gen/apple -type d -name "*.app"
             exit 1
           fi
 
           echo "Found app at: $APP_PATH"
           cp -r "$APP_PATH" Payload/
-          zip -r Max_Unsigned.ipa Payload
+          zip -qr Max_Unsigned.ipa Payload
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
