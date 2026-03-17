@@ -15,5 +15,16 @@
     { #if $currentPresence[contact.id]?.seen !== undefined }
         {contact.gender === 2 ? "Была" : "Был"}
         <Timestamp gender={contact.gender || 1} unixTime={$currentPresence[contact.id]?.seen} />
+    { :else if contact.options }
+        {(() => {
+            const list = [];
+            const opts = contact.options;
+            if (opts.includes('SERVICE_ACCOUNT')) list.push("сервисный аккаунт");
+            if (opts.includes('BOT')) list.push("бот");
+            if (opts.includes('OFFICIAL')) list.push("официальный");
+            const joined = list.join(', ');
+            return joined.charAt(0).toUpperCase() + joined.slice(1);
+        })()}
+    { :else }
     { /if }
 { /if }
