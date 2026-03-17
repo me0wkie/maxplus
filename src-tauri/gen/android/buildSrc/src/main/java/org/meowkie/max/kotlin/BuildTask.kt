@@ -16,7 +16,7 @@ open class BuildTask : DefaultTask() {
 
     @TaskAction
     fun assemble() {
-        val executable = """cargo""";
+        val executable = """bun""";
         try {
             runTauriCli(executable)
         } catch (e: Exception) {

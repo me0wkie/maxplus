@@ -29,6 +29,8 @@
 
 > <b>Поддерживаются версии Android 9+ (для Keystore 10+)</b>
 
+<a href="https://github.com/me0wkie/maxplus/releases/latest"><b>Перейти к скачиванию (пре-релиз .apk)</b></a>
+
 ## Содержание
 - [Особенности](#особенности)
 - [Использование](#использование)
@@ -99,11 +101,45 @@ $ JAVA_HOME=/usr/lib/путь_к_jdk_17 bun run tauri android dev
 - [Подключение устройства Android](https://developer.android.com/codelabs/basic-android-kotlin-compose-connect-device)
 - На Linux процесс может быть немного сложнее.
 
+### Отладка на Android
+С запущенным приложением (```bun run tauri android dev```):
+
+Перейти в Chrome на ```chrome://inspect#devices``` -> WebView in org.meowkie.max (tauri.localhost)
+
 ## Сборка проекта
 Для сборки под Windows, Linux, iOS нужна предварительная настройка 
 ([Windows](https://v2.tauri.app/distribute/windows-installer/), [Debian](https://v2.tauri.app/distribute/debian/), [iOS](https://v2.tauri.app/distribute/app-store/), [macOS](https://v2.tauri.app/distribute/macos-application-bundle/))
 
-### Android
+### Сборка под Android на Linux
+1. <b>Установите ```Android Studio```, ```Android SDK``` и [Android NDK r21e](https://github.com/android/ndk/wiki/Unsupported-Downloads)</b>  
+Версия r21e нужна для корректной сборки <b>(это велосипед, нужно исправить)</b>
+
+2. <b>Согласно инструкции на сайте Tauri, установите зависимости, укажите ```NDK_HOME```, ```ANDROID_HOME```</b>
+
+3. Из-за особенностей сборки, линкуем libunwind -> libgcc <b>(это велосипед, нужно исправить)</b>
+```sh
+cd $NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib/gcc/aarch64-linux-android/4.9.x/
+ln -s libgcc.a libunwind.a
+```
+
+4. <b>Создайте keystore в папке проекта:</b>
+```sh
+keytool -genkeypair -v \
+  -keystore src-tauri/gen/android/app/keystore.jks \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -alias secret_123
+```
+
+5. <b>Настройте ```keystore.properties``` в папке проекта</b>
+```
+$ cd src-tauri/gen/android
+mv keystore.properties.example keystore.properties
+nano keystore.properties
+```
+
+5. <b>Сборка</b>  
 Вместо aarch64 можно подставить другую архитектуру (armv7, i686, x86_6). Можно собрать для всех платформ Android сразу (увеличится размер .apk)
 
 ```sh
@@ -114,14 +150,7 @@ $ cargo tauri android build --target aarch64
 $ cargo tauri android build
 ```
 
-> ⚠️ <b>Android 10+ требует подписанных .apk-файлов</b>
-
-Ситуация с iOS сложнее и [дороже](https://developer.apple.com/support/compare-memberships/), поэтому простите, но айфонщикам пока путь только в RuStore.
-
-### Отладка на Android
-С запущенным приложением (```bun run tauri android dev```):
-
-Перейти в Chrome на ```chrome://inspect#devices``` -> WebView in org.meowkie.max (tauri.localhost)
+Сборка под iOS возможна только с macOS. Может понадобиться [платная подписка Apple Developer](https://developer.apple.com/support/compare-memberships/)
 
 ## Сброс данных клиента
 <b>Для Linux:</b>

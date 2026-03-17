@@ -178,7 +178,7 @@ export default class MobileApi extends BaseAPI {
             })
 
             contacts.forEach(contact => {
-                const { /*accountStatus: status*/ baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime, status, accountStatus: acs } = contact
+                const { baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime, status, accountStatus: acs } = contact
 
                 if (!currentContacts[contact.id]) {
                     currentContacts[contact.id] = {
@@ -190,7 +190,7 @@ export default class MobileApi extends BaseAPI {
                         updateTime,
                         options,
                         status,
-                        accountStatus
+                        accountStatus: acs
                     }
                 } else {
                     const prev = currentContacts[contact.id]

@@ -29,7 +29,7 @@
         const contacts = rawData.filter(x =>
             x.id !== $currentUser
             && (!filter || x.names[0].name.match(new RegExp(filter, 'i')))
-            && (showAll || x.options?.includes("TT") && x.status !== "REMOVED")
+            && (showAll || x.options?.includes("TT") && x.status !== "REMOVED" && x.accountStatus !== undefined)
         );
 
         contacts.sort((a, b) => (a.names?.[0]?.name || '').localeCompare(b.names?.[0]?.name || '', 'ru'));
@@ -129,7 +129,7 @@
               <a><Signature contact={contact}/></a>
             </div>
             <div class="action">
-                {#if contact.options?.includes("TT") && contact.status !== "REMOVED"}
+                {#if contact.options?.includes("TT") && contact.status !== "REMOVED" && contact.accountStatus !== undefined}
                   <a class="delete">Удалить</a>
                 {:else}
                   <a>Не контакт</a>
