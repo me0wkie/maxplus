@@ -1,7 +1,5 @@
 name: Build Max iOS
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -36,7 +34,7 @@ jobs:
         continue-on-error: true
 
       - name: Build Xcode Project
-        run: bun tauri ios build --no-bundle
+        run: bun tauri ios build
         env:
           CODE_SIGNING_ALLOWED: NO
           CODE_SIGNING_REQUIRED: NO
