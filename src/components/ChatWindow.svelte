@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
+    import { fade, fly } from 'svelte/transition';
     import { writable, get } from 'svelte/store';
 
     import Message from '$components/ChatWindow/Message.svelte';
@@ -28,6 +29,9 @@
 
     let scrollElement;
     let scrollLoaderTimeout;
+
+    let viewerOpen = false;
+    let viewerIndex = 0;
 
     let clickStartPos = { x: 0, y: 0 };
 
@@ -152,6 +156,7 @@
                     all_loaded = true;
                 }
             }
+            console.log($messages)
         } catch (e) {
             console.error(e);
         } finally {
@@ -222,6 +227,33 @@
         }
     }
 
+    $: allMedia = uiMessages.flatMap(m =>
+      (m.attaches || [])
+        .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO')
+        .map(a => ({
+            ...a,
+            msgId: m.id,
+            uid: a.videoId || a.photoId || a.url || a.baseUrl
+        }))
+    );
+
+    function openMedia(attach) {
+        const targetUid = attach.videoId || attach.photoId || attach.url || attach.baseUrl;
+        const index = allMedia.findIndex(m => m.uid === targetUid);
+
+        if (index !== -1) {
+            viewerIndex = index;
+            viewerOpen = true;
+        }
+    }
+
+    function handleKeydown(e) {
+        if (!viewerOpen) return;
+        if (e.key === 'Escape') viewerOpen = false;
+        if (e.key === 'ArrowRight' && viewerIndex < allMedia.length - 1) viewerIndex++;
+        if (e.key === 'ArrowLeft' && viewerIndex > 0) viewerIndex--;
+    }
+
     function handleClick(e) {
         if (dropoutActiveAt) {
             const isOutside = !['.message-actions-dropout'].some(x => e.target.closest(x))
@@ -240,7 +272,10 @@
             e.stopPropagation();
         }
     }
+
     function selectMessage(e, msg) {
+        if (e.target.closest('.grid-item')) return;
+
         const dx = Math.abs(e.clientX - clickStartPos.x);
         const dy = Math.abs(e.clientY - clickStartPos.y);
 
@@ -258,6 +293,46 @@
 
 <div class="chat-window" on:click|capture={handleClick}>
     <Bubbles/>
+
+    {#if viewerOpen}
+        <div class="media-viewer-overlay" transition:fade={{duration: 150}} on:click|self={() => viewerOpen = false}>
+
+            <div class="viewer-header">
+                <div class="counter">{viewerIndex + 1} из {allMedia.length}</div>
+                <button class="viewer-icon-btn close" on:click={() => viewerOpen = false}>
+                    <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+            </div>
+
+            <div class="viewer-content">
+                <button class="nav-btn prev" class:hidden={viewerIndex === 0} on:click={() => viewerIndex--}>
+                    <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                </button>
+
+                <div class="media-container">
+                    {#key viewerIndex} {#if allMedia[viewerIndex]._type === 'PHOTO'}
+                            <img src={allMedia[viewerIndex].baseUrl} alt="view" in:fly={{y: 20, duration: 200}} />
+                        {:else if allMedia[viewerIndex]._type === 'VIDEO'}
+                            <video
+                                src={allMedia[viewerIndex].url}
+                                poster={allMedia[viewerIndex].thumbnail}
+                                controls
+                                autoplay
+                                playsinline
+                                in:fly={{y: 20, duration: 200}}
+                            >
+                                <track kind="captions">
+                            </video>
+                        {/if}
+                    {/key}
+                </div>
+
+                <button class="nav-btn next" class:hidden={viewerIndex === allMedia.length - 1} on:click={() => viewerIndex++}>
+                    <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                </button>
+            </div>
+        </div>
+    {/if}
 
     <header>
         <div class="align-left">
@@ -295,11 +370,12 @@
         {#each uiMessages as msg (msg.id)}
             <div class="message-wrapper">
                  <div class="message-clickable-area"
-                      on:click|stopPropagation|preventDefault={e => selectMessage(e, msg)}>
+                 on:click|stopPropagation={e => selectMessage(e, msg)}>
                     <Message
                         {msg}
                         dropoutActiveAt={dropoutActiveAt}
                         deobfuscated={deobfuscate_msg(msg)}
+                        on:openMedia={(e) => openMedia(e.detail.attach)}
                     />
                 </div>
             </div>
@@ -381,7 +457,95 @@
     overflow-anchor: auto !important;
   }
 
-  /* СТИЛИЗАЦИЯ ПОЛЗУНКА (Goal #1) */
+  .media-viewer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.96);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+  }
+
+  .viewer-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    color: white;
+    z-index: 10;
+  }
+
+  .counter {
+    font-size: 15px;
+    font-weight: 500;
+    opacity: 0.8;
+  }
+
+  .viewer-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 40px 10px;
+    position: relative;
+  }
+
+  .media-container {
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .media-container img, .media-container video {
+    max-width: 95vw;
+    max-height: 80vh;
+    object-fit: contain;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  /* Кнопки навигации */
+  .nav-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    margin: 0 15px;
+  }
+
+  .nav-btn:hover { background: rgba(255, 255, 255, 0.2); }
+  .nav-btn svg { width: 36px; height: 36px; fill: currentColor; }
+  .nav-btn.hidden { opacity: 0; pointer-events: none; }
+
+  .viewer-icon-btn {
+    background: none; border: none; color: white; cursor: pointer; padding: 5px;
+  }
+  .viewer-icon-btn svg { width: 28px; height: 28px; fill: currentColor; }
+
+  /* Мобильная адаптация */
+  @media (max-width: 768px) {
+    .nav-btn {
+      position: absolute;
+      background: transparent;
+      width: 80px;
+      height: 60%;
+    }
+    .nav-btn.prev { left: 0; }
+    .nav-btn.next { right: 0; }
+    .nav-btn:hover { background: transparent; }
+    .nav-btn svg { opacity: 0.5; }
+  }
+
   .message-list-container::-webkit-scrollbar {
     width: 4px;
     display: block;
@@ -398,15 +562,15 @@
   }
 
   .grab-scroll {
-      cursor: grab;
+    cursor: grab;
   }
   .grab-scroll:active {
-      cursor: grabbing;
+    cursor: grabbing;
   }
 
   .message-wrapper {
-      position: relative;
-      width: 100%;
+    position: relative;
+    width: 100%;
   }
 
   .message-clickable-area {
