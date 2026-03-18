@@ -28,6 +28,17 @@
     if (event === 'system') return first.message;
     return event;
   }
+
+  function handleForwardHeaderClick() {
+    if (msg.link?.chatId) {
+      dispatch('openChat', { chatId: msg.link.chatId, messageId: msg.link.message.id });
+    }
+  }
+
+  $: hasForward = msg.link && msg.link.type === 'FORWARD';
+  $: forwardMsg = msg.link?.message;
+  $: forwardLines = forwardMsg?.text?.split("\n");
+  $: forwardMediaAttaches = (forwardMsg?.attaches || []).filter(a => a._type === 'PHOTO' || a._type === 'VIDEO');
 </script>
 
 <div class="message-row"
@@ -43,6 +54,50 @@
     <div class="message-bubble">
         <div class="row">
             <div class="text">
+
+                {#if hasForward}
+                  <div class="forward-block">
+                    <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
+                      {#if msg.link.chatIconUrl}
+                        <img src={msg.link.chatIconUrl} alt="" class="forward-avatar" />
+                      {/if}
+                      <div class="forward-info">
+                        <span class="forward-name">{msg.link.chatName}</span>
+                        <span class="forward-label">Пересланное сообщение</span>
+                      </div>
+                      <svg class="forward-arrow" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                    </div>
+
+                    {#if forwardLines}
+                      <div class="forward-content">
+                        {#each forwardLines as fLine}
+                          <p class="line allow-selection">{fLine}</p>
+                        {/each}
+                      </div>
+                    {/if}
+
+                    {#if forwardMediaAttaches.length > 0}
+                      <div class="media-grid forward-media"
+                           class:grid-single={forwardMediaAttaches.length === 1}
+                           class:grid-many={forwardMediaAttaches.length > 1}
+                           style="--cols: {forwardMediaAttaches.length >= 2 ? 2 : 1}">
+                        {#each forwardMediaAttaches as attach}
+                          <div class="grid-item" on:click|stopPropagation={() => handleMediaClick(attach)}>
+                            {#if attach._type === 'PHOTO'}
+                              <img src={attach.baseUrl} alt="photo" loading="lazy" />
+                            {:else if attach._type === 'VIDEO'}
+                              <div class="video-preview">
+                                 <video src={attach.url || attach.baseUrl} muted />
+                                 <div class="play-icon">▶</div>
+                              </div>
+                            {/if}
+                          </div>
+                        {/each}
+                      </div>
+                    {/if}
+                  </div>
+                {/if}
+
                 {#if isSystem}
                   <p class="line allow-selection">{ displaySystemMessage() }</p>
                 {:else}
@@ -144,6 +199,63 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 18px;
       pointer-events: none;
+    }
+
+    /* ссылки или репосты чё это */
+    .forward-block {
+        border-left: 2px solid #34b7f1;
+        padding-left: 8px;
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 4px 12px 12px 4px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+
+    .forward-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        margin-bottom: 4px;
+    }
+
+    .forward-avatar {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .forward-name {
+        font-weight: 600;
+        color: #34b7f1;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .forward-arrow {
+        width: 14px;
+        height: 14px;
+        fill: #34b7f1;
+    }
+
+    .forward-content-text {
+        font-size: 12px;
+        color: #ddd;
+        display: -webkit-box;
+        -webkit-line-clamp: 3; /* Ограничиваем текст репоста 3 строками */
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.3;
+    }
+
+    .forward-badge {
+        font-size: 10px;
+        opacity: 0.5;
+        margin-top: 2px;
     }
 
     .message-status { display: flex; flex-direction: column; align-items: flex-end; margin-left: 10px; margin-top: 5px; align-self: flex-end; min-width: fit-content; }

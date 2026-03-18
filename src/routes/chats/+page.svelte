@@ -246,7 +246,7 @@
                                         {chat}
                                         selectionMode={isSelectionMode}
                                         isSelected={selectedChats.has(chat.id)}
-                                        on:open={() => dispatch('chat', chat.id)}
+                                        on:open={() => dispatch('chat', { chatId: chat.id })}
                                         on:longpress={handleChatLongPress}
                                         on:toggle={handleChatToggle}
                                     />

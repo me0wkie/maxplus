@@ -377,6 +377,9 @@
                         deobfuscated={deobfuscate_msg(msg)}
                         avatar={ chat.type === "CHANNEL" ? avatar : null }
                         on:openMedia={(e) => openMedia(e.detail.attach)}
+                        on:openChat={(e) => {
+                          dispatch('chat', e.detail)
+                        }}
                     />
                 </div>
             </div>

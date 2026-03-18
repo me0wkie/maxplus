@@ -27,7 +27,8 @@
         active = detail.index;
     }
     
-    function openChat({ detail: chatId }) {
+    function openChat({ detail }) {
+        const { chatId, messageId } = detail;
         const exists = openChats.find(c => c.id === chatId);
         if (exists) {
             openChats = [...openChats.filter(c => c.id !== chatId), exists];
@@ -90,6 +91,7 @@
   {#each openChats as chat (chat.id)}
     <ChatWindow {chat}
       on:close={() => closeChat(chat.id)}
+      on:chat={openChat}
     />
   {/each}
 </div>
@@ -102,7 +104,7 @@
         type={profileType}
         on:close={() => profileData = null}
         on:block={handleBlockUser}
-        on:chat={() => { active = 2; openChat({ detail: $currentUser ^ profileData.id }); profileData = null; }}
+        on:chat={() => { active = 2; openChat({ detail: { chatId: $currentUser ^ profileData.id } }); profileData = null; }}
     />
 {/if}
 
