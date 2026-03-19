@@ -1,35 +1,38 @@
-<h1>🍊 Клиент Max+</h1>
+<div align="center">
 
-<b>Приложение с добавлением E2E шифрования.</b>  
-Проект разрабатывается с конца августа в solo, является прототипом, цель которого показать, как можно было!
+<img src="static/favicon.png" width="120" height="120" alt="Max+ Logo" style="border-radius: 24px; margin-bottom: 20px;">
 
-<div>
-    <img src="https://img.shields.io/badge/MIT-green?style=for-the-badge"/>
-    <img src="https://img.shields.io/badge/Rust-red?style=for-the-badge&logo=rust&logoColor=white"/>
-    <img src="https://img.shields.io/badge/JavaScript-orange?style=for-the-badge&logo=javascript&logoColor=white"/>
+<h1>Max+ Client</h1>
+
+**Приложение с добавлением E2E шифрования.**  
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Rust](https://img.shields.io/badge/Rust-red?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-orange?style=for-the-badge&logo=javascript&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
 </div>
 
-<br>
 
 <b>Что НЕ реализовано:</b>  
-➖ Уведомления, звонки, поддержка WebApps, в том числе сферум, поиск, профили (карточки), видео, изображения, стикеры, закрепление, удаление, скачивание чатов, добавление в папку, редактирование папок, аппаратное шифрование.
+➖ Уведомления, звонки, поддержка WebApps, в том числе сферум, поиск, профили (карточки), видео, изображения, стикеры, закрепление, удаление, скачивание чатов, добавление в папку, редактирование папок, аппаратное шифрование
 
 <b>Что реализовано:</b>  
-➕ Вход, регистрация, добавление, удаление контакта, чаты, реакции на сообщения, включение шифрования.
+➕ Вход, регистрация, добавление, удаление контакта, чаты, реакции на сообщения, включение шифрования
 
-<b>Что должно быть:</b>  
-➕ Светлая тема, Telegram Proxy, переключение вида интерфейса между Max/Telegram, 
+<b>Что еще будет:</b>  
+➕ Светлая тема, Telegram Proxy, разные интерфейсы, шифрованные звонки, поддержка кастомного сервера
 
 ## Предосторежения
-> ⚠️ <b>ВНИМАНИЕ!</b>  
-Не призываю никого скачивать данный клиент и заводить аккаунт в Max <b>как альтернативу Telegram</b>. Делайте это только в крайнем случае, когда активны белые списки или хочется поэксперементировать
+> [!WARNING]
+Не призываю никого скачивать данный клиент и заводить аккаунт в Max <b>как альтернативу Telegram</b>. Делайте это только в крайнем случае, когда активны белые списки или хочется поэксперементировать.
 
-> ⚠️ <b>Работа с внутренним API</b>  
-Используйте на свой страх и риск, сервера могут распознавать клиент и выдать бан
+> [!WARNING]
+Используйте на свой страх и риск, сервера могут <b>распознать клиент и выдать бан.</b>
 
-> <b>Поддерживаются версии Android 9+ (для Keystore 10+)</b>
+> [!IMPORTANT]
+> Поддерживаются версии Android 9+ <b>(для Keystore 10+)</b>
 
-<a href="https://github.com/me0wkie/maxplus/releases/latest"><b>Перейти к скачиванию (пре-релиз .apk)</b></a>
+### ✨ Стать тестером Max+ (.apk, .ipa)
+[![Download APK](https://img.shields.io/badge/Скачать_Pre--release-APK-blue?style=for-the-badge&logo=android&logoColor=white)](https://github.com/me0wkie/maxplus/releases/latest)
 
 ## Содержание
 - [Особенности](#особенности)
@@ -48,7 +51,8 @@
 
 <b>Небольшой размер приложения достигается использованием встроенных веб-браузеров (спасибо команде Tauri!)</b>
 
-> ❗ В будущем потребуется доступ к камере для покупки пива в Магните (по QR)
+> [!IMPORTANT]
+> В будущем потребуется доступ к камере для покупки пива в Магните (через QR-код)
 
 ## Использование
 Предварительные версии доступны в разделе [Releases](https://github.com/me0wkie/maxplus/releases)
@@ -60,7 +64,7 @@
 
 ### Про обновления
 Обновления можно будет проверить, используя кнопку в настройках.  
-Скачивание и установка ручные
+В целях безопасности автопроверка обновлений не будет реализована.
 
 ## Разработка
 Модификация кода приветствуется - сейчас проект очень сырой!
@@ -111,11 +115,11 @@ $ JAVA_HOME=/usr/lib/путь_к_jdk_17 bun run tauri android dev
 Для сборки под Windows, Linux, iOS нужна предварительная настройка 
 ([Windows](https://v2.tauri.app/distribute/windows-installer/), [Debian](https://v2.tauri.app/distribute/debian/), [iOS](https://v2.tauri.app/distribute/app-store/), [macOS](https://v2.tauri.app/distribute/macos-application-bundle/))
 
-### Сборка под Android на Linux
+### Сборка под Android в среде Linux
 1. <b>Установите ```Android Studio```, ```Android SDK``` и [Android NDK r21e](https://github.com/android/ndk/wiki/Unsupported-Downloads)</b>  
 Версия r21e нужна для корректной сборки <b>(это велосипед, нужно исправить)</b>
 
-2. <b>Согласно инструкции на сайте Tauri, установите зависимости, укажите ```NDK_HOME```, ```ANDROID_HOME```</b>
+2. <b>Согласно инструкции на сайте Tauri, установите зависимости и настройте переменные среды ```NDK_HOME```, ```ANDROID_HOME```</b>
 
 3. Из-за особенностей сборки, линкуем libunwind -> libgcc <b>(это велосипед, нужно исправить)</b>
 ```sh
@@ -144,10 +148,12 @@ nano keystore.properties
 Вместо aarch64 можно подставить другую архитектуру (armv7, i686, x86_6). Можно собрать для всех платформ Android сразу (увеличится размер .apk)
 
 ```sh
+# Для конкретной архитектуры
 $ cargo tauri android build --target aarch64
 
 ИЛИ
 
+# Единый .apk для всех архитектур
 $ cargo tauri android build
 ```
 
