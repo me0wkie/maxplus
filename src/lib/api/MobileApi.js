@@ -355,8 +355,13 @@ export default class MobileApi extends BaseAPI {
     
     async removeContact(contactId) {
         await this.synchronized;
-        const response = await invoke('remove_contact', { contactId })
+        const response = await invoke('remove_contact', { contactId });
         return { success: true };
+    }
+
+    async getVideoById(chatId, messageId, videoId) {
+        await this.synchronized;
+        return await invoke('get_video_by_id', { chatId, messageId, videoId });
     }
 }
 

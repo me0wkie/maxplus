@@ -83,6 +83,9 @@ export default class API {
     addContact() { throw "addContact :Unimplemented" }
     removeContact() { throw "removeContact: Unimplemented" }
     search() { throw "search: Unimplemented" }
+    getVideoById() { throw "getVideoById: Unimplemented" }
+    getFileById() { throw "getFileById: Unimplemented" }
+    readMessage() { throw "readMessage: Unimplemented" }
     
     onCall() { throw "onCall: Unimplemented" }
     onMessage() { throw "onMessage: Unimplemented" }

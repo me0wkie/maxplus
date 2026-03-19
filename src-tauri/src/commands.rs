@@ -212,8 +212,58 @@ pub async fn remove_contact(
         .map_err(|e| e.to_string())
         .and_then(|r| {
             serde_json::to_value(r.payload)
-                .map_err(|e| e.to_string())
+            .map_err(|e| e.to_string())
         })
+}
+
+#[tauri::command]
+pub async fn get_video_by_id(
+    state: State<'_, AppState>,
+    chat_id: i64,
+    message_id: String,
+    video_id: i64,
+) -> Result<Value, String> {
+    let cor: u64 = message_id.parse().unwrap();
+    state.client.get_video_by_id(chat_id, cor, video_id)
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub async fn get_file_by_id(
+    state: State<'_, AppState>,
+    chat_id: i64,
+    message_id: String,
+    file_id: i64,
+) -> Result<Value, String> {
+    let cor: u64 = message_id.parse().unwrap();
+    state.client.get_file_by_id(chat_id, cor, file_id)
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub async fn read_message(
+    state: State<'_, AppState>,
+    chat_id: i64,
+    message_id: String,
+) -> Result<Value, String> {
+    let cor: u64 = message_id.parse().unwrap();
+    state.client.read_message(chat_id, cor)
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
 }
 
 #[tauri::command]

@@ -87,7 +87,7 @@
                               <img src={attach.baseUrl} alt="photo" loading="lazy" />
                             {:else if attach._type === 'VIDEO'}
                               <div class="video-preview">
-                                 <video src={attach.url || attach.baseUrl} muted />
+                                 <img src={attach.thumbnail} />
                                  <div class="play-icon">▶</div>
                               </div>
                             {/if}
@@ -121,7 +121,7 @@
                             <img src={attach.baseUrl} alt="photo" loading="lazy" />
                           {:else if attach._type === 'VIDEO'}
                             <div class="video-preview">
-                               <video src={attach.baseUrl} muted />
+                               <img src={attach.thumbnail} />
                                <div class="play-icon">▶</div>
                             </div>
                           {/if}

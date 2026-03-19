@@ -1,0 +1,424 @@
+<script>
+  import { createEventDispatcher } from 'svelte';
+  import { fade, fly, scale } from 'svelte/transition';
+  import API from '$lib/stores/api';
+
+  export let index = 0;
+  export let allMedia;
+  export let chatId;
+
+  const dispatch = createEventDispatcher();
+
+  let videoElement;
+  let paused = true;
+  let currentTime = 0;
+  let duration = 0;
+  let volume = 1;
+  let playbackRate = 1;
+  let showControls = true;
+  let controlsTimeout;
+  let isMetadataLoaded = false;
+  let isVideoReady = false;
+  let loop = false;
+
+  let showSkipIcon = null;
+  let videoCache = {};
+  let isLoading = false;
+
+  $: currentMedia = allMedia[index];
+
+  $: if (index !== undefined) {
+    isMetadataLoaded = false;
+    isVideoReady = false;
+    duration = 0;
+    currentTime = 0;
+    playbackRate = 1;
+    showControls = true;
+    paused = true;
+  }
+
+  async function loadVideo(videoId) {
+    if (videoCache[videoId] || isLoading) return;
+    isLoading = true;
+    try {
+      const response = await $API.getVideoById(chatId, currentMedia.messageId, videoId);
+      const qualityPriority = ['MP4_1080', 'MP4_720', 'MP4_480', 'MP4_360'];
+      let videoUrl = null;
+      for (const quality of qualityPriority) {
+        if (response[quality]) { videoUrl = response[quality]; break; }
+      }
+      if (!videoUrl && response.HLS) videoUrl = response.HLS;
+
+      if (videoUrl) {
+        videoCache[videoId] = `http://127.0.0.1:11447/${encodeURIComponent(videoUrl)}`;
+        videoCache = { ...videoCache };
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки:', error);
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  async function togglePlay() {
+    if (!videoElement) return;
+    try {
+      if (videoElement.paused) {
+        await videoElement.play();
+      } else {
+        videoElement.pause();
+      }
+    } catch (e) {
+      console.warn("Play interrupted:", e);
+    }
+  }
+
+  function handleSync(e) {
+    const el = e.target;
+    duration = el.duration || 0;
+    isMetadataLoaded = duration > 0 && !isNaN(duration);
+  }
+
+  function handleCanPlay() {
+    isVideoReady = true;
+    if (videoElement && (!duration || isNaN(duration))) {
+      duration = videoElement.duration;
+    }
+  }
+
+  function formatTime(seconds) {
+    if (!isFinite(seconds) || isNaN(seconds) || seconds <= 0) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  function resetControlsTimeout() {
+    showControls = true;
+    clearTimeout(controlsTimeout);
+    if (!paused) {
+      controlsTimeout = setTimeout(() => showControls = false, 2500);
+    }
+  }
+
+  function handleVideoTouch(side) {
+    if (!videoElement || !isMetadataLoaded) return;
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      if (side === 'left') {
+        videoElement.currentTime = Math.max(0, videoElement.currentTime - 5);
+        showSkipIcon = 'left';
+      } else {
+        videoElement.currentTime = Math.min(duration, videoElement.currentTime + 5);
+        showSkipIcon = 'right';
+      }
+      setTimeout(() => showSkipIcon = null, 500);
+    } else {
+      if (!showControls) resetControlsTimeout();
+      else togglePlay();
+    }
+    lastTap = now;
+  }
+  let lastTap = 0;
+
+  function handleSeek(e) {
+    const newTime = parseFloat(e.target.value);
+    if (!isNaN(newTime) && videoElement) {
+      videoElement.currentTime = newTime;
+      currentTime = newTime;
+    }
+  }
+
+  let pressTimer;
+  function handlePressStart(e) {
+    if (e.target.closest('.video-controls-bar')) return;
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(() => { if (!paused) playbackRate = 2; }, 500);
+  }
+
+  function handlePressEnd() {
+    clearTimeout(pressTimer);
+    playbackRate = 1;
+  }
+</script>
+
+<div class="media-viewer-overlay" transition:fade={{duration: 150}} on:click|self={() => dispatch('close')}>
+    <div class="viewer-header">
+        <div class="counter">{index + 1} из {allMedia.length}</div>
+        <button class="viewer-icon-btn close" on:click={() => dispatch('close')}>
+            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+    </div>
+
+    <div class="viewer-content" on:mousemove={resetControlsTimeout}>
+        <button class="nav-btn prev" class:hidden={index === 0} on:click|stopPropagation={() => index--}>
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+
+        <div class="media-container">
+            {#key index}
+                {#if currentMedia._type === 'PHOTO'}
+                    <img src={currentMedia.baseUrl} alt="view" in:fly={{y: 20, duration: 200}} />
+                {:else if currentMedia._type === 'VIDEO'}
+                    {#if videoCache[currentMedia.videoId]}
+                        <div class="tg-video-wrapper"
+                             on:mousedown={handlePressStart}
+                             on:touchstart={handlePressStart}
+                             on:mouseup={handlePressEnd}
+                             on:touchend={handlePressEnd}>
+
+                            <img src={currentMedia.thumbnail} class="video-placeholder" alt="" class:hidden={isVideoReady} />
+
+                            <video
+                                bind:this={videoElement}
+                                src={videoCache[currentMedia.videoId]}
+                                poster={currentMedia.thumbnail}
+                                class="video-player"
+                                class:ready={isVideoReady}
+                                autoplay
+                                bind:paused
+                                bind:currentTime
+                                bind:duration
+                                bind:volume
+                                bind:playbackRate
+                                loop={loop}
+                                on:loadedmetadata={handleSync}
+                                on:durationchange={handleSync}
+                                on:canplay={handleCanPlay}
+                                playsinline
+                            ></video>
+
+                            <div class="tap-zones">
+                                <div class="tap-zone left" on:click|stopPropagation={() => handleVideoTouch('left')}></div>
+                                <div class="tap-zone right" on:click|stopPropagation={() => handleVideoTouch('right')}></div>
+                            </div>
+
+                            {#if playbackRate === 2 && !paused}
+                                <div class="speed-badge" transition:fade>2x Ускорение</div>
+                            {/if}
+
+                            {#if showSkipIcon === 'left'}
+                                <div class="skip-anim left" in:scale out:fade>
+                                    <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6L11 18zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+                                    <span>-5 сек</span>
+                                </div>
+                            {:else if showSkipIcon === 'right'}
+                                <div class="skip-anim right" in:scale out:fade>
+                                    <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+                                    <span>+5 сек</span>
+                                </div>
+                            {/if}
+
+                            <div class="video-controls-bar" class:hidden={!showControls} on:click|stopPropagation>
+                                <div class="progress-row">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max={duration > 0 ? duration : 0.1}
+                                        step="any"
+                                        value={currentTime}
+                                        on:input={handleSeek}
+                                        class="seek-bar"
+                                    />
+                                </div>
+
+                                <div class="controls-main">
+                                    <div class="controls-left">
+                                        <button class="icon-btn play-pause" on:click|stopPropagation={togglePlay}>
+                                            {#if paused}
+                                                <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                            {:else}
+                                                <svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                            {/if}
+                                        </button>
+                                        <span class="time-text">
+                                          {formatTime(currentTime)} / {formatTime(duration)}
+                                        </span>
+                                    </div>
+
+                                    <div class="controls-right">
+                                        <button class="icon-btn loop-btn" class:active={loop} on:click={() => loop = !loop} title="Повтор">
+                                            <svg viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/></svg>
+                                        </button>
+                                        <div class="volume-group">
+                                            <input type="range" min="0" max="1" step="0.05" bind:value={volume} class="volume-bar" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {:else}
+                        <div class="preview-wrapper" on:click={() => loadVideo(currentMedia.videoId)}>
+                            <img src={currentMedia.thumbnail} alt="preview" class="video-preview" />
+                            <div class="play-overlay">
+                                {#if isLoading}
+                                    <div class="loader"></div>
+                                {:else}
+                                    <div class="play-button">
+                                        <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                                    </div>
+                                {/if}
+                            </div>
+                        </div>
+                    {/if}
+                {/if}
+            {/key}
+        </div>
+
+        <button class="nav-btn next" class:hidden={index === allMedia.length - 1} on:click|stopPropagation={() => index++}>
+            <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+        </button>
+    </div>
+</div>
+
+<style>
+  .media-viewer-overlay {
+    position: fixed; inset: 0; background: rgba(0, 0, 0, 0.96);
+    z-index: 9999; display: flex; flex-direction: column; user-select: none;
+  }
+
+  .viewer-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 20px; color: white; z-index: 10;
+  }
+
+  .counter { font-size: 15px; font-weight: 500; opacity: 0.8; }
+
+  .viewer-content {
+    flex: 1; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 10px 40px 10px; position: relative;
+  }
+
+  .media-container {
+    flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
+  }
+
+  .media-container :global(img),
+  .media-container :global(.video-player),
+  .media-container :global(.video-preview) {
+    max-width: 95vw;
+    max-height: 80vh;
+    object-fit: contain;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .nav-btn {
+    width: 56px; height: 56px; border-radius: 50%; background: rgba(255, 255, 255, 0.1);
+    border: none; color: white; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: all 0.2s; flex-shrink: 0; margin: 0 15px;
+    z-index: 100;
+  }
+  .nav-btn:hover { background: rgba(255, 255, 255, 0.2); }
+  .nav-btn svg { width: 36px; height: 36px; fill: currentColor; }
+  .nav-btn.hidden { opacity: 0; pointer-events: none; }
+
+  .viewer-icon-btn { background: none; border: none; color: white; cursor: pointer; padding: 5px; }
+  .viewer-icon-btn svg { width: 28px; height: 28px; fill: currentColor; }
+
+  .preview-wrapper { position: relative; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .video-preview { filter: brightness(0.8); transition: filter 0.3s; }
+  .preview-wrapper:hover .video-preview { filter: brightness(1); }
+  .play-overlay { position: absolute; display: flex; align-items: center; justify-content: center; }
+  .play-button { width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; transition: transform 0.2s; }
+  .play-button svg { width: 40px; height: 40px; fill: currentColor; margin-left: 5px; }
+  .loader { width: 50px; height: 50px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .tg-video-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .video-placeholder {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+    z-index: 1;
+    transition: opacity 0.5s;
+  }
+  .video-placeholder.hidden { opacity: 0; pointer-events: none; }
+
+  .video-player {
+    width: 100%; height: 100%; z-index: 2; display: block;
+    opacity: 0; transition: opacity 0.5s;
+  }
+  .video-player.ready { opacity: 1; }
+
+  .video-controls-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+    padding: 10px 15px 15px 15px;
+    transition: opacity 0.3s, transform 0.3s;
+    z-index: 20;
+    cursor: default;
+  }
+  .video-controls-bar.hidden { opacity: 0; transform: translateY(10px); pointer-events: none; }
+
+  .controls-main { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .controls-left, .controls-right { display: flex; align-items: center; gap: 12px; color: white; }
+
+  .icon-btn { background: none; border: none; color: white; cursor: pointer; padding: 0; display: flex; opacity: 0.8; transition: opacity 0.2s, color 0.2s; }
+  .icon-btn:hover { opacity: 1; }
+  .icon-btn.active { color: #3390ec; opacity: 1; }
+  .icon-btn svg { width: 28px; height: 28px; fill: currentColor; }
+
+  .time-text { font-size: 13px; font-variant-numeric: tabular-nums; opacity: 0.9; }
+  .volume-group { display: flex; align-items: center; gap: 8px; }
+
+  .progress-row { width: 100%; display: flex; }
+
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    background: rgba(255,255,255,0.3);
+    height: 4px; border-radius: 2px; cursor: pointer; outline: none;
+    width: 100%; margin: 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    height: 12px; width: 12px; border-radius: 50%;
+    background: #fff; box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  }
+  input[type="range"]:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .seek-bar { height: 6px; }
+  .volume-bar { width: 70px; }
+
+  .tap-zones { position: absolute; inset: 0; display: flex; z-index: 10; }
+  .tap-zone { flex: 1; height: 100%; }
+
+  .skip-anim {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(0,0,0,0.6); border-radius: 50%;
+    width: 70px; height: 70px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; color: white;
+    z-index: 15; pointer-events: none;
+  }
+  .skip-anim.left { left: 15%; }
+  .skip-anim.right { right: 15%; }
+  .skip-anim svg { width: 26px; fill: currentColor; }
+  .skip-anim span { font-size: 11px; font-weight: 600; }
+
+  .speed-badge {
+    position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.7); color: white;
+    padding: 4px 10px; border-radius: 12px; font-size: 12px;
+    z-index: 15; pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .nav-btn {
+        position: absolute; width: 44px; height: 44px; margin: 0;
+        background: rgba(0,0,0,0.3); top: 50%; transform: translateY(-50%);
+    }
+    .nav-btn.prev { left: 10px; }
+    .nav-btn.next { right: 10px; }
+    .nav-btn svg { width: 28px; height: 28px; }
+  }
+</style>
