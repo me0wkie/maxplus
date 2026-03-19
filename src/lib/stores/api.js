@@ -1,10 +1,7 @@
 import { LazyStore } from '@tauri-apps/plugin-store';
-import { listen } from '@tauri-apps/api/event';
 import { writable, get } from 'svelte/store';
 import MockApi from '../api/MockApi.js';
 import MobileApi from '../api/MobileApi.js';
-
-import { add as addLog } from '$lib/stores/logs'
 
 const SELECTED = 'mobile';
 const Apis = {
@@ -13,31 +10,6 @@ const Apis = {
 }
 
 let apiInstance = new Apis[SELECTED]();
-
-listen('max', (event) => {
-    const { payload } = event;
-
-    addLog(payload);
-
-    console.log(payload)
-    
-    if (payload.type === "log") return;
-    if (payload.type === 'tx') return;
-    
-    // only RX
-    const { response } = payload;
-    const opc = response.opcode;
-    
-    if (opc === 128) {
-        // TODO event handler
-        const message = response.payload.message;
-        message.chatId = response.payload.chatId;
-        receivedMessage.set(message);
-    }
-    else if (opc == 129) {
-        // typing
-    }
-});
 
 const users = new LazyStore('users.bin');
 const chats = new LazyStore('chats.bin');

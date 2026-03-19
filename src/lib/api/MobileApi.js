@@ -1,13 +1,17 @@
-import { invoke } from '@tauri-apps/api/core';
+import { invoke } from '$lib/utils/invoke';
+import { listen } from '@tauri-apps/api/event';
 import BaseAPI from './BaseApi'
 import { get } from 'svelte/store';
-import { usersDb, currentUser, currentSessionChats, currentSessionContacts, currentFolders, currentlySyncing, currentPresence } from '$lib/stores/api'
+import { add as addLog } from '$lib/stores/logs'
+import { usersDb, currentUser, currentSessionChats, currentSessionContacts, currentFolders, currentlySyncing, currentPresence, receivedMessage } from '$lib/stores/api'
 import Session from '$lib/stores/session'
 import { goto } from '$app/navigation';
 
 export default class MobileApi extends BaseAPI {
     resolve_sync = null;
     synchronized = new Promise(resolve => this.resolve_sync = resolve);
+    latest_init = null;
+    unlisten = null;
     
     constructor(token) {
         super(token);
@@ -16,9 +20,51 @@ export default class MobileApi extends BaseAPI {
     _telemetry() {
         /* Telemetry implemented in rust code */
     }
+
+    async startListener() {
+        this.unlisten = await listen('max', (event) => {
+            const { payload } = event;
+
+            addLog(payload);
+
+            console.log(payload)
+
+            if (payload.type === "log") {
+                if (payload.response === 'closed') {
+                    alert('Отключен сервером\nПереподключение...')
+                    this.init()
+                }
+                return;
+            }
+            if (payload.type === 'tx') return;
+
+            // only RX
+            const { response } = payload;
+            const opc = response.opcode;
+
+            if (opc === 128) {
+                // TODO event handler
+                const message = response.payload.message;
+                message.chatId = response.payload.chatId;
+                receivedMessage.set(message);
+            }
+            else if (opc == 129) {
+                // typing
+            }
+        });
+    }
     
     async init() {
+        if (this.latest_init > Date.now() + 5000) {
+            console.error("Had recent reconnection, not trying again")
+            return
+        }
         if (!this.getDevice()?.id) throw "No device id";
+
+        if (this.unlisten) await this.unlisten();
+        this.startListener();
+
+        this.latest_init = Date.now()
         
         const response = await invoke('init', {
             token: this.getToken(),
@@ -145,8 +191,10 @@ export default class MobileApi extends BaseAPI {
                 const { id, cid, title, admins, baseIconUrl: avatar,
                 adminParticipants, videoConversation, status, lastMessage,
                 lastEventTime, participants, newMessages, type } = chat
-                const exists = currentChats.find(entry => entry.id === id)
-                if(!exists) currentChats.push({ id, type, title, status, avatar, lastMessage, lastEventTime, participants, newMessages })
+
+                const exists = currentChats.find(entry => entry.id === id);
+                if(!exists) currentChats.push({ id, type, title, status, avatar, lastMessage, lastEventTime, participants, newMessages });
+
                 else {
                     const before = updated ? null : JSON.stringify(exists)
                     exists.lastMessage = lastMessage;
@@ -234,14 +282,14 @@ export default class MobileApi extends BaseAPI {
             
             currentSessionChats.set(currentChats);
             currentSessionContacts.set(currentContacts);
-            
-            console.log('Синхронизация завершена!');
-            this.resolve_sync();
-            //await new Promise(r => setTimeout(r, 5000));
+
         } catch (e) {
             alert(e)
             console.error(e)
             if (e.includes("login.token")) await this.logout();
+        } finally {
+            this.resolve_sync();
+            console.log('Синхронизация завершена!');
         }
     }
     
@@ -278,15 +326,11 @@ export default class MobileApi extends BaseAPI {
             return { success: false, error: 'not-found' }
         }
         
-        console.log(oldContact)
-        
         const contactId = oldContact.id;
         
         const { contact: result } = await invoke('add_contact', { contactId, firstName: name }) || {}
         
         if (!result) return { success: false, error: 'denied' }
-
-        console.log(result)
 
         const contact = {
             avatar: result.baseUrl,
@@ -312,7 +356,6 @@ export default class MobileApi extends BaseAPI {
     async removeContact(contactId) {
         await this.synchronized;
         const response = await invoke('remove_contact', { contactId })
-        console.log(response)
         return { success: true };
     }
 }

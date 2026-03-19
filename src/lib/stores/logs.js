@@ -5,13 +5,13 @@ const total = writable(0);
 
 let logCounter = 0;
 
-function add(data) {
+function _add(data, type) {
     logs.update(current => {
         const newLog = {
             id: logCounter++,
             timestamp: new Date().toLocaleTimeString(),
-                data: data,
-                type: data.request ? 'request' : 'response',
+                data,
+                type,
                 preview: JSON.stringify(data).slice(data.request ? 20 : 21)
         };
 
@@ -21,6 +21,12 @@ function add(data) {
     total.update(x => x + 1);
 }
 
+const add = data => _add(data, data.request ? 'request' : 'response')
+
+function error(text) {
+    _add(text, 'error')
+}
+
 function get() {
     return getStoreValue(logs)
 }
@@ -28,7 +34,8 @@ function get() {
 export {
     add,
     get,
-    total
+    total,
+    error
 }
 
 export default logs

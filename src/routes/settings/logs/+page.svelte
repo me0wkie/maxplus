@@ -150,6 +150,7 @@
 
     .request .badge { background: #3b82f6; color: white; }
     .response .badge { background: #10b981; color: white; }
+    .error .badge { background: #f22727; color: white; }
     .generic .badge { background: #6b7280; color: white; }
 
     .log-content {
