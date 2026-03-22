@@ -8,8 +8,9 @@
     import Search from '$components/main/Search.svelte';
     import FolderEditModal from '$components/chats/FolderEditModal.svelte';
 
-    import API, { currentSessionChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
+    import API, { currentSessionChats, currentSessionContacts, currentRealChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
     import Session from '$lib/stores/session.js';
+    import { debounce } from '$lib/utils/debounce.js';
 
     const dispatch = createEventDispatcher();
 
@@ -28,6 +29,9 @@
     let isSelectionMode = false;
 
     $: isSelectionMode = selectedChats.size > 0;
+
+    let searchResults = [];
+    let searchQuery = "";
 
     currentUser.subscribe(async user => {
         if (user === undefined) return;
@@ -125,9 +129,11 @@
 
     function getChatsForFolder(folder, allChats) {
         if (!allChats) return [];
-        const filtered = allChats.filter(chat => {
+        const Chats = $currentRealChats.map(id => allChats.find(x => x.id === id));
+        const filtered = Chats.filter(chat => {
             if (folder.title === 'Все') return true;
             if (folder.includedChats && folder.includedChats.includes(chat.id)) return true;
+            if (folder.status === 'HIDDEN') return false;
             if ((!folder.filters || folder.filters.length === 0) && (!folder.includedChats || folder.includedChats.length === 0)) return false;
             let matchesFilter = false;
             if (folder.filters) {
@@ -167,6 +173,31 @@
             clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => { isProgrammaticScroll = false; }, 500);
        }
+    }
+
+    async function handleSearch(search) {
+        searchQuery = search;
+        if (!search.length || await debounce("pubsearch", 700)) return;
+        if (!searchQuery.length) {
+            searchResults = [];
+            return;
+        }
+
+        const { result } = await $API.publicSearch(search)
+
+        if (!result) alert("Ошибка поиска!")
+
+        console.log(result)
+
+        for (const entry of result) {
+            if (entry.chat) entry.chat.avatar = entry.chat.baseIconUrl;
+            else if (entry.contact) {
+                entry.contact = entry.contact.contact;
+                entry.contact.avatar = entry.contact.baseUrl;
+            }
+        }
+
+        searchResults = result;
     }
 
     let showFolderModal = false;
@@ -211,7 +242,7 @@
                         <AddContactBtn/>
                     </div>
                 </div>
-                <Search search={() => {}} placeholder="Поиск"/>
+                <Search input={handleSearch} placeholder="Поиск"/>
             </div>
         {/if}
     </div>
@@ -223,6 +254,31 @@
         on:reorder={(e) => localFolders = e.detail}
         on:editFolder={(e) => { folderToEdit = e.detail; showFolderModal = true; }}
     />
+
+    {#if searchResults.length && searchQuery.length}
+        {#each searchResults as result, i ((result.chat || result.contact).id)}
+            <ChatItem
+                chat={result.chat || result.contact}
+                on:open={() => {
+                    let chatId;
+
+                    if (result.chat) chatId = result.chat.id;
+                    else if (result.contact) {
+                        const contact = result.contact;
+
+                        chatId = $currentUser ^ contact.id;
+
+                        if (!$currentSessionContacts[contact.id]) {
+                            $currentSessionContacts[contact.id] = contact;
+                        }
+                    }
+
+                    dispatch('chat', { chatId })
+                }}
+            />
+        {/each}
+        <hr/>
+    {/if}
 
     <div
         class="swipe-container"
@@ -362,8 +418,13 @@
         scroll-snap-align: start;
         scroll-snap-stop: always;
         display: flex;
-        f6lex-direction: column;
+        flex-direction: column;
         overflow: hidden;
+    }
+
+    hr {
+        width: 90%;
+        color: #fff2;
     }
 
     .chat-list-inner {

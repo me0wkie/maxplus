@@ -267,6 +267,36 @@ pub async fn read_message(
 }
 
 #[tauri::command]
+pub async fn public_search(
+    state: State<'_, AppState>,
+    query: String,
+    count: i32,
+    type_: String,
+) -> Result<Value, String> {
+    state.client.public_search(query, count, type_)
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub async fn get_chats(
+    state: State<'_, AppState>,
+    chat_ids: Vec<i64>,
+) -> Result<Value, String> {
+    state.client.get_chats(chat_ids)
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
 pub async fn set_token(
     state: State<'_, AppState>,
     token: String

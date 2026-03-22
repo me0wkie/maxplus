@@ -12,7 +12,7 @@
         ? +Object.keys(chat.participants || {}).find(id => +id !== $currentUser)
         : null;
 
-    $: contact = peerId ? $currentSessionContacts?.[peerId] : null;
+    $: contact = peerId ? $currentSessionContacts?.[peerId] : chat;
 
     $: title = chat.id === 0
         ? 'Избранное'

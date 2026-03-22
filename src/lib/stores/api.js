@@ -23,6 +23,9 @@ export const currentPresence = writable({});
 export const receivedMessage = writable(undefined); // heap
 export default writable(apiInstance);
 
+export const currentRealChats = writable([]);
+export const currentRealContacts = writable([]);
+
 export const usersDb = users;
 export const chatsDb = chats;
 

@@ -1,7 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { goto } from '$app/navigation';
-    import { currentSessionContacts, currentUser } from '$lib/stores/api';
+    import { currentSessionContacts, currentRealContacts, currentUser } from '$lib/stores/api';
     import Search from '$components/main/Search.svelte';
     import ConfirmModal from '$components/main/ConfirmModal.svelte';
     
@@ -19,12 +19,18 @@
     let showAll = false;
     let showDeleteConfirm = false;
 
-    $: hasRealContacts = Object.values($currentSessionContacts || {}).some(x => x.options?.length);
-
     $: grouped = (() => {
         if (!$currentSessionContacts) return {};
 
-        const rawData = Object.entries($currentSessionContacts).map(([id, c]) => ({ id, ...c }));
+        let rawData;
+        if (showAll) {
+            rawData = Object.entries($currentSessionContacts).map(([id, c]) => ({ id, ...c }));
+        } else {
+            rawData = $currentRealContacts.map(id => ({
+                id,
+                ...$currentSessionContacts[id]
+            }))
+        }
 
         const contacts = rawData.filter(x =>
             x.id !== $currentUser
@@ -48,6 +54,9 @@
             if (contacts[id]) delete contacts[id]['options']; 
             return contacts;
         });
+        currentRealContacts.update(contacts => {
+            return contacts.filter(x => x.id !== id);
+        })
     }
 
     const search = query => {
@@ -129,7 +138,7 @@
               <a><Signature contact={contact}/></a>
             </div>
             <div class="action">
-                {#if contact.options?.includes("TT") && contact.status !== "REMOVED" && contact.accountStatus !== undefined}
+                {#if $currentRealContacts.includes(contact.id) && contact.status !== "REMOVED"}
                   <a class="delete">Удалить</a>
                 {:else}
                   <a>Не контакт</a>

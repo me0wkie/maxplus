@@ -6,9 +6,7 @@ use rumax::MaxClient;
 use tauri::{AppHandle, Runtime, Emitter, Manager}; // Добавлен Manager
 use tauri_plugin_store::{Store, StoreBuilder};
 use std::collections::HashMap;
-use tauri::http::{header::{REFERER, USER_AGENT, RANGE, CONTENT_TYPE, CONTENT_RANGE, CONTENT_LENGTH}, Response};
 use std::sync::Arc;
-use reqwest::blocking::Client;
 use std::thread;
 
 #[tauri::command]
@@ -201,6 +199,8 @@ pub fn run() {
             commands::get_video_by_id,
             commands::get_file_by_id,
             commands::read_message,
+            commands::public_search,
+            commands::get_chats,
             fetch_releases
         ]);
     

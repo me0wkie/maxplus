@@ -6,9 +6,10 @@
     import Message from '$components/ChatWindow/Message.svelte';
     import Bubbles from '$components/Bubbles.svelte';
     import '$lib/styles/AnimatedPanel.css';
-    import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts } from '$lib/stores/api'
+    import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts, currentSessionChats } from '$lib/stores/api'
     import { sendMessage, handleReaction } from '$components/ChatWindow/actions.js'
     import { checkForEncryptionRequest, deobfuscate_msg } from '$components/ChatWindow/e2e.js'
+    import * as Caching from '$lib/utils/caching.js'
     import Settings from '$components/ChatWindow/Settings.svelte'
     import E2eModal from '$components/ChatWindow/E2eModal.svelte'
     import Dropout from '$components/ChatWindow/Dropout.svelte'
@@ -48,7 +49,7 @@
 
     const BATCH_SIZE = 50;
 
-    const avatarUserId = Object.keys(chat.participants).find(x => +x !== $currentUser)
+    const avatarUserId = chat.type === 'DIALOG' ? chat.id ^ $currentUser : undefined;
     const onBack = getContext('onBack');
 
     onBack['chat'] = () => { dispatch('close'); delete onBack['chat']; };
@@ -285,8 +286,34 @@
 
     const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
 
-    $: title = chat.title || $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name || "Избранное";
-    $: avatar = chat.avatar || (chat.id === 0 ? 'saved.webp' : $currentSessionContacts?.[avatarUserId]?.avatar);
+    let title;
+    let avatar;
+
+    onMount(async () => {
+        if (chat.id === 0) {
+            title = "Избранное"
+            avatar = "saved.webp"
+        }
+        else {
+            if (!chat.type) {
+                const response = await $API.getChat(chat.id)
+
+                Caching.cacheChat(response.chats[0])
+                chat = $currentSessionChats.find(x => x.id === chat.id)
+            }
+
+            if (chat.id < 0) {
+                console.log('CHANNEL')
+
+                title = chat.title;
+                avatar = chat.avatar;
+            }
+            else {
+                title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
+                avatar = $currentSessionContacts?.[avatarUserId]?.avatar
+            }
+        }
+    });
 
 </script>
 
@@ -314,9 +341,11 @@
             </div>
         </div>
         <div class="align-right">
+            {#if chat.type !== "CHANNEL"}
              <button class="icon-button" on:click|stopPropagation={openSettings}>
                 <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
             </button>
+            {/if}
         </div>
     </header>
 
@@ -410,9 +439,9 @@
     z-index: 5;
   }
 
-  header .info { display: flex; flex-direction: column; }
+  header .info { display: flex; flex-direction: column; min-width: 0; }
   header .info .presence { font-size: 12px; }
-  header .title { color: white; font-size: 16px; width: 25vh; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   header .avatar { width: 36px; height: 36px; border-radius: 100px; background-size: cover; image-rendering: smooth; }
   header .align-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
   .icon-button { background: none; border: none; color: white; cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; outline: none; }

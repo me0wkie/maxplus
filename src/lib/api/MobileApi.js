@@ -3,7 +3,7 @@ import { listen } from '@tauri-apps/api/event';
 import BaseAPI from './BaseApi'
 import { get } from 'svelte/store';
 import { add as addLog } from '$lib/stores/logs'
-import { usersDb, currentUser, currentSessionChats, currentSessionContacts, currentFolders, currentlySyncing, currentPresence, receivedMessage } from '$lib/stores/api'
+import { usersDb, currentUser, currentSessionChats, currentRealChats, currentRealContacts, currentSessionContacts, currentFolders, currentlySyncing, currentPresence, receivedMessage } from '$lib/stores/api'
 import Session from '$lib/stores/session'
 import { goto } from '$app/navigation';
 
@@ -175,7 +175,9 @@ export default class MobileApi extends BaseAPI {
                 
             currentFolders.set(config.chatFolders.FOLDERS);
             currentPresence.set(presence);
-            
+            currentRealChats.set(chats.map(x => x.id));
+            currentRealContacts.set(contacts.map(x => x.id));
+
             //const reactions = config.server['reactions-menu'];
             //const callsEndpoint = config.server['calls-endpoint'];
             
@@ -199,7 +201,7 @@ export default class MobileApi extends BaseAPI {
                     const before = updated ? null : JSON.stringify(exists)
                     exists.lastMessage = lastMessage;
                     exists.lastEventTime = lastEventTime;
-                    exists.participantIds = participants;
+                    exists.participant = participants;
                     exists.type = type;
                     exists.newMessages = newMessages;
                     exists.avatar = avatar;
@@ -362,6 +364,21 @@ export default class MobileApi extends BaseAPI {
     async getVideoById(chatId, messageId, videoId) {
         await this.synchronized;
         return await invoke('get_video_by_id', { chatId, messageId, videoId });
+    }
+
+    async publicSearch(query) {
+        await this.synchronized;
+        return await invoke('public_search', { query, count: 5, type: "ALL" });
+    }
+
+    async getChats(chatIds) {
+        await this.synchronized;
+        return await invoke('get_chats', { chatIds });
+    }
+
+    async getChat(chatId) {
+        await this.synchronized;
+        return await invoke('get_chats', { chatIds: [ chatId ] });
     }
 }
 
