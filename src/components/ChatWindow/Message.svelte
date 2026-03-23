@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
+  import Reactions from './Reactions.svelte';
 
   const dispatch = createEventDispatcher();
 
@@ -159,6 +160,7 @@
                 {/if}
             </div>
         </div>
+      <Reactions info={msg.reactionInfo} msgId={msg.id} isMe={isMe}/>
     </div>
 </div>
 
@@ -166,7 +168,7 @@
     .message-row { display: flex; align-items: flex-end; margin-bottom: 8px; width: 100%; transition: opacity 0.2s; }
     .message-row.inactive { opacity: 0.5; }
     .message-row.is-me { flex-direction: column; align-items: flex-end; }
-    .message-bubble { background: #3a3c55; color: #fff; padding: 8px 12px; border-radius: 18px; max-width: 80%; font-size: 13px; position: relative; }
+    .message-bubble { background: #3a3c55; color: #fff; padding: 8px 12px; border-radius: 18px; min-width: 100px; max-width: 80%; font-size: 13px; position: relative; }
     .message-row.is-me .message-bubble { background: #7b4cd6; }
 
     .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 8px; flex-shrink: 0; background: #444; }
@@ -258,7 +260,7 @@
         margin-top: 2px;
     }
 
-    .message-status { display: flex; flex-direction: column; align-items: flex-end; margin-left: 10px; margin-top: 5px; align-self: flex-end; min-width: fit-content; }
+    .message-status { display: flex; flex-direction: row; gap: 10px; justify-content: end; }
     .status-meta { display: flex; gap: 5px; align-items: center; }
     .views { display: flex; align-items: center; gap: 2px; font-size: 10px; opacity: 0.6; }
     .views-icon { width: 12px; fill: currentColor; }

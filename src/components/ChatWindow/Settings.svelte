@@ -24,7 +24,7 @@
     top: 55px;
     right: 10px;
     margin-left: 10px;
-    background: #201f16;
+    background: #1e2024;
     border-radius: 8px;
     padding: 15px;
     max-width: 300px;

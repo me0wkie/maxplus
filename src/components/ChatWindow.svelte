@@ -332,7 +332,7 @@
     <header>
         <div class="align-left">
             <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
-                <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                <img src="icons/arrow.svg" style="transform: scale(-1.5)" class="icon"/>
             </button>
             <div on:click={() => dispatch('profile')} class="avatar" style={"background-image: url(" + avatar + ")"}></div>
             <div on:click={() => dispatch('profile')} class="info">
@@ -343,7 +343,7 @@
         <div class="align-right">
             {#if chat.type !== "CHANNEL"}
              <button class="icon-button" on:click|stopPropagation={openSettings}>
-                <svg viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+                <img src="icons/params.svg" class="icon"/>
             </button>
             {/if}
         </div>
@@ -389,24 +389,41 @@
 
     {#if chat.type !== "CHANNEL"}
         <div class="input-area">
-            <div class="input-controls">
-                 <textarea
-                    id="textarea-{chat.id}"
-                    rows="1"
-                    placeholder="Сообщение"
-                    bind:value={newMessage}
-                    on:keydown={async (e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            await onSend();
-                        }
-                    }}
-                ></textarea>
-                <button class="send-button" on:click={onSend}>
-                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                </button>
-            </div>
-        </div>
+          <div class="input-controls">
+              <button class="send-button">
+                  <img src="icons/attachment.png" style="transform: scale(0.6) rotate(70deg)" class="icon"/>
+              </button>
+
+              <div class="input-container">
+                  <textarea
+                      id="textarea-{chat.id}"
+                      rows="1"
+                      placeholder="Сообщение"
+                      bind:value={newMessage}
+                      on:keydown={async (e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              await onSend();
+                          }
+                      }}
+                  ></textarea>
+
+                  <button class="emoji-btn" type="button" on:click={() => {}}>
+                      <img src="icons/smile.svg" alt="smile" />
+                  </button>
+              </div>
+
+              {#if newMessage.length}
+                  <button class="send-button" on:click={onSend}>
+                      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                  </button>
+              {:else}
+                  <button class="send-button">
+                      <img src="icons/voice.svg" style="transform: scale(1.15, 1)" class="icon"/>
+                  </button>
+              {/if}
+          </div>
+      </div>
     {/if}
 </div>
 
@@ -444,8 +461,7 @@
   header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   header .avatar { width: 36px; height: 36px; border-radius: 100px; background-size: cover; image-rendering: smooth; }
   header .align-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
-  .icon-button { background: none; border: none; color: white; cursor: pointer; padding: 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; outline: none; }
-  .icon-button:hover { background-color: rgba(255,255,255,0.2); }
+  .icon-button { background: none; border: none; color: white; cursor: pointer; padding: 12px 6px; margin: 0 6px 0 0px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; outline: none; }
   .icon-button svg { width: 24px; height: 24px; fill: currentColor; }
 
   .message-list-container {
@@ -491,9 +507,70 @@
   }
 
   .input-area { padding: 8px; flex-shrink: 0; background-color: #1e2024; z-index: 5; }
-  .input-controls { display: flex; align-items: flex-end; gap: 8px; }
-  textarea { flex-grow: 1; border-radius: 12px; padding: 10px 15px; background-color: #17191d; color: #ddd; border: none; resize: none; overflow-y: hidden; min-height: 42px; max-height: 120px; font-size: 16px; line-height: 1.4; box-sizing: border-box; outline: none; }
-  .send-button { border: none; width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; background: none; }
+
+  .input-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .input-container {
+    display: flex;
+    align-items: flex-end;
+    background-color: #17191d;
+    border-radius: 12px;
+    flex-grow: 1;
+    min-height: 42px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+  }
+
+  textarea {
+    flex-grow: 1;
+    background-color: transparent;
+    color: #ddd;
+    border: none;
+    resize: none;
+    overflow-y: hidden;
+    min-height: 42px;
+    max-height: 120px;
+    font-size: 16px;
+    line-height: 1.4;
+    padding: 10px 12px;
+    outline: none;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+
+  textarea::placeholder {
+    color: #555;
+  }
+
+  .emoji-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s, transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .emoji-btn img {
+    width: 22px;
+    height: 22px;
+    transform: scale(1.2);
+    margin-right: 2px;
+  }
+
+  .emoji-btn:active {
+    transform: scale(0.9);
+  }
+
+  .send-button { border: none; width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; background: none; opacity: 0.6; }
   .send-button:active { transform: scale(0.9); }
   .send-button svg { fill: white; width: 24px; height: 24px; }
 </style>
