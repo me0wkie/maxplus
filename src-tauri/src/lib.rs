@@ -201,6 +201,8 @@ pub fn run() {
             commands::read_message,
             commands::public_search,
             commands::get_chats,
+            commands::get_sessions,
+            commands::close_all_sessions,
             fetch_releases
         ]);
     

@@ -8,6 +8,7 @@ export const invoke = async (command, args) => {
         const response = await tauriInvoke(command, args);
         return response;
     } catch (e) {
+        console.error(command, args)
         console.error(e);
         error(e.toString());
 
@@ -15,6 +16,10 @@ export const invoke = async (command, args) => {
             alert('Сервер не отвечает\nПереподключение...')
             await get(API).init();
             return invoke(command, args);
+        }
+        else if (e.toString().includes('FAIL_LOGIN_TOKEN')) {
+            alert('Выкинуло из аккаунта...');
+            return get(API).logout();
         }
     }
 

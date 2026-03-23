@@ -67,6 +67,8 @@ export default class API {
     
     connect() { throw "connect: Unimplemented" }
     logout() { throw "logout: Unimplemented" }
+    getSessions() { throw "getSessions: Unimplemented" }
+    closeAllSessions() { throw "closeAllSessions: Unimplemented" }
     
     _telemetry() { throw "_telemetry: Unimplemented" }
     
@@ -80,7 +82,7 @@ export default class API {
     sendMessage() { throw "sendMessage: Unimplemented" }
     pinMessage() { throw "pinMessage: Unimplemented" }
     reaction() { throw "reaction: Unimplemented" }
-    addContact() { throw "addContact :Unimplemented" }
+    addContact() { throw "addContact: Unimplemented" }
     removeContact() { throw "removeContact: Unimplemented" }
     search() { throw "search: Unimplemented" }
     getVideoById() { throw "getVideoById: Unimplemented" }

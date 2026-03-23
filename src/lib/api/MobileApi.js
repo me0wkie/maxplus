@@ -145,13 +145,14 @@ export default class MobileApi extends BaseAPI {
     }
     
     async logout() {
+        await invoke('logout');
         this.setToken(undefined);
         this.setUser(undefined);
         this.setUserDetails(undefined);
         currentUser.set(null);
         Session.set("synced", false);
         Session.set("connected", false);
-        goto('/')
+        goto('/auth/login');
     }
     
     async sync() {
@@ -167,7 +168,7 @@ export default class MobileApi extends BaseAPI {
             
             Session.set("sync", true);
             
-            const res = await invoke('sync_client')
+            const res = await invoke('sync_client');
             
             const { chats, contacts, config, presence } = res;
             
@@ -379,6 +380,14 @@ export default class MobileApi extends BaseAPI {
     async getChat(chatId) {
         await this.synchronized;
         return await invoke('get_chats', { chatIds: [ chatId ] });
+    }
+
+    async getSessions() { // wait for sync not required?
+        return await invoke('get_sessions');
+    }
+
+    async closeAllSessions() {
+        return await invoke('close_all_sessions');
     }
 }
 

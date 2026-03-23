@@ -11,27 +11,27 @@ pub async fn init(
     token: Option<String>,
 ) -> Result<Value, String> {
     let client = &state.client;
-    
+
     client.disconnect().await;
-    
+
     if let Some(uid) = user_id {
         client.set_user_id(uid).await;
     }
-    
+
     if let Some(t) = token {
         client.set_token(t).await;
     }
-    
+
     match client.connect(device_id, mt_instance, true).await {
         Ok(response) => {
             let payload = response.payload;
             Ok(serde_json::json!({
-                "success": true, 
+                "success": true,
                 "payload": payload
             }))
         },
         Err(e) => {
-            client.disconnect().await; 
+            client.disconnect().await;
             Err(format!("Ошибка подключения: {}", e))
         }
     }
@@ -79,7 +79,7 @@ pub async fn register(
 #[tauri::command]
 pub async fn sync_client(state: State<'_, AppState>) -> Result<Value, String> {
     let r = state.client.sync().await.map_err(|e| e.to_string())?;
-    
+
     if let Some(id) = r.payload
         .get("profile")
         .and_then(|s| s.get("contact"))
@@ -288,6 +288,32 @@ pub async fn get_chats(
     chat_ids: Vec<i64>,
 ) -> Result<Value, String> {
     state.client.get_chats(chat_ids)
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub async fn get_sessions(
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    state.client.get_sessions()
+    .await
+    .map_err(|e| e.to_string())
+    .and_then(|r| {
+        serde_json::to_value(r.payload)
+        .map_err(|e| e.to_string())
+    })
+}
+
+#[tauri::command]
+pub async fn close_all_sessions(
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    state.client.close_all_sessions()
     .await
     .map_err(|e| e.to_string())
     .and_then(|r| {

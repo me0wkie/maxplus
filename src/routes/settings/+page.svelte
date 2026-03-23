@@ -20,9 +20,12 @@
         { icon: "crypto.svg", text: "Настройки шифрования", action: () => goto("setup/tokens?from=/?card=3") }, // card 3 is settings
       ],
       [
-        { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
         { icon: "logs.svg", text: "Сетевые логи", action: () => goto("settings/logs?from=/?card=3") },
         { icon: "about.svg", text: "О приложении", action: () => {} }
+      ],
+      [
+        { icon: "devices.png", text: "Активные сессии", action: () => goto("settings/sessions?from=/?card=3") },
+        { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
       ]
     ]
     
