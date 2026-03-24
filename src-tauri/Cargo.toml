@@ -39,6 +39,7 @@ rmp-serde = "1.3.0"
 openssl = { version = "0.10", features = ["vendored"] }
 urlencoding = "2.1"
 tiny_http = "0.12.0"
+tauri-plugin-dialog = "2"
 
 [profile.dev]
 incremental = true

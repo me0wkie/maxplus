@@ -1,13 +1,13 @@
 mod commands;
 mod state;
 
-use serde_json::Value;
 use rumax::MaxClient;
-use tauri::{AppHandle, Runtime, Emitter, Manager}; // Добавлен Manager
-use tauri_plugin_store::{Store, StoreBuilder};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
+use tauri::{AppHandle, Emitter, Manager, Runtime};
+use tauri_plugin_store::{Store, StoreBuilder};
 
 #[tauri::command]
 async fn fetch_releases() -> Result<Value, String> {
@@ -29,8 +29,10 @@ async fn fetch_releases() -> Result<Value, String> {
 
 // --- MessagePack (rmp-serde) Adapters ---
 
-type SerializeFn = fn(&HashMap<String, Value>) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>>;
-type DeserializeFn = fn(&[u8]) -> Result<HashMap<String, Value>, Box<dyn std::error::Error + Send + Sync>>;
+type SerializeFn =
+    fn(&HashMap<String, Value>) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>>;
+type DeserializeFn =
+    fn(&[u8]) -> Result<HashMap<String, Value>, Box<dyn std::error::Error + Send + Sync>>;
 
 fn msgpack_serialize(
     cache: &HashMap<String, Value>,
@@ -41,27 +43,30 @@ fn msgpack_serialize(
 fn msgpack_deserialize(
     bytes: &[u8],
 ) -> Result<HashMap<String, Value>, Box<dyn std::error::Error + Send + Sync>> {
-    rmp_serde::from_slice(bytes).map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+    rmp_serde::from_slice(bytes)
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
 }
 
 // ---------------------------
 
 fn setup_custom_stores<R: Runtime>(
-    app: &AppHandle<R>, 
-    store_names: &[&str]
+    app: &AppHandle<R>,
+    store_names: &[&str],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    
     for name in store_names {
         let path = std::path::PathBuf::from(name);
-        
+
         let _store: Arc<Store<R>> = StoreBuilder::new(app, path.clone())
             .serialize(msgpack_serialize as SerializeFn)
             .deserialize(msgpack_deserialize as DeserializeFn)
             .build()?;
-        
-        println!("Initialized store: {} with MessagePack serialization.", name);
+
+        println!(
+            "Initialized store: {} with MessagePack serialization.",
+            name
+        );
     }
-    
+
     Ok(())
 }
 
@@ -69,15 +74,15 @@ fn setup_custom_stores<R: Runtime>(
 pub fn run() {
     let custom_stores = &["users.bin", "chats.bin"];
 
-    use tiny_http::{Server, Response, Header};
-    use reqwest::header::{RANGE, CONTENT_RANGE, CONTENT_LENGTH, CONTENT_TYPE};
+    use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, RANGE};
     use std::time::Duration;
+    use tiny_http::{Header, Response, Server};
 
     thread::spawn(move || {
         let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(30))
-        .build()
-        .unwrap();
+            .timeout(Duration::from_secs(30))
+            .build()
+            .unwrap();
 
         let server = Server::http("127.0.0.1:11447").unwrap();
 
@@ -85,12 +90,14 @@ pub fn run() {
             let raw_url = &request.url()[1..];
             let url = match urlencoding::decode(raw_url) {
                 Ok(u) => u.into_owned(),
-                  Err(_) => continue,
+                Err(_) => continue,
             };
 
-            let range_header = request.headers().iter()
-            .find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("Range"))
-            .map(|h| h.value.as_str().to_string());
+            let range_header = request
+                .headers()
+                .iter()
+                .find(|h| h.field.as_str().as_str().eq_ignore_ascii_case("Range"))
+                .map(|h| h.value.as_str().to_string());
 
             let mut rb = client.get(&url)
             .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -102,29 +109,31 @@ pub fn run() {
 
             let res = match rb.send() {
                 Ok(r) => r,
-                  Err(e) => {
-                      eprintln!("Ошибка запроса к источнику: {}", e);
-                      let _ = request.respond(Response::from_string("Error").with_status_code(502));
-                      continue;
-                  }
+                Err(e) => {
+                    eprintln!("Ошибка запроса к источнику: {}", e);
+                    let _ = request.respond(Response::from_string("Error").with_status_code(502));
+                    continue;
+                }
             };
 
             let status = res.status().as_u16();
 
-            let content_length_val = res.headers()
-            .get(CONTENT_LENGTH)
-            .and_then(|v| v.to_str().ok())
-            .and_then(|s| s.parse::<usize>().ok());
+            let content_length_val = res
+                .headers()
+                .get(CONTENT_LENGTH)
+                .and_then(|v| v.to_str().ok())
+                .and_then(|s| s.parse::<usize>().ok());
 
-            let content_type = res.headers()
-            .get(CONTENT_TYPE)
-            .map(|h| h.to_str().unwrap_or("video/mp4"))
-            .unwrap_or("video/mp4");
+            let content_type = res
+                .headers()
+                .get(CONTENT_TYPE)
+                .map(|h| h.to_str().unwrap_or("video/mp4"))
+                .unwrap_or("video/mp4");
 
             let mut headers = vec![
                 Header::from_bytes(&b"Content-Type"[..], content_type.as_bytes()).unwrap(),
-                  Header::from_bytes(&b"Access-Control-Allow-Origin"[..], b"*").unwrap(),
-                  Header::from_bytes(&b"Accept-Ranges"[..], b"bytes").unwrap(),
+                Header::from_bytes(&b"Access-Control-Allow-Origin"[..], b"*").unwrap(),
+                Header::from_bytes(&b"Accept-Ranges"[..], b"bytes").unwrap(),
             ];
 
             if let Some(cl) = res.headers().get(CONTENT_LENGTH) {
@@ -135,22 +144,17 @@ pub fn run() {
                 headers.push(Header::from_bytes(&b"Content-Range"[..], cr.as_bytes()).unwrap());
             }
 
-            let response = Response::new(
-                status.into(),
-                headers,
-                res,
-                content_length_val,
-                None
-            );
+            let response = Response::new(status.into(), headers, res, content_length_val, None);
 
             if let Err(e) = request.respond(response) {
                 eprintln!("Ошибка отправки ответа: {}", e);
             }
         }
     });
-    
+
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .setup(|app| {
             setup_custom_stores(app.handle(), custom_stores)
@@ -162,9 +166,7 @@ pub fn run() {
                 (client, stream)
             });
 
-            app.manage(state::AppState {
-                client,
-            });
+            app.manage(state::AppState { client });
 
             let handle = app.handle().clone();
 
@@ -175,7 +177,7 @@ pub fn run() {
                     }
                 }
             });
-            
+
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -203,9 +205,11 @@ pub fn run() {
             commands::get_chats,
             commands::get_sessions,
             commands::close_all_sessions,
+            commands::get_photo_upload,
+            commands::upload_photo,
             fetch_releases
         ]);
-    
+
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
         builder = builder
@@ -213,7 +217,7 @@ pub fn run() {
             .plugin(tauri_plugin_barcode_scanner::init())
             .plugin(tauri_plugin_android_fs::init());
     }
-    
+
     builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

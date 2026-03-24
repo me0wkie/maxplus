@@ -1,7 +1,7 @@
 import API, { currentUser, receivedMessage } from '$lib/stores/api'
 import { get } from 'svelte/store';
 
-export async function sendMessage(chat, chatKeysCached, messages, newMessage, replyTo) {
+export async function sendMessage(chat, chatKeysCached, messages, newMessage, replyTo, attaches, elements) {
     if (!newMessage.trim()) return;
     
     const encrypt = !!chatKeysCached?.current;
@@ -18,8 +18,10 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
     const displayMessageEarlyEntry = {
         id, text,
         sender: get(currentUser),
-        reactions: [],
-        type: 'text',
+        reactionInfo: {},
+        attaches,
+        elements,
+        type: 'USER',
         time: Date.now(),
         replyTo: replyToId,
         status: 0
@@ -29,7 +31,14 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
     _messages.unshift(displayMessageEarlyEntry);
     messages.set(_messages);
     
-    const response = await get(API).sendMessage(text, chatId, { notify: true, ...(replyToId && { replyTo: replyToId })})
+    const params = {
+        notify: true,
+        ...(replyToId && { replyTo: replyToId }),
+        attaches,
+        elements,
+    };
+
+    const response = await get(API).sendMessage(text, chatId, params);
 
     const message = response?.message || {}
     

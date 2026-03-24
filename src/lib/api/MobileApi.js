@@ -22,7 +22,7 @@ export default class MobileApi extends BaseAPI {
     }
 
     async startListener() {
-        this.unlisten = await listen('max', (event) => {
+        this.unlisten = await listen('max', async event => {
             const { payload } = event;
 
             addLog(payload);
@@ -31,6 +31,7 @@ export default class MobileApi extends BaseAPI {
 
             if (payload.type === "log") {
                 if (payload.response === 'closed') {
+                    await new Promise(r => setTimeout(r, 1000));
                     alert('Отключен сервером\nПереподключение...')
                     this.init()
                 }
@@ -388,6 +389,23 @@ export default class MobileApi extends BaseAPI {
 
     async closeAllSessions() {
         return await invoke('close_all_sessions');
+    }
+
+    async uploadAttachment(attach) {
+        const { type, path } = attach;
+
+        if (type === 'PHOTO') {
+            const response = await invoke('get_photo_upload', { count: 1, profile: false });
+            if (!response.url) alert("Не удалось получить ссылку на загрузку изображения");
+            else {
+                const photoToken = await invoke('upload_photo', { uploadUrl: response.url, path })
+                if (!photoToken) alert("Не удалось загрузить изображение")
+                else return { _type: "PHOTO", photoToken }
+            }
+            return null;
+        }
+
+        return null;
     }
 }
 

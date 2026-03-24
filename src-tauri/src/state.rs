@@ -4,4 +4,3 @@ use rumax::MaxClient;
 pub struct AppState {
     pub client: MaxClient,
 }
-

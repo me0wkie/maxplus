@@ -11,6 +11,7 @@
     "store:default",
     "stronghold:default",
     "notification:default",
-    "notification:allow-is-permission-granted"
+    "notification:allow-is-permission-granted",
+    "dialog:default"
   ]
 }

@@ -1,5 +1,6 @@
 <script>
     import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
+    import { open } from '@tauri-apps/plugin-dialog';
     import { fade, fly } from 'svelte/transition';
     import { writable, get } from 'svelte/store';
 
@@ -21,8 +22,12 @@
     let startSecretChatRequest = null;
     let gotSecretChatRequest = null;
     let chatKeysCached = null;
+
     let newMessage = '';
     let replyTo = null;
+    let attaches = [];
+    let elements = [];
+
     let showSettings = false;
     let dropoutActiveAt;
 
@@ -208,22 +213,21 @@
         const textToSend = newMessage;
         const tempId = Date.now().toString();
 
-        const optimisticMessage = {
-            id: tempId,
-            chatId: chat.id,
-            text: textToSend,
-            sender: $currentUser,
-            time: Date.now(),
-            status: 'sending'
-        };
-
         newMessage = "";
 
         await tick();
         scrollToBottom(true);
 
+        const _attaches = [];
+        const _elements = [];
+
+        for (const attach of attaches) {
+            const result = await $API.uploadAttachment(attach);
+            if (result) _attaches.push(result);
+        }
+
         try {
-            await sendMessage(chat, chatKeysCached, messages, textToSend, replyTo);
+            await sendMessage(chat, chatKeysCached, messages, textToSend, replyTo, _attaches, _elements);
         } catch (e) {
             console.error(e);
         }
@@ -315,6 +319,27 @@
         }
     });
 
+    async function selectFile() {
+        const path = await open({
+            multiple: false,
+            directory: false,
+              filters: [
+                {
+                  name: 'Images',
+                  extensions: ['png', 'jpeg', 'jpg'],
+                },
+              ],
+        });
+
+        console.log('Selected', path)
+        if (!path) return;
+
+        attaches.push({
+            type: 'PHOTO',
+            path
+        })
+    }
+
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -390,7 +415,7 @@
     {#if chat.type !== "CHANNEL"}
         <div class="input-area">
           <div class="input-controls">
-              <button class="send-button">
+              <button class="send-button" on:click={selectFile}>
                   <img src="icons/attachment.png" style="transform: scale(0.6) rotate(70deg)" class="icon"/>
               </button>
 

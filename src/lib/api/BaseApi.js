@@ -91,6 +91,8 @@ export default class API {
     
     onCall() { throw "onCall: Unimplemented" }
     onMessage() { throw "onMessage: Unimplemented" }
+
+    uploadAttachment() { throw "uploadAttachment: Unimplemented" }
 }
 
 const clone = o => JSON.parse(JSON.stringify(o))
