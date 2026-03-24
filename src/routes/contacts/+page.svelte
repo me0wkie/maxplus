@@ -49,14 +49,7 @@
     })();
 
     async function removeContact(id) {
-        const result = await $API.removeContact(id);
-        currentSessionContacts.update(contacts => {
-            if (contacts[id]) delete contacts[id]['options']; 
-            return contacts;
-        });
-        currentRealContacts.update(contacts => {
-            return contacts.filter(x => x.id !== id);
-        })
+        await $API.removeContact(id);
     }
 
     const search = query => {

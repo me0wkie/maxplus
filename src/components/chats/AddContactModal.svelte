@@ -24,10 +24,9 @@
             isValid = false;
         }
 
-        // Простая валидация телефона (можно усложнить регуляркой)
         const cleanPhone = phone.replace(/\s+/g, '');
-        if (!cleanPhone.startsWith('+') || cleanPhone.length < 5) {
-            errors.phone = "Некорректный формат (начните с +)";
+        if (cleanPhone.length < 5) {
+            errors.phone = "Некорректный формат";
             isValid = false;
         }
 
@@ -39,10 +38,7 @@
 
         isLoading = true;
 
-        // Эмуляция задержки сети для UX (опционально)
-        // await new Promise(r => setTimeout(r, 500));
-
-        const response = await $API.addContact(name, phone);
+        const response = await $API.addContact(name, '+' + phone);
 
         isLoading = false;
 
@@ -59,6 +55,25 @@
 
         dispatch('close');
     };
+
+    function formatPhone(value) {
+        const digits = value.replace(/\D/g, '');
+
+        let formatted = '+7';
+        if (digits.length > 1) formatted += ' ' + digits.slice(1, 4);
+        if (digits.length >= 5) formatted += ' ' + digits.slice(4, 7);
+        if (digits.length >= 8) formatted += '-' + digits.slice(7, 9);
+        if (digits.length >= 10) formatted += '-' + digits.slice(9, 11);
+
+        return formatted;
+    }
+
+    function handleInput(event) {
+        const rawValue = event.target.value;
+        phone = rawValue.replace(/\D/g, '');
+        event.target.value = formatPhone(rawValue);
+        errors.phone = '';
+    }
 
     const close = () => dispatch('close');
 </script>
@@ -89,9 +104,9 @@
                 <div class="input-wrapper" class:has-error={errors.phone}>
                     <input
                         type="tel"
-                        bind:value={phone}
+                        value={formatPhone(phone)}
                         placeholder="+7 999 000-00-00"
-                        on:input={() => errors.phone = ''}
+                        on:input={handleInput}
                     />
                 </div>
                 {#if errors.phone}<span class="error-msg" transition:fade>{errors.phone}</span>{/if}

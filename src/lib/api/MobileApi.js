@@ -353,6 +353,11 @@ export default class MobileApi extends BaseAPI {
         currentSessionContacts.update(contacts => {
             return { ...contacts, [contactId]: contact };
         });
+        currentRealContacts.update(contacts => {
+            if (!contacts.includes(contactId))
+                return [...contacts, contactId];
+            return contacts;
+        });
         
         return { success: true };
     }
@@ -360,6 +365,7 @@ export default class MobileApi extends BaseAPI {
     async removeContact(contactId) {
         await this.synchronized;
         const response = await invoke('remove_contact', { contactId });
+        currentRealContacts.update(contacts => contacts.filter(x => x !== contactId));
         return { success: true };
     }
 
