@@ -400,18 +400,44 @@ export default class MobileApi extends BaseAPI {
     async uploadAttachment(attach) {
         const { type, path } = attach;
 
-        if (type === 'PHOTO') {
-            const response = await invoke('get_photo_upload', { count: 1, profile: false });
-            if (!response.url) alert("Не удалось получить ссылку на загрузку изображения");
-            else {
-                const photoToken = await invoke('upload_photo', { uploadUrl: response.url, path })
-                if (!photoToken) alert("Не удалось загрузить изображение")
-                else return { _type: "PHOTO", photoToken }
-            }
+        const response = await invoke('get_' + type.toLowerCase() + '_upload', { count: 1, profile: false });
+
+        if (!response?.url && !response?.info) {
+            alert("Не удалось получить ссылку на загрузку " + type);
             return null;
         }
 
-        return null;
+        console.log('response', response);
+
+        const payload = {
+            path,
+            attachType: type,
+        };
+
+        if (type === "PHOTO") payload.uploadUrl = response.url;
+        else if (type === "VIDEO") {
+            const { token, url, videoId } = response.info[0];
+            payload.token = token;
+            payload.uploadUrl = url;
+            payload.videoId = videoId;
+        }
+        else if (type === 'FILE') {
+            const { token, url, fileId } = response.info[0];
+            payload.token = token;
+            payload.uploadUrl = url;
+            payload.fileId = fileId;
+        }
+
+        const data = await invoke('upload_attachment', payload);
+
+        console.log(data);
+
+        if (data.error) {
+            alert("Не удалось загрузить " + type + "\n" + data.error)
+            return null;
+        }
+
+        return { _type: type, ...data }
     }
 }
 

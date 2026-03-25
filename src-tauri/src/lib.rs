@@ -8,6 +8,9 @@ use std::sync::Arc;
 use std::thread;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_store::{Store, StoreBuilder};
+use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, RANGE};
+use std::time::Duration;
+use tiny_http::{Header, Response, Server};
 
 #[tauri::command]
 async fn fetch_releases() -> Result<Value, String> {
@@ -73,10 +76,6 @@ fn setup_custom_stores<R: Runtime>(
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let custom_stores = &["users.bin", "chats.bin"];
-
-    use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, RANGE};
-    use std::time::Duration;
-    use tiny_http::{Header, Response, Server};
 
     thread::spawn(move || {
         let client = reqwest::blocking::Client::builder()
@@ -206,7 +205,9 @@ pub fn run() {
             commands::get_sessions,
             commands::close_all_sessions,
             commands::get_photo_upload,
-            commands::upload_photo,
+            commands::get_video_upload,
+            commands::get_file_upload,
+            commands::upload_attachment,
             fetch_releases
         ]);
 

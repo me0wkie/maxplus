@@ -30,6 +30,7 @@
 
     let showSettings = false;
     let dropoutActiveAt;
+    let attachesDropout = null;
 
     let loading = false;
     let all_loaded = false;
@@ -262,6 +263,13 @@
                 if (onBack.dropout) delete onBack['dropout'];
             }
         }
+        if (attachesDropout) {
+            const isOutside = !e.target.closest('.attaches-dropout') && !e.target.closest('.send-button');
+            if (isOutside) {
+                attachesDropout = null;
+                e.stopPropagation();
+            }
+        }
         const reactionClicked = ['.reaction'].some(x => e.target.closest(x))
         if (reactionClicked) {
             const reaction = e.target.childNodes[0].nodeValue.trim();
@@ -287,6 +295,7 @@
         dropoutActiveAt = null;
         if (e.detail?.update) messages.update(x => x);
     }
+
 
     const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
 
@@ -319,23 +328,37 @@
         }
     });
 
-    async function selectFile() {
+    function toggleAttachesDropout() {
+        attachesDropout = attachesDropout ? null : { active: true };
+    }
+
+    const filters = {
+        PHOTO: [
+          {
+            name: 'Изображения',
+            extensions: ['png', 'jpeg', 'jpg'],
+          }
+        ],
+        VIDEO: [
+          {
+            name: 'Видео',
+            extensions: ['mp4', 'mov', 'avi', 'webm'],
+          }
+        ]
+    }
+
+    async function selectFile(type) {
         const path = await open({
             multiple: false,
             directory: false,
-              filters: [
-                {
-                  name: 'Images',
-                  extensions: ['png', 'jpeg', 'jpg'],
-                },
-              ],
+            filters: filters[type],
         });
 
         console.log('Selected', path)
         if (!path) return;
 
         attaches.push({
-            type: 'PHOTO',
+            type,
             path
         })
     }
@@ -415,9 +438,17 @@
     {#if chat.type !== "CHANNEL"}
         <div class="input-area">
           <div class="input-controls">
-              <button class="send-button" on:click={selectFile}>
+              <button class="send-button" on:click={toggleAttachesDropout}>
                   <img src="icons/attachment.png" style="transform: scale(0.6) rotate(70deg)" class="icon"/>
               </button>
+
+              {#if attachesDropout}
+                  <div class="attaches-dropout">
+                      <button on:click={() => selectFile("PHOTO")}>Изображение</button>
+                      <button on:click={() => selectFile("VIDEO")}>Видео</button>
+                      <button on:click={() => selectFile("FILE")}>Файл</button>
+                  </div>
+              {/if}
 
               <div class="input-container">
                   <textarea
@@ -548,6 +579,32 @@
     min-height: 42px;
     box-sizing: border-box;
     border: 1px solid transparent;
+  }
+
+  .attaches-dropout {
+    position: absolute;
+    bottom: 60px;
+    left: 0px;
+    background-color: #17191d;
+    border: 1px solid #333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+  }
+
+  .attaches-dropout button {
+    background: none;
+    border: none;
+    color: #fff;
+    padding: 16px 32px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .attaches-dropout button:hover {
+    background-color: #2a2c31;
   }
 
   textarea {
