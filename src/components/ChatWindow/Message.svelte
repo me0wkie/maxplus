@@ -100,15 +100,15 @@
                 {/if}
 
                 {#if isSystem}
-                  <p class="line allow-selection">{ displaySystemMessage() }</p>
+                  <p class="line system">{ displaySystemMessage() }</p>
                 {:else}
                   {#if deobfuscated}
                     {#await deobfuscated}
                       <p class="line">Загрузка...</p>
-                    {:then text}<p class="line allow-selection">{@html text }</p>
+                    {:then text}<p class="line">{@html text }</p>
                     {/await}
                   {:else if lines}
-                     {#each lines as line}<p class="line allow-selection">{line}</p>{/each}
+                     {#each lines as line}<p class="line">{line}</p>{/each}
                   {/if}
 
                   {#if mediaAttaches.length > 0}
@@ -149,7 +149,7 @@
                   {/if}
                   <span class="timestamp">{new Date(msg.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                 </div>
-                {#if isMe}
+                {#if isMe && !isSystem}
                   <div class="status-ticks">
                       {#if msg.status === 3}
                         <svg class="status-icon is-read" viewBox="0 0 22 13"><path d="M11 12.025L5 6L6.5 4.5L11 9.52502L20.05 0L21.45 1.425L11 12.025ZM4.9999 12.025L0 7L1.5 5.50002L4.9999 9.5L14.375 0.025L15.8 1.425L4.9999 12.025Z"/></svg>
@@ -167,9 +167,21 @@
 <style>
     .message-row { display: flex; align-items: flex-end; margin-bottom: 8px; width: 100%; transition: opacity 0.2s; }
     .message-row.inactive { opacity: 0.5; }
-    .message-row.is-me { flex-direction: column; align-items: flex-end; }
-    .message-bubble { background: #3a3c55; color: #fff; padding: 8px 12px; border-radius: 18px; min-width: 100px; max-width: 80%; font-size: 13px; position: relative; }
+    .message-row.is-me { flex-direction: column; }
+    .message-row.is-system { align-items: center; flex-direction: column; }
+    .message-bubble {
+      background: #3a3c55;
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 18px;
+      min-width: 100px;
+      max-width: 80%;
+      font-size: 13px;
+      position: relative;
+    }
     .message-row.is-me .message-bubble { background: #7b4cd6; }
+    .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); }
+    .message-row.is-deleted .message-bubble { background-color: #c99; }
 
     .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 8px; flex-shrink: 0; background: #444; }
 
@@ -269,6 +281,10 @@
     .status-icon.is-read { fill: #34b7f1; }
 
     .unsupported-attach { font-size: 11px; opacity: 0.5; margin-top: 5px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
-    .line { margin: 0; line-height: 1.4; word-break: break-word; }
-    .allow-selection { user-select: text; }
+    .line {
+      margin: 0;
+      line-height: 1.4;
+      word-break: break-word;
+      pointer-events: none;
+    }
 </style>

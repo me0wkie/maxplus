@@ -119,11 +119,15 @@
   .reactions-picker::-webkit-scrollbar {
     display: none;
   }
-  
-  .actions {
-    background-color: #111116dd;
-    border: 1px solid #669;
-    border-radius: 15px;
+
+  .actions button {
+    background: #111116;
+    opacity: 0.8;
+    transition: background 0.1s;
+  }
+
+  .actions button:hover {
+    background: #333339;
   }
   
   .reactions-picker button {

@@ -37,6 +37,7 @@
 
     let scrollElement;
     let scrollLoaderTimeout;
+    let showScrollDown = false;
 
     let viewerOpen = false;
     let viewerIndex = 0;
@@ -200,6 +201,10 @@
 
     function handleScroll(event) {
         const target = event.currentTarget;
+
+        const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight;
+        showScrollDown = distanceFromBottom > 50;
+
         if (target.scrollTop < 200 && !loading && !all_loaded) {
              if(scrollLoaderTimeout) return;
              scrollLoaderTimeout = setTimeout(async () => {
@@ -363,6 +368,35 @@
         })
     }
 
+    let lastDate = null
+
+    function formatMessageDate(unixTime) {
+        const date = new Date(unixTime);
+        const now = new Date();
+        const isCurrentYear = date.getFullYear() === now.getFullYear();
+
+        if (isCurrentYear) {
+            return date.toLocaleDateString('ru-RU', {
+                day: 'numeric',
+                month: 'long'
+            });
+        } else {
+            const day = date.getDate();
+            const month = date.toLocaleString('ru-RU', { month: 'long' });
+            const year = date.getFullYear();
+            return `${day} ${month}, ${year}`;
+        }
+    }
+
+    function isNewDay(unixTime) {
+        const date = new Date(unixTime);
+        if (!lastDate || lastDate.toDateString() !== date.toDateString()) {
+            lastDate = date;
+            return true;
+        }
+        return false;
+    }
+
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -413,9 +447,15 @@
         <E2eModal gotSecretChatRequest={gotSecretChatRequest}/>
 
         {#each uiMessages as msg (msg.id)}
+            {#if isNewDay(msg.time)}
+                <div class="date-separator">
+                    <a>{formatMessageDate(msg.time)}</a>
+                </div>
+            {/if}
+
             <div class="message-wrapper">
-                 <div class="message-clickable-area"
-                 on:click|stopPropagation={e => selectMessage(e, msg)}>
+                <div class="message-clickable-area"
+                    on:click|stopPropagation={e => selectMessage(e, msg)}>
                     <Message
                         {msg}
                         dropoutActiveAt={dropoutActiveAt}
@@ -481,6 +521,17 @@
           </div>
       </div>
     {/if}
+
+    {#if showScrollDown}
+      <button
+        in:fade={{ duration: 100 }}
+        out:fade ={{ duration: 100 }}
+        class="scroll-down-btn"
+        class:nije={ chat.type === 'CHANNEL' }
+        on:click={() => scrollToBottom(true)}>
+        <svg viewBox="0 0 640 640"><path fill="#777" d="M297.4 470.6C309.9 483.1 330.2 483.1 342.7 470.6L534.7 278.6C547.2 266.1 547.2 245.8 534.7 233.3C522.2 220.8 501.9 220.8 489.4 233.3L320 402.7L150.6 233.4C138.1 220.9 117.8 220.9 105.3 233.4C92.8 245.9 92.8 266.2 105.3 278.7L297.3 470.7z"/></svg>
+      </button>
+    {/if}
 </div>
 
 <style>
@@ -520,6 +571,36 @@
   .icon-button { background: none; border: none; color: white; cursor: pointer; padding: 12px 6px; margin: 0 6px 0 0px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; outline: none; }
   .icon-button svg { width: 24px; height: 24px; fill: currentColor; }
 
+  .scroll-down-btn {
+    position: fixed;
+    bottom: 80px;
+    right: 10px;
+    background: #1e2024;
+    opacity: 0.9;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 55px;
+    height: 55px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.1s;
+  }
+
+  .scroll-down-btn:hover {
+    opacity: 1;
+  }
+
+  .scroll-down-btn svg {
+    width: 36px;
+  }
+
+  .scroll-down-btn.nije {
+    bottom: 20px;
+  }
+
   .message-list-container {
     flex-grow: 1;
     overflow-y: auto;
@@ -550,6 +631,21 @@
   }
   .grab-scroll:active {
     cursor: grabbing;
+  }
+
+  .date-separator {
+    text-align: center;
+    margin: 8px 0 16px 0;
+    color: #aaa;
+    position: relative;
+  }
+
+  .date-separator a {
+    padding: 4px 16px;
+    border-radius: 100px;
+    background-color: #fff2;
+    font-size: 13px;
+    font-weight: 500;
   }
 
   .message-wrapper {
