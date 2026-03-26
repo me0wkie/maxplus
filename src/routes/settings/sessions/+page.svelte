@@ -126,15 +126,6 @@
         flex-shrink: 0;
     }
 
-    .back-area {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        color: #3ff;
-        cursor: pointer;
-        font-size: 0.9rem;
-    }
-
     h1 {
         margin: 0;
         font-size: 1.1rem;

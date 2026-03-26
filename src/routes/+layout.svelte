@@ -5,7 +5,6 @@
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { onMount, setContext } from 'svelte';
-    import { checkUpdates } from '$lib/utils/updater.js'
     import { onBackButtonPress } from '@tauri-apps/api/app'
     import { type } from '@tauri-apps/plugin-os'
     
@@ -16,11 +15,6 @@
     setContext('onBack', onBack);
 
     onMount(async () => {
-        /*checkUpdates().then(result => {
-            if (result.update) {} // TODO мини-уведомление об обновлении
-            else if (result.meta === 'another_platform') {} // TODO мини-уведомление об обнове на другое устройство
-        })*/ // TODO ручное обновление
-        
         settings = await Settings.keys();
         
         if (!settings.includes('tokenEncType')) {

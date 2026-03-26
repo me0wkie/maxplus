@@ -21,6 +21,11 @@ export const invoke = async (command, args) => {
             alert('Выкинуло из аккаунта...');
             return get(API).logout();
         }
+
+        try {
+            const error = e.toString().slice(e.toString().indexOf(':') + 2);
+            return JSON.parse(error);
+        } catch (e) {}
     }
 
     return null;

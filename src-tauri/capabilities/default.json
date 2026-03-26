@@ -12,6 +12,11 @@
     "stronghold:default",
     "notification:default",
     "notification:allow-is-permission-granted",
-    "dialog:default"
+    "dialog:default",
+    "fs:default",
+    {
+      "identifier": "fs:allow-read",
+      "allow": [{ "path": "**/*" }]
+    }
   ]
 }

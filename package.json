@@ -20,12 +20,14 @@
     "@tauri-apps/plugin-barcode-scanner": "~2",
     "@tauri-apps/plugin-biometric": "~2",
     "@tauri-apps/plugin-dialog": "~2",
+    "@tauri-apps/plugin-fs": "~2",
     "@tauri-apps/plugin-notification": "~2",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-os": "~2",
     "@tauri-apps/plugin-store": "~2",
     "@tauri-apps/plugin-stronghold": "~2",
     "fflate": "^0.8.2",
+    "jsqr": "^1.4.0",
     "libsodium-wrappers-sumo": "^0.8.2"
   },
   "devDependencies": {

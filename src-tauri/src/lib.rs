@@ -1,34 +1,16 @@
 mod commands;
 mod state;
 
+use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, RANGE};
 use rumax::MaxClient;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::thread;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_store::{Store, StoreBuilder};
-use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, RANGE};
-use std::time::Duration;
 use tiny_http::{Header, Response, Server};
-
-#[tauri::command]
-async fn fetch_releases() -> Result<Value, String> {
-    let url = format!("https://api.github.com/repos/me0wkie/maxplus/releases");
-
-    let client = reqwest::Client::new();
-    let resp = client
-        .get(&url)
-        .header("User-Agent", "Tauri-App")
-        .send()
-        .await
-        .map_err(|e| e.to_string())?
-        .json::<Value>()
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(resp)
-}
 
 // --- MessagePack (rmp-serde) Adapters ---
 
@@ -153,6 +135,7 @@ pub fn run() {
 
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .setup(|app| {
@@ -208,7 +191,7 @@ pub fn run() {
             commands::get_video_upload,
             commands::get_file_upload,
             commands::upload_attachment,
-            fetch_releases
+            commands::call,
         ]);
 
     #[cfg(any(target_os = "android", target_os = "ios"))]

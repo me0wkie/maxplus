@@ -1,9 +1,17 @@
 <script>
-    import { goto } from '$app/navigation';
     import { clearMessages, clearContacts, clearKeys } from '$lib/stores/api';
-    import Settings from '$lib/stores/settings';
+    import { scan, Format, checkPermissions, requestPermissions, openAppSettings } from '@tauri-apps/plugin-barcode-scanner';
+    import { platform as getPlatform } from '@tauri-apps/plugin-os';
+    import { readFile } from '@tauri-apps/plugin-fs';
     import API, { currentUser } from '$lib/stores/api';
+    import { open } from '@tauri-apps/plugin-dialog';
+    import Settings from '$lib/stores/settings';
+    import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
+    import jsQR from "jsqr";
     
+    let platform;
+
     let user;
     let phone;
     let name;
@@ -21,7 +29,7 @@
       ],
       [
         { icon: "logs.svg", text: "Сетевые логи", action: () => goto("settings/logs?from=/?card=3") },
-        { icon: "about.svg", text: "О приложении", action: () => {} }
+        { icon: "about.svg", text: "О приложении", action: () => goto("settings/about?from=/?card=3") }
       ],
       [
         { icon: "devices.png", text: "Активные сессии", action: () => goto("settings/sessions?from=/?card=3") },
@@ -44,6 +52,80 @@
       goto('/auth/login');
     }
 
+    async function scanner() {
+      let content = "";
+
+      if (/android|ios/.test(platform)) {
+        let cameraAllowed = await checkPermissions();
+
+        if (cameraAllowed.includes("prompt")) await requestPermissions();
+        else if (cameraAllowed === "denied") {
+          alert("Для сканирования QR нужно разрешение камеры."
+          + "\nА зачем ещё вы это используете?")
+          await openAppSettings();
+        }
+
+        if (await checkPermissions() !== "granted") return;
+
+        const scanned = await scan({ formats: [Format.QRCode] });
+        if (!scanned.content) return;
+        content = scanned.content;
+      } else {
+        const image = await open({
+          multiple: false,
+          directory: false,
+          filters: [{
+            name: 'Изображения',
+            extensions: ['png', 'jpeg', 'jpg'],
+          }],
+        });
+
+        if (!image) return;
+
+        const data = await readQRCode(image);
+
+        if (!data) return alert("QR-код не найден!");
+
+        content = data;
+      }
+
+      if (content.includes(":auth")) {
+        $API.call(1, { "interactive": true }); // ping
+        $API.call(96, {});                     // get smth
+        const response = await $API.call(290, { "qrLink": content });
+        if (response.error) alert(response.title);
+      }
+      else alert(content);
+    }// забыл закоммитить страницу ебаную
+
+    async function readQRCode(filePath) {
+      const data = await readFile(filePath);
+      const blob = new Blob([new Uint8Array(data)], { type: 'image/png' });
+      const url = URL.createObjectURL(blob);
+
+      const img = new Image();
+      img.src = url;
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      return code?.data || null;
+    }
+
+    onMount(async () => {
+        platform = await getPlatform();
+    });
+
     /*
     <div class="top">
       <img src={ "icons/qr.svg" }/>
@@ -53,7 +135,8 @@
 </script>
 
 <div class="settings">
-    
+    <img on:click={scanner} src={ "icons/qr.svg" } class="scanner-icon icon"/>
+
     <div class="info">
       <img src={user?.baseUrl || '/default-avatar.jpg'} alt="avatar" class="avatar"/>
       <a class="name">{ name }</a>
@@ -160,5 +243,17 @@
   
   .buttons .group .button svg {
     margin-left: auto;
+  }
+
+  .scanner-icon {
+    position: absolute;
+    width: 45px;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.1s;
+  }
+
+  .scanner-icon:hover {
+    opacity: 1;
   }
 </style>

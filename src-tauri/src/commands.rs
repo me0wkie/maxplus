@@ -31,6 +31,7 @@ delegate_cmd!(close_all_sessions() => close_all_sessions());
 delegate_cmd!(get_photo_upload(count: i64, profile: bool) => get_photo_upload(count, profile));
 delegate_cmd!(get_video_upload(count: i64, profile: bool) => get_video_upload(count, profile));
 delegate_cmd!(get_file_upload(count: i64, profile: bool) => get_file_upload(count, profile));
+delegate_cmd!(call(action_id: u16, payload: Value) => call(action_id, payload));
 
 delegate_cmd!(add_reaction(chat_id: i64, message_id: String, reaction: String) => add_reaction(chat_id, p(message_id)?, reaction));
 delegate_cmd!(remove_reaction(chat_id: i64, message_id: String) => remove_reaction(chat_id, p(message_id)?));
@@ -109,22 +110,22 @@ pub async fn upload_attachment(
     token: Option<String>,
 ) -> Result<Value, String> {
     if attach_type == "PHOTO" {
+        return Ok(state.client.upload_photo(upload_url, path).await);
+    } else if attach_type == "VIDEO" {
         return Ok(state
-          .client
-          .upload_photo(upload_url, path)
-          .await);
-    }
-    else if attach_type == "VIDEO" {
+            .client
+            .upload_video(
+                upload_url,
+                video_id.expect("No video_id specified!"),
+                token.expect("No token specified!"),
+                path,
+            )
+            .await);
+    } else if attach_type == "FILE" {
         return Ok(state
-          .client
-          .upload_video(upload_url, video_id.expect("No video_id specified!"), token.expect("No token specified!"), path)
-          .await);
-    }
-    else if attach_type == "FILE" {
-        return Ok(state
-          .client
-          .upload_file(upload_url, file_id.expect("No file_id specified!"), path)
-          .await);
+            .client
+            .upload_file(upload_url, file_id.expect("No file_id specified!"), path)
+            .await);
     }
 
     return Ok(json!({ "error": "Wrong type" }));
