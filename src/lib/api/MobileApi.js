@@ -66,7 +66,7 @@ export default class MobileApi extends BaseAPI {
         this.startListener();
 
         Session.set('connected', false);
-        Session.set('sync', false);
+        //Session.set('sync', false);
         this.latest_init = Date.now()
         
         const response = await invoke('init', {

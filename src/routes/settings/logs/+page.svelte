@@ -29,9 +29,9 @@
     <div class="logs-container">
         {#each $logs as log (log.id)}
             <div
-                animate:flip={{ duration: 300 }}
-                in:fly={{ x: 30, duration: 400, opacity: 0 }}
-                out:fade={{ duration: 200 }}
+                animate:flip={{ duration: 200 }}
+                in:fly={{ x: 30, duration: 300, opacity: 0 }}
+                out:fade={{ duration: 100 }}
                 class="log-item {log.type}"
                 class:expanded={expandedId === log.id}
                 on:click={() => toggleLog(log.id)}
@@ -42,8 +42,8 @@
                 </div>
 
                 {#if expandedId === log.id}
-                    <div class="log-content" transition:slide={{ duration: 200 }}>
-                        <pre>{JSON.stringify(log.data, null, 2)}</pre>
+                    <div class="log-content" transition:slide={{ duration: 100 }}>
+                        <pre>{JSON.stringify(log.data, null, 1)}</pre>
                     </div>
                 {/if}
             </div>
@@ -102,9 +102,8 @@
     .log-item {
         background: #2b2b33;
         border-radius: 8px;
-        border: 1px solid #3a3a42;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.1s;
         overflow: hidden;
         flex-shrink: 0;
     }

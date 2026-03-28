@@ -1,4 +1,5 @@
 <script>
+    import { getContext, onDestroy } from 'svelte';
     import { invoke } from '@tauri-apps/api/core';
     import { goto } from '$app/navigation';
     import Session from '$lib/stores/session.js';
@@ -9,15 +10,22 @@
     
     let error = '';
     let code = '';
-    const name = Session.get('name')
-    const token = Session.get('token')
+    const name = Session.get('name');
+    const token = Session.get('token');
+    const state = !name ? "login" : "register";
+
+
+    const onBack = getContext('onBack');
+    onBack['sms'] = () => { goto("/auth/" + state); }
+    onDestroy(() => delete onBack['sms']);
     
+
     async function handleVerify() {
         error = "Ожидайте..."
         console.log('Проверяем код:', code);
         
         /* Логин */
-        if (!name) {
+        if (state === "login") {
             if (code.length !== 6) {
                 error = "Длина кода - 6 символов!"
             }

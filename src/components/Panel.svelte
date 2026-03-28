@@ -34,7 +34,7 @@
     justify-content: space-around;
     align-items: center;
     color: #999;
-    z-index: 1;
+    z-index: 2;
   }
   
   .option {

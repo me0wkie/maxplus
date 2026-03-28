@@ -215,7 +215,7 @@
     }
 
     async function onSend() {
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() && !attaches.length) return;
         const textToSend = newMessage;
         const tempId = Date.now().toString();
 
@@ -229,8 +229,14 @@
 
         for (const attach of attaches) {
             const result = await $API.uploadAttachment(attach);
-            if (result) _attaches.push(result);
+            if (result) {
+                _attaches.push(result);
+                attaches.splice(attaches.indexOf(attach), 1)
+            }
+            else alert("Не удалось загрузить!\n" + JSON.stringify(attach));
         }
+
+        if (!textToSend && !_attaches.length) return;
 
         try {
             await sendMessage(chat, chatKeysCached, messages, textToSend, replyTo, _attaches, _elements);

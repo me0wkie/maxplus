@@ -26,6 +26,7 @@
     const first = msg.attaches?.[0];
     if (event === 'new') return "Чат " + first.title + " создан";
     if (event === 'icon') return "Фото чата изменено";
+    if (event === 'joinByLink') return "Вы вступили по ссылке";
     if (event === 'system') return first.message;
     return event;
   }
