@@ -8,7 +8,7 @@
     import Search from '$components/main/Search.svelte';
     import FolderEditModal from '$components/chats/FolderEditModal.svelte';
 
-    import API, { currentSessionChats, currentSessionContacts, currentRealChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
+    import API, { currentSessionChats, currentSessionContacts, currentSessionCalls, currentRealChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
     import Session from '$lib/stores/session.js';
     import { debounce } from '$lib/utils/debounce.js';
 
@@ -44,7 +44,9 @@
         if (!Session.get("connected"))
             await $API.init();
 
-        $API.sync();
+        await $API.sync();
+        const calls = await $API.getCalls();
+        $currentSessionCalls = calls;
     })
 
     receivedMessage.subscribe(msg => {

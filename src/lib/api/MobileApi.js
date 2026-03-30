@@ -442,6 +442,10 @@ export default class MobileApi extends BaseAPI {
         return { _type: type, ...data }
     }
 
+    async getCalls() {
+        return await invoke('get_calls', { forward: false, count: 100 });
+    }
+
     async call(actionId, payload) {
         return await invoke('call', { actionId, payload })
     }

@@ -88,6 +88,7 @@ export default class API {
     getVideoById() { throw "getVideoById: Unimplemented" }
     getFileById() { throw "getFileById: Unimplemented" }
     readMessage() { throw "readMessage: Unimplemented" }
+    getCalls() { throw "getCalls: Unimplemented" }
     
     onCall() { throw "onCall: Unimplemented" }
     onMessage() { throw "onMessage: Unimplemented" }

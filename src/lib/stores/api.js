@@ -17,6 +17,7 @@ const chats = new LazyStore('chats.bin');
 export const currentUser = writable(undefined)
 export const currentSessionChats = writable(undefined);
 export const currentSessionContacts = writable(undefined);
+export const currentSessionCalls = writable(undefined);
 export const currentlySyncing = writable(false);
 export const currentFolders = writable([]);
 export const currentPresence = writable({});

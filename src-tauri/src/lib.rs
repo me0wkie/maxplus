@@ -196,6 +196,7 @@ pub fn run() {
             commands::get_video_upload,
             commands::get_file_upload,
             commands::upload_attachment,
+            commands::get_calls,
             commands::call,
         ]);
 
