@@ -1,7 +1,8 @@
 <script>
   import { createEventDispatcher } from 'svelte';
-  import { fade, fly, scale } from 'svelte/transition';
+  import { fade, fly, scale as scaleTransition } from 'svelte/transition';
   import API from '$lib/stores/api';
+  import { invoke as tauriInvoke } from '@tauri-apps/api/core';
 
   export let index = 0;
   export let allMedia;
@@ -10,6 +11,7 @@
   const dispatch = createEventDispatcher();
 
   let videoElement;
+  let movable;
   let paused = true;
   let currentTime = 0;
   let duration = 0;
@@ -24,6 +26,14 @@
   let showSkipIcon = null;
   let videoCache = {};
   let isLoading = false;
+
+  let scale = 1;
+  let x = 0;
+  let y = 0;
+
+  const MIN_SCALE = 1;
+  const MAX_SCALE = 4;
+  const SAFE_MIN_SCALE = 1;
 
   $: currentMedia = allMedia[index];
 
@@ -76,6 +86,7 @@
   function handleSync(e) {
     const el = e.target;
     duration = el.duration || 0;
+    console.log(el.duration, el);
     isMetadataLoaded = duration > 0 && !isNaN(duration);
   }
 
@@ -129,6 +140,10 @@
     }
   }
 
+  /*
+  * UPD: Drag & Drop
+  */
+
   let pressTimer;
   function handlePressStart(e) {
     if (e.target.closest('.video-controls-bar')) return;
@@ -140,9 +155,142 @@
     clearTimeout(pressTimer);
     playbackRate = 1;
   }
+
+  function handleWheel(e) {
+    e.preventDefault();
+
+    const delta = -e.deltaY * 0.001;
+    scale += delta;
+
+    if (scale < SAFE_MIN_SCALE) scale = SAFE_MIN_SCALE;
+    if (scale > MAX_SCALE) scale = MAX_SCALE;
+}
+
+  $: transformStyle = `
+    translate(calc(-50% + ${x}px), calc(-50% + ${y}px))
+    scale(${scale})
+  `;
+
+  let lastDistance = null;
+
+  function getDistance(touches) {
+    const [a, b] = touches;
+    return Math.hypot(
+      a.clientX - b.clientX,
+      a.clientY - b.clientY
+    );
+  }
+
+  function handleTouchMove(e) {
+    if (e.touches.length === 2) {
+      const dist = getDistance(e.touches);
+
+      if (lastDistance) {
+        const delta = dist - lastDistance;
+        scale += delta * 0.005;
+      }
+
+      lastDistance = dist;
+
+      scale = Math.max(SAFE_MIN_SCALE, Math.min(scale, MAX_SCALE));
+    }
+  }
+
+  function handleTouchEnd() {
+    lastDistance = null;
+  }
+
+  let isDragging = false;
+  let startX, startY;
+
+  function handlePointerDown(e) {
+    isDragging = true;
+    startX = e.clientX - x;
+    startY = e.clientY - y;
+  }
+
+  function handlePointerMove(e) {
+    if (!isDragging) return;
+
+    x = e.clientX - startX;
+    y = e.clientY - startY;
+  }
+
+  function handlePointerUp() {
+    isDragging = false;
+
+    checkDismiss();
+  }
+
+  function animateBack() {
+    const startX = x;
+    const startY = y;
+    const startScale = scale;
+
+    const contentWidth = movable.offsetWidth * startScale;
+    const contentHeight = movable.offsetHeight * startScale;
+
+    const maxX = Math.max((contentWidth - window.innerWidth) / 2, 0);
+    const maxY = Math.max((contentHeight - window.innerHeight) / 2, 0);
+
+    const targetX = Math.max(-maxX, Math.min(x, maxX));
+    const targetY = Math.max(-maxY, Math.min(y, maxY));
+
+    const duration = 200;
+    const start = performance.now();
+
+    function frame(t) {
+      const p = Math.min((t - start) / duration, 1);
+
+      x = startX + (targetX - startX) * p;
+      y = startY + (targetY - startY) * p;
+
+      if (p < 1) requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  function checkDismiss() {
+    const absX = Math.abs(x);
+    const absY = Math.abs(y);
+
+    const halfWidth = window.innerWidth / 2;
+    const halfHeight = window.innerHeight / 2;
+
+    const dismissX = halfWidth * 0.5;
+    const dismissY = halfHeight * 0.5;
+
+    if (scale === 1) {
+      if (absX > dismissX || absY > dismissY) {
+        dispatch('close');
+      } else {
+        animateBack();
+      }
+      return;
+    }
+
+    const distance = Math.hypot(x, y);
+    const threshold = window.innerWidth * 0.2;
+
+    if (distance > threshold * scale) {
+      animateBack();
+    }
+  }
+
+  function clampPan() {
+    const contentWidth = content.offsetWidth * scale;
+    const contentHeight = content.offsetHeight * scale;
+
+    const maxX = Math.max((contentWidth - window.innerWidth) / 2, 0);
+    const maxY = Math.max((contentHeight - window.innerHeight) / 2, 0);
+
+    x = Math.max(-maxX, Math.min(maxX, x));
+    y = Math.max(-maxY, Math.min(maxY, y));
+  }
 </script>
 
-<div class="media-viewer-overlay" transition:fade={{duration: 150}} on:click|self={() => dispatch('close')}>
+<div class="media-viewer-overlay" transition:fade={{duration: 100}} on:click|self={() => dispatch('close')}>
     <div class="viewer-header">
         <div class="counter">{index + 1} из {allMedia.length}</div>
         <button class="viewer-icon-btn close" on:click={() => dispatch('close')}>
@@ -155,10 +303,21 @@
             <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
         </button>
 
-        <div class="media-container">
+        <div
+        on:wheel|passive={handleWheel}
+        on:pointerdown={handlePointerDown}
+        on:pointermove={handlePointerMove}
+        on:pointerup={handlePointerUp}
+        on:pointerleave={handlePointerUp}
+        on:touchmove={handleTouchMove}
+        on:touchend={handleTouchEnd}
+        bind:this={movable}
+        class="media-container">
             {#key index}
                 {#if currentMedia._type === 'PHOTO'}
-                    <img src={currentMedia.baseUrl} alt="view" in:fly={{y: 20, duration: 200}} />
+                    <img
+                    style="transform: {transformStyle}"
+                    src={currentMedia.baseUrl} alt="view" in:fly={{y: 20, duration: 200}} />
                 {:else if currentMedia._type === 'VIDEO'}
                     {#if videoCache[currentMedia.videoId]}
                         <div class="tg-video-wrapper"
@@ -166,8 +325,6 @@
                              on:touchstart={handlePressStart}
                              on:mouseup={handlePressEnd}
                              on:touchend={handlePressEnd}>
-
-                            <img src={currentMedia.thumbnail} class="video-placeholder" alt="" class:hidden={isVideoReady} />
 
                             <video
                                 bind:this={videoElement}
@@ -186,6 +343,7 @@
                                 on:durationchange={handleSync}
                                 on:canplay={handleCanPlay}
                                 playsinline
+                                style="transform: {transformStyle}"
                             ></video>
 
                             <div class="tap-zones">
@@ -198,12 +356,12 @@
                             {/if}
 
                             {#if showSkipIcon === 'left'}
-                                <div class="skip-anim left" in:scale out:fade>
+                                <div class="skip-anim left" in:scaleTransition out:fade>
                                     <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6L11 18zm.5-6l8.5 6V6l-8.5 6z"/></svg>
                                     <span>-5 сек</span>
                                 </div>
                             {:else if showSkipIcon === 'right'}
-                                <div class="skip-anim right" in:scale out:fade>
+                                <div class="skip-anim right" in:scaleTransition out:fade>
                                     <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
                                     <span>+5 сек</span>
                                 </div>
@@ -296,10 +454,13 @@
   .media-container :global(img),
   .media-container :global(.video-player),
   .media-container :global(.video-preview) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    object-fit: contain;  /* можно вернуть */
     max-width: 95vw;
     max-height: 80vh;
-    object-fit: contain;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   }
 
   .nav-btn {
@@ -325,10 +486,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .tg-video-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     cursor: pointer;
   }
 

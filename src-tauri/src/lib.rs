@@ -59,6 +59,9 @@ fn setup_custom_stores<R: Runtime>(
 pub fn run() {
     let custom_stores = &["users.bin", "chats.bin"];
 
+    let video_secret = uuid::Uuid::new_v4().to_string();
+    let secret_for_thread = video_secret.clone();
+
     thread::spawn(move || {
         let client = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -162,11 +165,13 @@ pub fn run() {
 
             Ok(())
         })
+        .manage(video_secret)
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_stronghold::Builder::new(|_| todo!()).build())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            commands::get_video_secret,
             commands::init,
             commands::start_auth,
             commands::check_code,
