@@ -82,14 +82,17 @@ export default class MobileApi extends BaseAPI {
     
     async startAuth(phone) {
         this._device = this.generateDevice();
-            
+
         const response = await invoke('init', {
             deviceId: this.getDevice().id,
             mtInstance: this.getDevice().mt,
         })
-        
+
         const auth = await invoke("start_auth", { phone });
-        
+
+        const success = !!auth.token;
+        if (!success) return auth;
+
         return {
             success: !!auth.token,
             codeLength: auth.codeLength
@@ -98,18 +101,21 @@ export default class MobileApi extends BaseAPI {
     
     async login(code) {
         const checkCode = await invoke("check_code", { code });
+
+        console.log(checkCode)
         
         const success = !!checkCode.profile
         if (success) {
             const { profile, tokenAttrs } = checkCode
             const userId = profile.contact.id
-            
-            await usersDb.get('device-' + userId, this._device);
+
+            await usersDb.set('device-' + userId, this._device);
             currentUser.set(userId)
             this.setUser(userId)
             this.setUserDetails(profile.contact)
             this.setToken(tokenAttrs.LOGIN.token)
         }
+        else return checkCode;
         
         return {
             success,
@@ -122,6 +128,8 @@ export default class MobileApi extends BaseAPI {
 
         if (!checkCode.token) return { success: false, payload: checkCode }
         const register = await invoke("register", { first_name });
+
+        console.log(register)
         
         const success = !!register.profile
         if (success) {
@@ -143,8 +151,8 @@ export default class MobileApi extends BaseAPI {
     
     async loadToken() {
         if (!this._user) throw "Tried to load token, but no user was set in API instance";
-        this._token = await usersDb.get('token-' + this._user);
-        const res = await invoke('set_token', { token: this._token });
+        const loaded = await usersDb.get('token-' + this._user);
+        if (loaded) this._token = loaded;
     }
     
     async logout() {
@@ -153,7 +161,7 @@ export default class MobileApi extends BaseAPI {
         this.setUser(undefined);
         this.setUserDetails(undefined);
         currentUser.set(null);
-        Session.set("synced", false);
+        Session.set("sync", false);
         Session.set("connected", false);
         goto('/auth/login');
     }
@@ -177,7 +185,7 @@ export default class MobileApi extends BaseAPI {
             
             console.log('Ответ sync', res)
                 
-            currentFolders.set(config.chatFolders.FOLDERS);
+            currentFolders.set(config.chatFolders?.FOLDERS || []);
             currentPresence.set(presence);
             currentRealChats.set(chats.map(x => x.id));
             currentRealContacts.set(contacts.map(x => x.id));

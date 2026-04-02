@@ -14,16 +14,16 @@ export default class API {
         this._telemetry();
     }
     
-    setUser(userId) {
+    async setUser(userId) {
         this._user = userId;
-        if(userId === undefined) usersDb.delete('current');
-        else usersDb.set('current', userId);
+        if(userId === undefined) await usersDb.delete('current');
+        else await usersDb.set('current', userId);
     }
     
-    setToken(token) {
+    async setToken(token) {
         this._token = token;
-        if(token === undefined) usersDb.delete('token-' + this._user);
-        else usersDb.set('token-' + this._user, token);
+        if(token === undefined) await usersDb.delete('token-' + this._user);
+        else await usersDb.set('token-' + this._user, token);
     }
     
     async loadToken() {

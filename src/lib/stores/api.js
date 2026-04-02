@@ -90,7 +90,9 @@ currentUser.subscribe(async user => {
             currentUser.set(_currentUserId);
         }
     }
-    else {}
+    else {
+        apiInstance.setUser(user); // login err fix
+    }
 })
 
 currentSessionChats.subscribe(async _chats => {

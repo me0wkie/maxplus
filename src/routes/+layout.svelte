@@ -1,7 +1,8 @@
 <script>
     import { fade } from 'svelte/transition';
-    import API, { currentUser } from '$lib/stores/api.js';
+    import API, { currentUser, currentSessionCalls } from '$lib/stores/api.js';
     import * as Settings from '$lib/stores/settings.js';
+    import Session from '$lib/stores/session.js';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { onMount, setContext } from 'svelte';
@@ -35,10 +36,26 @@
         loaded = true;
     })
     
-    currentUser.subscribe(user => {
-        if (user === null
-        && $page.route.id !== '/auth/login' && $page.route.id !== '/auth/register') goto('/auth/login');
-    })
+    currentUser.subscribe(async user => {
+      if (!user) {
+        if (user === null && $page.route.id !== '/auth/login' && $page.route.id !== '/auth/register') {
+          goto('/auth/login');
+        }
+      }
+      else {
+        if (Session.get("sync")) return;
+
+        if (!$API.getToken())
+            await $API.loadToken();
+
+        if (!Session.get("connected"))
+            await $API.init();
+
+        await $API.sync();
+        const calls = await $API.getCalls();
+        $currentSessionCalls = calls;
+      }
+    });
 </script>
 
 <style>

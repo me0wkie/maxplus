@@ -9,7 +9,6 @@
     import FolderEditModal from '$components/chats/FolderEditModal.svelte';
 
     import API, { currentSessionChats, currentSessionContacts, currentSessionCalls, currentRealChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
-    import Session from '$lib/stores/session.js';
     import { debounce } from '$lib/utils/debounce.js';
 
     const dispatch = createEventDispatcher();
@@ -32,22 +31,6 @@
 
     let searchResults = [];
     let searchQuery = "";
-
-    currentUser.subscribe(async user => {
-        if (user === undefined) return;
-        if (Session.get("sync")) return;
-        if (user === null) return;
-
-        if (!$API.getToken())
-            await $API.loadToken();
-
-        if (!Session.get("connected"))
-            await $API.init();
-
-        await $API.sync();
-        const calls = await $API.getCalls();
-        $currentSessionCalls = calls;
-    })
 
     receivedMessage.subscribe(msg => {
         if (!msg || !msg.chatId) return;

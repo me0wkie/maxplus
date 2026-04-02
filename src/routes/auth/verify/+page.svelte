@@ -6,7 +6,7 @@
     
     import '$lib/styles/AnimatedPanel.css';
     
-    import API from '$lib/stores/api';
+    import API, { currentUser } from '$lib/stores/api';
     
     let error = '';
     let code = '';
@@ -36,6 +36,11 @@
                     alert(JSON.stringify(response.payload))
                 }
                 else {
+                    Session.set("connected", true)
+
+                    const id = response.payload.profile.contact.id;
+                    currentUser.set(id);
+
                     goto('/');
                 }
             }
@@ -49,7 +54,8 @@
                 alert(JSON.stringify(response.payload))
             }
             else {
-                error = "Успешно! Теперь перезайдите и авторизуйтесь"
+                Session.set("connected", true)
+                error = "Успешно! Перезапустите приложение и авторизуйтесь"
             }
         }
     }
