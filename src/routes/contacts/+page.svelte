@@ -4,6 +4,7 @@
     import { currentSessionContacts, currentRealContacts, currentUser } from '$lib/stores/api';
     import Search from '$components/main/Search.svelte';
     import ConfirmModal from '$components/main/ConfirmModal.svelte';
+    import Avatar from '$components/main/Avatar.svelte';
     
     import API from '$lib/stores/api';
     
@@ -123,7 +124,7 @@
         <div class="contact"
              on:click={e => open(e, contact)}
              >
-            <img src={ contact.avatar || contact.baseUrl } alt={ contact.names[0].firstName } class="avatar"/>
+            <Avatar contact={contact} size={44}/>
             <div class="column">
               <div class="name">
                   { contact.names[0].name }
@@ -241,7 +242,7 @@
     padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 14px;
     overflow-y: scroll;
     overflow-x: hidden;
   }
@@ -252,7 +253,14 @@
     width: 100%;
     display: flex;
     flex-direction: row;
+    align-items: center;
     cursor: pointer;
+    gap: 16px;
+  }
+
+  .contact .column {
+    display: flex;
+    flex-direction: column;
   }
   
   .contact .name {
@@ -264,7 +272,6 @@
     font-size: 12px;
     color: #999;
     position: relative;
-    bottom: 3px;
   }
   
   .contact .delete {
@@ -275,13 +282,5 @@
     position: absolute;
     right: 10px;
     margin-bottom: 10px;
-  }
-
-  .avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 15px;
-    flex-shrink: 0;
   }
 </style>

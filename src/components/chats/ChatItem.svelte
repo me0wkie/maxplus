@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { currentUser, currentSessionContacts } from '$lib/stores/api';
+    import Avatar from '$components/main/Avatar.svelte';
 
     export let chat;
     export let isSelected = false;    // Выбран ли этот чат
@@ -12,23 +13,11 @@
         ? +Object.keys(chat.participants || {}).find(id => +id !== $currentUser)
         : null;
 
-    $: contact = peerId ? $currentSessionContacts?.[peerId] : chat;
+    $: contact = peerId ? $currentSessionContacts[peerId] : {};
 
     $: title = chat.id === 0
         ? 'Избранное'
         : (chat.title || contact?.names?.[0]?.name || 'Без названия');
-
-    $: avatarUrl = chat.avatar || (chat.id === 0 ? 'saved.webp' : contact?.avatar);
-
-    function getAvatarColor(id) {
-        const colors = ['#e17076', '#7bc862', '#65aadd', '#a695e7', '#ee7aae', '#6ec9cb'];
-        return colors[(id || 0) % colors.length];
-    }
-
-    function getInitials(name) {
-        if (!name) return '';
-        return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
-    }
 
     $: lastMsg = chat.lastMessage;
 
@@ -96,29 +85,7 @@
     on:contextmenu|preventDefault={() => dispatch('longpress', chat)}
 >
 
-    <div class="avatar-wrapper">
-        {#if selectionMode}
-            <div class="selection-overlay" class:checked={isSelected}>
-                {#if isSelected}
-                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" color="white"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                {/if}
-            </div>
-        {/if}
-
-        <div class="avatar-container">
-            {#if avatarUrl}
-                <img src={avatarUrl} alt={title} class="avatar-img" loading="lazy" />
-            {:else}
-                <div class="avatar-placeholder" style="background-color: {getAvatarColor(peerId || chat.id)}">
-                    {chat.id === 0 ? '⭐' : getInitials(title)}
-                </div>
-            {/if}
-
-            {#if contact?.online && !selectionMode}
-                <span class="online-badge"></span>
-            {/if}
-        </div>
-    </div>
+    <Avatar chat={chat} selectionMode={selectionMode} isSelected={isSelected}/>
 
     <div class="content">
         <div class="row top">
@@ -160,43 +127,6 @@
 
     .chat-item:hover { background-color: rgba(255,255,255, 0.03); }
     .chat-item.selected { background-color: rgba(59, 130, 246, 0.15); }
-
-    .avatar-wrapper {
-        position: relative;
-        width: 50px;
-        height: 50px;
-        flex-shrink: 0;
-    }
-
-    .selection-overlay {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        border-radius: 50%;
-        background: rgba(0,0,0,0.4);
-        z-index: 2;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-    }
-    .selection-overlay.checked {
-        background: #3b82f6aa;
-    }
-
-    .avatar-container {
-        width: 100%; height: 100%;
-    }
-
-    .avatar-img, .avatar-placeholder {
-        width: 100%; height: 100%;
-        border-radius: 50%;
-        object-fit: cover;
-    }
-
-    .avatar-placeholder {
-        display: flex; align-items: center; justify-content: center;
-        color: white; font-weight: 600; font-size: 18px;
-    }
 
     .online-badge {
         position: absolute; bottom: 2px; right: 2px;

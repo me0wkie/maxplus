@@ -13,6 +13,7 @@
     $: from = $page.url.searchParams.get('from') || "/auth/login";
 
     onMount(async () => {
+        sessions = [];
         try {
             const res = await $API.getSessions();
             sessions = res?.sessions || res || [];

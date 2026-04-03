@@ -91,8 +91,8 @@
 
   .call {
     width: 100%;
-    min-height: 54px;
-    max-height: 54px;
+    min-height: 64px;
+    max-height: 64px;
     position: relative;
     display: flex;
     gap: 30px;
@@ -105,34 +105,34 @@
     content: "";
     height: 1px;
     width: 6px;
-    background: #444;
-    margin-top: 50px;
-    margin-left: 54px;
+    background: #333;
+    margin-top: 64px;
+    margin-left: 58px;
     position: absolute;
   }
 
   .call::before {
     content: "";
-    height: 54px;
+    height: 64px;
     width: 1px;
-    background: #444;
-    margin-left: 54px;
+    background: #333;
+    margin-left: 58px;
     position: absolute;
   }
 
   .call .avatar {
-    width: 36px;
-    height: 36px;
+    width: 46px;
+    height: 46px;
     border-radius: 32px;
     background-color: #222
   }
 
   .call .duration {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: #555;
     margin-left: auto;
-    margin-right: 50px;
+    margin-right: 30px;
   }
 
   .placeholder-call {

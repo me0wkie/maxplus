@@ -16,6 +16,7 @@
     import Dropout from '$components/ChatWindow/Dropout.svelte'
     import Signature from '$lib/utils/Signature.svelte'
     import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
+    import Avatar from '$components/main/Avatar.svelte';
 
     export let chat;
 
@@ -311,12 +312,10 @@
     const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
 
     let title;
-    let avatar;
 
     onMount(async () => {
         if (chat.id === 0) {
             title = "Избранное"
-            avatar = "saved.webp"
         }
         else {
             if (!chat.type) {
@@ -330,11 +329,9 @@
                 console.log('CHANNEL')
 
                 title = chat.title;
-                avatar = chat.avatar;
             }
             else {
                 title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
-                avatar = $currentSessionContacts?.[avatarUserId]?.avatar
             }
         }
     });
@@ -422,7 +419,7 @@
             <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
                 <img src="icons/arrow.svg" style="transform: scale(-1.5)" class="icon"/>
             </button>
-            <div on:click={() => dispatch('profile')} class="avatar" style={"background-image: url(" + avatar + ")"}></div>
+            <Avatar size={36} chat={chat}/>
             <div on:click={() => dispatch('profile')} class="info">
                 <a class="title">{ title }</a>
                 <a class="presence"><Signature chat={chat} /></a>
@@ -572,7 +569,6 @@
   header .info { display: flex; flex-direction: column; min-width: 0; }
   header .info .presence { font-size: 12px; }
   header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  header .avatar { width: 36px; height: 36px; border-radius: 100px; background-size: cover; image-rendering: smooth; }
   header .align-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
   .icon-button { background: none; border: none; color: white; cursor: pointer; padding: 12px 6px; margin: 0 6px 0 0px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; outline: none; }
   .icon-button svg { width: 24px; height: 24px; fill: currentColor; }
