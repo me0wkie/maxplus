@@ -7,6 +7,7 @@
   export let chat = {};
   export let contact = {};
   export let title;
+  export let style;
 
   if (!size) size = 50;
   if (!contact.id) contact = $currentSessionContacts[$currentUser ^ chat.id] || {};
@@ -25,7 +26,7 @@
   }
 </script>
 
-<div class="avatar-wrapper" style="width: {size}px; height: {size}px;">
+<div class="avatar-wrapper" style="width: {size}px; height: {size}px; {style}">
     {#if selectionMode}
         <div class="selection-overlay" class:checked={isSelected}>
             {#if isSelected}

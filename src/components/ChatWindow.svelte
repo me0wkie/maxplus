@@ -419,7 +419,7 @@
             <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
                 <img src="icons/arrow.svg" style="transform: scale(-1.5)" class="icon"/>
             </button>
-            <Avatar size={36} chat={chat}/>
+            <Avatar size={36} chat={chat} style="margin-left: -8px"/>
             <div on:click={() => dispatch('profile')} class="info">
                 <a class="title">{ title }</a>
                 <a class="presence"><Signature chat={chat} /></a>
@@ -558,7 +558,7 @@
     justify-content: space-between;
     flex-direction: row;
     align-items: center;
-    padding: 10px 16px;
+    padding: 10px 0;
     height: 32px;
     cursor: grab;
     flex-shrink: 0;
@@ -570,8 +570,19 @@
   header .info .presence { font-size: 12px; }
   header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   header .align-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
-  .icon-button { background: none; border: none; color: white; cursor: pointer; padding: 12px 6px; margin: 0 6px 0 0px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background-color 0.2s; outline: none; }
-  .icon-button svg { width: 24px; height: 24px; fill: currentColor; }
+  .icon-button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    height: 48px;
+    width: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
+    outline: none;
+  }
 
   .scroll-down-btn {
     position: fixed;
