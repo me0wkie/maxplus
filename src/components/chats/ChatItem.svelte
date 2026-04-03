@@ -21,9 +21,18 @@
 
     $: lastMsg = chat.lastMessage;
 
-    $: msgText = (typeof lastMsg === 'string' ? lastMsg : lastMsg?.text)
-                || (lastMsg?.file ? '📎 Вложение' : '')
-                || 'Пустое сообщение';
+    console.log(chat.lastMessage)
+
+    $: attaches = has("PHOTO") ? "Изображение" :
+                  has("VIDEO") ? "Видео" :
+                  has("FILE") ? "Файл" :
+                  has("INLINE_KEYBOARD") ? "Клавиатура" :
+                  has("CONTROL") ? lastMsg?.attaches?.find(x => x._type === "CONTROL")?.shortMessage :
+                  lastMsg?.link ? "Пересланное сообщение" : null;
+
+    function has(type) {
+      return lastMsg?.attaches?.find(x => x._type === type);
+    }
 
     $: timeDisplay = (() => {
         if (!lastMsg?.time) return '';
@@ -103,10 +112,13 @@
         <div class="row bottom">
             <p class="preview">
                 {#if isMe}<span class="you-prefix">Вы:</span>{/if}
-                {msgText}
+                {#if attaches}
+                    <b>{ attaches }</b>{#if lastMsg?.text}, {/if}
+                {/if}
+                {lastMsg?.text}
             </p>
             {#if chat.newMessages > 0}
-                <div class="badge">
+                <div class="badge" style="{chat.newMessages >= 99 ? 'width: 26px;' : ''}">
                     {chat.newMessages > 99 ? '99+' : chat.newMessages}
                 </div>
             {/if}
@@ -156,8 +168,8 @@
     .badge {
         background-color: #3b82f6; color: white;
         font-size: 11px; font-weight: bold;
-        width: 24px; height: 20px;
-        border-radius: 10px;
+        width: 20px; height: 20px;
+        border-radius: 16px;
         display: flex; align-items: center; justify-content: center;
         margin-left: 8px; flex-shrink: 0;
     }

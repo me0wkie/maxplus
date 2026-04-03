@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
+  import Avatar from '$components/main/Avatar.svelte';
   import Reactions from './Reactions.svelte';
 
   const dispatch = createEventDispatcher();
@@ -9,6 +10,7 @@
   export let dropoutActiveAt;
   export let msg;
   export let avatar;
+  export let chat;
 
   $: isMe = msg.sender === $currentUser;
   $: isSystem = msg.attaches?.[0]?._type === 'CONTROL';
@@ -49,8 +51,8 @@
      class:is-deleted={msg.deleted}
      class:inactive={dropoutActiveAt && dropoutActiveAt?.msg?.id !== msg.id}>
 
-    {#if !isMe && !isSystem}
-        <img src={ avatar || $currentSessionContacts[msg.sender]?.avatar } alt="avatar" class="avatar"/>
+    {#if chat.type !== "CHANNEL" && !isMe && !isSystem}
+        <Avatar size={32} chat={chat}/>
     {/if}
 
     <div class="message-bubble">
@@ -166,7 +168,14 @@
 </div>
 
 <style>
-    .message-row { display: flex; align-items: flex-end; margin-bottom: 8px; width: 100%; transition: opacity 0.2s; }
+    .message-row {
+      display: flex;
+      align-items: flex-end;
+      margin-bottom: 8px;
+      width: 100%;
+      transition: opacity 0.2s;
+      gap: 8px;
+    }
     .message-row.inactive { opacity: 0.5; }
     .message-row.is-me { flex-direction: column; }
     .message-row.is-system { align-items: center; flex-direction: column; }
@@ -183,8 +192,6 @@
     .message-row.is-me .message-bubble { background: #7b4cd6; }
     .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); }
     .message-row.is-deleted .message-bubble { background-color: #c99; }
-
-    .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; margin-right: 8px; flex-shrink: 0; background: #444; }
 
     /* медиа */
     .media-grid {
