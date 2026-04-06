@@ -1,6 +1,8 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
+  import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs';
+  import { openPath } from '@tauri-apps/plugin-opener';
   import Avatar from '$components/main/Avatar.svelte';
   import Reactions from './Reactions.svelte';
 
@@ -12,11 +14,14 @@
   export let avatar;
   export let chat;
 
+  let downloadingMap = {};
+
   $: isMe = msg.sender === $currentUser;
   $: isSystem = msg.attaches?.[0]?._type === 'CONTROL';
   $: lines = msg.text?.split("\n");
 
-  $: mediaAttaches = (msg.attaches || []).filter(a => a._type === 'PHOTO' || a._type === 'VIDEO');
+  $: mediaAttaches = (msg.attaches || [])
+    .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO' || a._type === 'FILE');
 
   function handleMediaClick(attach) {
     dispatch('openMedia', { attach });
@@ -39,10 +44,61 @@
     }
   }
 
+
+  function isDownloaded(attach) {
+    return !!attach.filePath;
+  }
+
+  function isDownloading(attach) {
+    return downloadingMap[attach.fileId] === true;
+  }
+
+  async function handleFileClick(attach) {
+    return alert("В разработке!")
+
+    if (isDownloaded(attach)) {
+      openFile(attach);
+      return;
+    }
+
+    if (isDownloading(attach)) return;
+
+    downloadingMap = { ...downloadingMap, [attach.fileId]: true };
+
+    try {
+      const res = await fetch(attach.url);
+      const arrayBuffer = await res.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+
+      const filePath = await writeFile({
+        path: attach.name,
+        contents: bytes,
+        dir: BaseDirectory.Download
+      });
+
+      msg.attaches = msg.attaches.map(a =>
+        a.fileId === attach.fileId ? { ...a, filePath } : a
+      );
+
+    } catch (err) {
+      console.error('Ошибка при загрузке файла:', err);
+    } finally {
+      downloadingMap = { ...downloadingMap, [attach.fileId]: false };
+    }
+  }
+
+  function openFile(attach) {
+    if (!attach.filePath) return;
+    openFile(attach.filePath);
+  }
+
+
+
   $: hasForward = msg.link && msg.link.type === 'FORWARD';
   $: forwardMsg = msg.link?.message;
   $: forwardLines = forwardMsg?.text?.split("\n");
-  $: forwardMediaAttaches = (forwardMsg?.attaches || []).filter(a => a._type === 'PHOTO' || a._type === 'VIDEO');
+  $: forwardMediaAttaches = (forwardMsg?.attaches || [])
+    .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO' || a._type === 'FILE');
 </script>
 
 <div class="message-row"
@@ -94,6 +150,25 @@
                                  <img src={attach.thumbnail} />
                                  <div class="play-icon">▶</div>
                               </div>
+                            {:else if attach._type === 'FILE'}
+                              <div class="file-attach" on:click|stopPropagation={() => handleFileClick(attach)}>
+
+                                <div class="file-icon">
+                                  {#if isDownloading(attach)}
+                                    <div class="spinner"></div>
+                                  {:else if isDownloaded(attach)}
+                                    📄
+                                  {:else}
+                                    ⬇️
+                                  {/if}
+                                </div>
+
+                                <div class="file-info">
+                                  <div class="file-name">{attach.name}</div>
+                                  <div class="file-size">{(attach.size / 1024).toFixed(1)} KB</div>
+                                </div>
+
+                              </div>
                             {/if}
                           </div>
                         {/each}
@@ -128,6 +203,25 @@
                                <img src={attach.thumbnail} />
                                <div class="play-icon">▶</div>
                             </div>
+                          {:else if attach._type === 'FILE'}
+                            <div class="file-attach" on:click|stopPropagation={() => handleFileClick(attach)}>
+
+                              <div class="file-icon">
+                                {#if isDownloading(attach)}
+                                  <div class="spinner"></div>
+                                {:else if isDownloaded(attach)}
+                                  📄
+                                {:else}
+                                  ⬇️
+                                {/if}
+                              </div>
+
+                              <div class="file-info">
+                                <div class="file-name">{attach.name}</div>
+                                <div class="file-size">{(attach.size / 1024).toFixed(1)} KB</div>
+                              </div>
+
+                            </div>
                           {/if}
                         </div>
                       {/each}
@@ -135,7 +229,7 @@
                   {/if}
 
                   {#if msg.attaches}
-                    {#each msg.attaches.filter(a => a._type !== 'PHOTO' && a._type !== 'VIDEO' && a._type !== 'CONTROL') as attach}
+                    {#each msg.attaches.filter(a => a._type !== 'PHOTO' && a._type !== 'VIDEO' && a._type !== 'FILE' && a._type !== 'CONTROL') as attach}
                       <div class="unsupported-attach">📎 {attach._type} (не поддерживается)</div>
                     {/each}
                   {/if}
@@ -168,131 +262,191 @@
 </div>
 
 <style>
-    .message-row {
-      display: flex;
-      align-items: flex-end;
-      margin-bottom: 8px;
-      width: 100%;
-      transition: opacity 0.2s;
-      gap: 8px;
-    }
-    .message-row.inactive { opacity: 0.5; }
-    .message-row.is-me { flex-direction: column; }
-    .message-row.is-system { align-items: center; flex-direction: column; }
-    .message-bubble {
-      background: #3a3c55;
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 18px;
-      min-width: 100px;
-      max-width: 80%;
-      font-size: 13px;
-      position: relative;
-    }
-    .message-row.is-me .message-bubble { background: #7b4cd6; }
-    .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); }
-    .message-row.is-deleted .message-bubble { background-color: #c99; }
+  .message-row {
+    display: flex;
+    align-items: flex-end;
+    margin-bottom: 8px;
+    width: 100%;
+    transition: opacity 0.2s;
+    gap: 8px;
+  }
 
-    /* медиа */
-    .media-grid {
-        display: grid;
-        gap: 4px;
-        margin-top: 6px;
-        border-radius: 10px;
-        overflow: hidden;
-        width: 100%;
-        max-width: 320px;
-    }
-    .grid-many { grid-template-columns: repeat(var(--cols), 1fr); }
-    .grid-item { cursor: pointer; position: relative; background: #000; overflow: hidden; }
-    .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .message-row.inactive { opacity: 0.5; }
+  .message-row.is-me { flex-direction: column; }
+  .message-row.is-system { align-items: center; flex-direction: column; }
 
-    .grid-many .grid-item { aspect-ratio: 1 / 1; }
-    .grid-single .grid-item { max-height: 450px; border-radius: 8px; }
+  .message-bubble {
+    background: #3a3c55;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 18px;
+    min-width: 100px;
+    max-width: 80%;
+    font-size: 13px;
+    position: relative;
+  }
+  .message-row.is-me .message-bubble { background: #7b4cd6; }
+  .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); }
+  .message-row.is-deleted .message-bubble { background-color: #c99; }
 
-    .video-preview .play-icon {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.6);
-      color: white;
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px;
-      pointer-events: none;
-    }
+  /* медиа */
+  .media-grid {
+    display: grid;
+    gap: 4px;
+    margin-top: 6px;
+    border-radius: 10px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 320px;
+  }
+  .grid-many { grid-template-columns: repeat(var(--cols), 1fr); }
+  .grid-item {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+  }
+  .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-    /* ссылки или репосты чё это */
-    .forward-block {
-        border-left: 2px solid #34b7f1;
-        padding-left: 8px;
-        margin-bottom: 8px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 4px 12px 12px 4px;
-        padding-top: 4px;
-        padding-bottom: 4px;
-    }
+  .grid-many .grid-item { aspect-ratio: 1 / 1; }
+  .grid-single .grid-item { max-height: 450px; border-radius: 8px; }
 
-    .forward-header {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        margin-bottom: 4px;
-    }
+  .video-preview .play-icon {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.6);
+    color: white;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    pointer-events: none;
+  }
 
-    .forward-avatar {
-        width: 18px;
-        height: 18px;
-        border-radius: 50%;
-        object-fit: cover;
-    }
+  /* ссылки или репосты чё это */
+  .forward-block {
+    border-left: 2px solid #34b7f1;
+    padding-left: 8px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px 12px 12px 4px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+  }
 
-    .forward-name {
-        font-weight: 600;
-        color: #34b7f1;
-        font-size: 12px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
+  .forward-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+  }
 
-    .forward-arrow {
-        width: 14px;
-        height: 14px;
-        fill: #34b7f1;
-    }
+  .forward-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
 
-    .forward-content-text {
-        font-size: 12px;
-        color: #ddd;
-        display: -webkit-box;
-        -webkit-line-clamp: 3; /* Ограничиваем текст репоста 3 строками */
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        line-height: 1.3;
-    }
+  .forward-name {
+    font-weight: 600;
+    color: #34b7f1;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 
-    .forward-badge {
-        font-size: 10px;
-        opacity: 0.5;
-        margin-top: 2px;
-    }
+  .forward-arrow {
+    width: 14px;
+    height: 14px;
+    fill: #34b7f1;
+  }
 
-    .message-status { display: flex; flex-direction: row; gap: 10px; justify-content: end; }
-    .status-meta { display: flex; gap: 5px; align-items: center; }
-    .views { display: flex; align-items: center; gap: 2px; font-size: 10px; opacity: 0.6; }
-    .views-icon { width: 12px; fill: currentColor; }
-    .timestamp { font-size: 11px; opacity: 0.5; white-space: nowrap; }
-    .status-icon { width: 15px; fill: #7f7; margin-top: 2px; }
-    .status-icon.is-read { fill: #34b7f1; }
+  .forward-content-text {
+    font-size: 12px;
+    color: #ddd;
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Ограничиваем текст репоста 3 строками */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.3;
+  }
 
-    .unsupported-attach { font-size: 11px; opacity: 0.5; margin-top: 5px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
-    .line {
-      margin: 0;
-      line-height: 1.4;
-      word-break: break-word;
-      pointer-events: none;
-    }
+  .forward-badge {
+    font-size: 10px;
+    opacity: 0.5;
+    margin-top: 2px;
+  }
+
+  .message-status { display: flex; flex-direction: row; gap: 10px; justify-content: end; }
+  .status-meta { display: flex; gap: 5px; align-items: center; }
+  .views { display: flex; align-items: center; gap: 2px; font-size: 10px; opacity: 0.6; }
+  .views-icon { width: 12px; fill: currentColor; }
+  .timestamp { font-size: 11px; opacity: 0.5; white-space: nowrap; }
+  .status-icon { width: 15px; fill: #7f7; margin-top: 2px; }
+  .status-icon.is-read { fill: #34b7f1; }
+
+  .unsupported-attach { font-size: 11px; opacity: 0.5; margin-top: 5px; font-style: italic; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 3px; }
+  .line {
+    margin: 0;
+    line-height: 1.4;
+    word-break: break-word;
+    pointer-events: none;
+  }
+
+  .file-attach {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    background-color: #0002;
+    min-width: 130px;
+  }
+
+  .file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .file-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .file-name {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-size {
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 </style>

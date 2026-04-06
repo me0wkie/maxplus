@@ -61,6 +61,10 @@
 	function stopDrag() {
 		dragging = false;
 
+		if (!moved) {
+			toggle();
+		}
+
 		setTimeout(() => {
 			moved = false;
 		}, 50);
@@ -114,7 +118,6 @@
 	style="left: {x}px; top: {y}px;"
 	on:mousedown|preventDefault={startDrag}
 	on:touchstart|preventDefault={startDrag}
-	on:click|stopPropagation={toggle}
 >
 	<svg viewBox="0 0 24 24">
 		<path d="M12 5C7 5 2.73 8.11 1 12c1.73 3.89 6 7 11 7s9.27-3.11 11-7c-1.73-3.89-6-7-11-7zm0 12c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>
