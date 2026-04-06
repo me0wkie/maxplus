@@ -121,8 +121,10 @@
   }
 
   .call .avatar {
-    width: 46px;
-    height: 46px;
+    min-width: 46px;
+    min-height: 46px;
+    max-width: 46px;
+    max-height: 46px;
     border-radius: 32px;
     background-color: #222
   }
@@ -136,16 +138,17 @@
   }
 
   .placeholder-call {
-    position: fixed;;
+    position: absolute;
     height: 50px;
     width: 50px;
-    bottom: 20px;
+    bottom: 0;
     right: 20px;
     border-radius: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    margin-bottom: env(safe-area-inset-bottom, 20px);
   }
 
   .placeholder-call img {

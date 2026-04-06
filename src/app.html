@@ -9,6 +9,11 @@
   </head>
   <body data-sveltekit-preload-data="hover">
     <div style="display: contents">%sveltekit.body%</div>
+    <div class="debug-a"></div>
+    <div class="debug-b"></div>
+    <div class="debug-c"></div>
+    <div class="debug-d"></div>
+    <div class="debug-e"></div>
   </body>
   <style>
     @font-face {
@@ -18,11 +23,66 @@
       font-style: normal;
     }
 
+    .debug-a {
+      background-color: #f00;
+      width: 32px;
+      height: 32px;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      z-index: 1000;
+    }
+
+    .debug-b {
+      background-color: #0f0;
+      width: 32px;
+      height: 32px;
+      position: absolute;
+      bottom: 0;
+      right: 130px;
+      padding-bottom: calc(16px + env(--safe-area-inset-bottom));
+      z-index: 1000;
+    }
+
+    .debug-c {
+      background-color: #00f;
+      width: 32px;
+      height: 32px;
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+
+      z-index: 1000;
+    }
+
+    .debug-d {
+      background-color: #0ff;
+      width: 32px;
+      height: 32px;
+      position: absolute;
+      top: 0;
+      right: 0;
+      z-index: 1000;
+    }
+
+    .debug-e {
+      background-color: #ff0;
+      width: 32px;
+      height: 32px;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1000;
+      padding-top: calc(
+        12px +
+        env(safe-area-inset-top, 0px)
+      );
+    }
+
     body {
       margin: 0;
       background-color: #17181c;
-      padding-bottom: env(safe-area-inset-bottom);
-      padding-top: env(safe-area-inset-top);
       overflow: hidden;
     }
 
@@ -56,6 +116,16 @@
       -ms-user-select: text;
       -o-user-select: text;
       user-select: text;
+    }
+
+    :root {
+      --safe-top: 24px;
+      --safe-bottom: 0px;
+    }
+
+    body {
+      padding-top: env(safe-area-inset-top, 10px);
+      padding-bottom: env(safe-area-inset-bottom, 20px);
     }
   </style>
 </html>

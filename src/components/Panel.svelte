@@ -35,6 +35,8 @@
     align-items: center;
     color: #999;
     z-index: 2;
+    padding-top: env(safe-area-inset-top, 10px);
+    padding-bottom: env(safe-area-inset-bottom, 20px);
   }
   
   .option {

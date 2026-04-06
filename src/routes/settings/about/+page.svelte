@@ -100,6 +100,7 @@
         justify-content: flex-end;
         position: fixed;
         bottom: 20px;
+        padding-bottom: env(safe-area-inset-bottom, 20px);
     }
 
     .btn {

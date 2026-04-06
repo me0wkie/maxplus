@@ -448,7 +448,13 @@
   }
 
   .media-container {
-    flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
+    flex: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: env(safe-area-inset-top, 10px);
+    padding-bottom: env(safe-area-inset-bottom, 20px);
   }
 
   .media-container :global(img),

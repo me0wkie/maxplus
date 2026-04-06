@@ -1,6 +1,7 @@
 <script>
     import { fade } from 'svelte/transition';
     import API, { currentUser, currentSessionCalls } from '$lib/stores/api.js';
+    import FloatingDebugToggle from '$components/main/FloatingDebugToggle.svelte'
     import * as Settings from '$lib/stores/settings.js';
     import Session from '$lib/stores/session.js';
     import { page } from '$app/stores';
@@ -32,28 +33,37 @@
                 else if (onBack.addContact) onBack.addContact();
             });
         }
-        
-        loaded = true;
+
+        setTimeout(() => {
+          if (!loaded) loaded = true;
+        }, 1000)
     })
     
     currentUser.subscribe(async user => {
-      if (!user) {
-        if (user === null && $page.route.id !== '/auth/login' && $page.route.id !== '/auth/register') {
-          goto('/auth/login');
+      try {
+        if (!user) {
+          if (user === null && $page.route.id !== '/auth/login' && $page.route.id !== '/auth/register') {
+            goto('/auth/login');
+          }
         }
-      }
-      else {
-        if (Session.get("sync")) return;
+        else {
+          if (Session.get("sync")) return;
 
-        if (!$API.getToken())
-            await $API.loadToken();
+          if (!$API.getToken())
+              await $API.loadToken();
 
-        if (!Session.get("connected"))
-            await $API.init();
+          if (!Session.get("connected"))
+              await $API.init();
 
-        await $API.sync();
-        const calls = await $API.getCalls();
-        $currentSessionCalls = calls;
+          await $API.sync();
+          const calls = await $API.getCalls();
+          $currentSessionCalls = calls;
+        }
+      } catch (e) {
+        console.error(e);
+        alert(e);
+      } finally {
+        if (!loaded) loaded = true;
       }
     });
 </script>
@@ -62,7 +72,19 @@
   main {
     overflow-x: hidden;
   }
+
+  .loading {
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    width: 100vw;
+    height: 100vh;
+  }
 </style>
+
+<FloatingDebugToggle />
 
 {#if loaded}
   {#key $page.url.pathname}
@@ -71,5 +93,5 @@
       </main>
   {/key}
 {:else}
-  <a>Загрузка...</a>
+  <a class="loading">Загрузка...</a>
 {/if}
