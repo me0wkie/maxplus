@@ -21,7 +21,7 @@
 
     $: lastMsg = chat.lastMessage;
 
-    console.log(chat.lastMessage)
+    console.log(chat.lastMessage);
 
     $: attaches = has("PHOTO") ? "Изображение" :
                   has("VIDEO") ? "Видео" :

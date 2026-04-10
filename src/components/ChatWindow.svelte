@@ -1,6 +1,6 @@
 <script>
     import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
-    import { open } from '@tauri-apps/plugin-dialog';
+    import { invoke } from '@tauri-apps/api/core';
     import { fade, fly } from 'svelte/transition';
     import { writable, get } from 'svelte/store';
 
@@ -340,34 +340,23 @@
         attachesDropout = attachesDropout ? null : { active: true };
     }
 
-    const filters = {
-        PHOTO: [
-          {
-            name: 'Изображения',
-            extensions: ['png', 'jpeg', 'jpg'],
-          }
-        ],
-        VIDEO: [
-          {
-            name: 'Видео',
-            extensions: ['mp4', 'mov', 'avi', 'webm'],
-          }
-        ]
-    }
-
     async function selectFile(type) {
-        const path = await open({
-            multiple: false,
-            directory: false,
-            filters: filters[type],
-        });
+        attachesDropout = null;
+        console.log('pick me')
+        const response = await invoke('pick', type !== "FILE" ? { type } : null);
 
-        console.log('Selected', path)
-        if (!path) return;
+        console.log('Selected', JSON.stringify(response))
+        alert(JSON.stringify(response))
+
+        if (!response || response === "CANCEL") return;
+        const { uri, mime_type: mime } = response;
+
+        const path = decodeURIComponent(uri);
 
         attaches.push({
+            path,
             type,
-            path
+            mime,
         })
     }
 

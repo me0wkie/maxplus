@@ -1,4 +1,5 @@
 mod commands;
+mod files;
 mod state;
 
 use reqwest::header::{CONTENT_LENGTH, CONTENT_RANGE, CONTENT_TYPE, RANGE};
@@ -195,17 +196,24 @@ pub fn run() {
             commands::get_photo_upload,
             commands::get_video_upload,
             commands::get_file_upload,
-            commands::upload_attachment,
             commands::get_calls,
             commands::call,
+            files::download,
+            files::upload,
+            files::pick
         ]);
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     {
         builder = builder
-            .plugin(tauri_plugin_biometric::init())
-            .plugin(tauri_plugin_barcode_scanner::init())
-            .plugin(tauri_plugin_android_fs::init());
+        .plugin(tauri_plugin_biometric::init())
+        .plugin(tauri_plugin_barcode_scanner::init())
+    }
+
+    #[cfg(any(target_os = "android"))]
+    {
+        builder = builder
+        .plugin(tauri_plugin_android_fs::init());
     }
 
     builder

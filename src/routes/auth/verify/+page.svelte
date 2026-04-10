@@ -31,7 +31,7 @@
             }
             else {
                 const response = await $API.login(code)
-                if(response.payload.error) {
+                if(response.payload.error) { // TODO display error
                     error = "Ошибка проверки"
                     alert(JSON.stringify(response.payload))
                 }

@@ -14,6 +14,7 @@
     "notification:allow-is-permission-granted",
     "dialog:default",
     "fs:default",
+    "fs:allow-download-write",
     {
       "identifier": "fs:allow-read",
       "allow": [{ "path": "**/*" }]

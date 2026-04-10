@@ -101,38 +101,6 @@ pub async fn fetch_history(
 }
 
 #[tauri::command]
-pub async fn upload_attachment(
-    state: State<'_, AppState>,
-    upload_url: String,
-    path: String,
-    attach_type: String,
-    file_id: Option<u64>,
-    video_id: Option<u64>,
-    token: Option<String>,
-) -> Result<Value, String> {
-    if attach_type == "PHOTO" {
-        return Ok(state.client.upload_photo(upload_url, path).await);
-    } else if attach_type == "VIDEO" {
-        return Ok(state
-            .client
-            .upload_video(
-                upload_url,
-                video_id.expect("No video_id specified!"),
-                token.expect("No token specified!"),
-                path,
-            )
-            .await);
-    } else if attach_type == "FILE" {
-        return Ok(state
-            .client
-            .upload_file(upload_url, file_id.expect("No file_id specified!"), path)
-            .await);
-    }
-
-    return Ok(json!({ "error": "Wrong type" }));
-}
-
-#[tauri::command]
 pub async fn set_token(state: State<'_, AppState>, token: String) -> Result<String, String> {
     state.client.set_token(token).await;
     Ok("Set".into())

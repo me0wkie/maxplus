@@ -166,20 +166,6 @@
     color: #bbb;
   }
   
-  .top {
-    position: absolute;
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-  }
-  
-  .top img {
-    height: 35px;
-    width: 35px;
-    padding: 6px;
-    opacity: 0.7;
-  }
-  
   .info {
     margin-top: 20px;
     top: 0;

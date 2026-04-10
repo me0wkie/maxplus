@@ -384,6 +384,11 @@ export default class MobileApi extends BaseAPI {
         return await invoke('get_video_by_id', { chatId, messageId, videoId });
     }
 
+    async getFileById(chatId, messageId, fileId) {
+        await this.synchronized;
+        return await invoke('get_file_by_id', { chatId, messageId, fileId });
+    }
+
     async publicSearch(query) {
         await this.synchronized;
         return await invoke('public_search', { query, count: 5, type: "ALL" });
@@ -408,7 +413,7 @@ export default class MobileApi extends BaseAPI {
     }
 
     async uploadAttachment(attach) {
-        const { type, path } = attach;
+        const { type, path, mime } = attach;
 
         const response = await invoke('get_' + type.toLowerCase() + '_upload', { count: 1, profile: false });
 
@@ -422,9 +427,12 @@ export default class MobileApi extends BaseAPI {
         const payload = {
             path,
             attachType: type,
+            mime
         };
 
-        if (type === "PHOTO") payload.uploadUrl = response.url;
+        if (type === "PHOTO") {
+            payload.uploadUrl = response.url;
+        }
         else if (type === "VIDEO") {
             const { token, url, videoId } = response.info[0];
             payload.token = token;
@@ -438,7 +446,7 @@ export default class MobileApi extends BaseAPI {
             payload.fileId = fileId;
         }
 
-        const data = await invoke('upload_attachment', payload);
+        const data = await invoke('upload', payload);
 
         console.log(data);
 

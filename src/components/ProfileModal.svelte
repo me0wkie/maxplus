@@ -179,7 +179,6 @@
     .info-item { display: flex; align-items: center; padding: 15px 20px; gap: 20px; }
     .info-content { flex: 1; display: flex; flex-direction: column; }
     .info-content .value { color: #eee; } .info-content .label { color: #777; font-size: 13px; }
-    .divider { height: 10px; background: #121212; width: 100%; border-top: 1px solid #252525; border-bottom: 1px solid #252525; }
     .info-item .button {
         color: white;
     }
@@ -187,11 +186,6 @@
     .hoverable {
         cursor: pointer;
     }
-
-    .toggle-switch { width: 40px; height: 22px; background: #333; border-radius: 11px; position: relative; }
-    .toggle-switch.checked { background: #007afd; }
-    .knob { width: 18px; height: 18px; background: #fff; border-radius: 50%; position: absolute; top: 2px; left: 2px; transition: 0.2s; }
-    .checked .knob { transform: translateX(18px); }
 
     .menu-container { position: relative; }
     .dropdown { position: absolute; top: 40px; right: 0; background: #252525; width: 180px; border-radius: 12px; padding: 5px; box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 2px; z-index: 20; border: 1px solid #333; }

@@ -18,6 +18,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:fitsSystemWindows="true"
+            android:enableOnBackInvokedCallback="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -37,4 +38,7 @@
             android:resource="@xml/file_paths" />
         </provider>
     </application>
+    <!-- ANDROID FS PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
+    
+    <!-- ANDROID FS PLUGIN. AUTO-GENERATED. DO NOT REMOVE. -->
 </manifest>
