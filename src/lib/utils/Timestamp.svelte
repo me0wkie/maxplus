@@ -1,7 +1,6 @@
 <script>
     import { onDestroy, onMount } from 'svelte';
 
-    export let gender;
     export let unixTime;
 
     const UNITS = [

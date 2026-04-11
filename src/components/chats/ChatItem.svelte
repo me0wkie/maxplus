@@ -140,14 +140,14 @@
     .chat-item:hover { background-color: rgba(255,255,255, 0.03); }
     .chat-item.selected { background-color: rgba(59, 130, 246, 0.15); }
 
-    .online-badge {
+    /*.online-badge {
         position: absolute; bottom: 2px; right: 2px;
         width: 12px; height: 12px;
         background-color: #4ade80;
         border: 2px solid #1e1e1e;
         border-radius: 50%;
         z-index: 1;
-    }
+    }*/
 
     .content {
         flex: 1; display: flex; flex-direction: column;

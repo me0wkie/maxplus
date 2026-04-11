@@ -11,7 +11,6 @@
   export let deobfuscated;
   export let dropoutActiveAt;
   export let msg;
-  export let avatar;
   export let chat;
 
   $: isMe = msg.sender === $currentUser;
@@ -209,12 +208,6 @@
     fill: #34b7f1;
   }
 
-  .forward-badge {
-    font-size: 10px;
-    opacity: 0.5;
-    margin-top: 2px;
-  }
-
   .message-status { display: flex; flex-direction: row; gap: 10px; justify-content: end; }
   .status-meta { display: flex; gap: 5px; align-items: center; }
   .views { display: flex; align-items: center; gap: 2px; font-size: 10px; opacity: 0.6; }
@@ -230,14 +223,14 @@
     pointer-events: none;
   }
 
-  .spinner {
+  /*.spinner {
     width: 16px;
     height: 16px;
     border: 2px solid rgba(255,255,255,0.3);
     border-top: 2px solid white;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-  }
+  }*/
 
   @keyframes spin {
     from { transform: rotate(0deg); }

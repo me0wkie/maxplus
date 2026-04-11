@@ -41,7 +41,7 @@
         {#if call.avatar}
           <img class="avatar" src="{call.avatar}"/>
         {:else}
-          <div class="avatar"/>
+          <div class="avatar"></div>
         {/if}
 
         <a>{ call.name }</a>

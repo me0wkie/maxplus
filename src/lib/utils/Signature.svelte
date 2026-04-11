@@ -25,6 +25,5 @@
             const joined = list.join(', ');
             return joined.charAt(0).toUpperCase() + joined.slice(1);
         })()}
-    { :else }
     { /if }
 { /if }

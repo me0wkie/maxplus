@@ -71,8 +71,6 @@ pub async fn download(
     }
 }
 
-use tauri_plugin_android_fs::FileUri;
-
 #[tauri::command]
 pub async fn upload(
     app: tauri::AppHandle,
@@ -167,14 +165,14 @@ pub async fn pick(
 
     #[cfg(not(target_os = "android"))]
     {
-        use tauri_plugin_dialog::{DialogExt, PickerMode};
+        use tauri_plugin_dialog::{DialogExt};
         use serde_json::json;
 
         let dialog = app.dialog().file();
 
         let dialog = match r#type.as_deref() {
-            Some("PHOTO") => dialog.set_picker_mode(PickerMode::Image),
-            Some("VIDEO") => dialog.set_picker_mode(PickerMode::Video),
+            Some("PHOTO") => dialog.add_filter("Изображения", &["png", "jpeg", "jpg", "gif", "webp", "bmp"]),
+            Some("VIDEO") => dialog.add_filter("Видео", &["mp4", "avi", "mov", "mvk"]),
             _ => dialog,
         };
 

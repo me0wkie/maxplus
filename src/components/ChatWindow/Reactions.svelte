@@ -1,7 +1,6 @@
 <script>
   export let info;
   export let msgId;
-  export let isMe;
 </script>
 
 {#if info?.counters}

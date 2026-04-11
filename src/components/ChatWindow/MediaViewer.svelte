@@ -495,18 +495,6 @@
     cursor: pointer;
   }
 
-  .video-placeholder {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    background: #000;
-    z-index: 1;
-    transition: opacity 0.5s;
-  }
-  .video-placeholder.hidden { opacity: 0; pointer-events: none; }
-
   .video-player {
     width: 100%; height: 100%; z-index: 2; display: block;
     opacity: 0; transition: opacity 0.5s;
