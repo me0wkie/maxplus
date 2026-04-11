@@ -16,6 +16,7 @@
     import Dropout from '$components/ChatWindow/Dropout.svelte'
     import Signature from '$lib/utils/Signature.svelte'
     import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
+    import DateSeparator from '$components/ChatWindow/DateSeparator.svelte'
     import Avatar from '$components/main/Avatar.svelte';
 
     export let chat;
@@ -42,6 +43,8 @@
 
     let viewerOpen = false;
     let viewerIndex = 0;
+
+    let lastDate;
 
     let clickStartPos = { x: 0, y: 0 };
 
@@ -359,36 +362,6 @@
             mime,
         })
     }
-
-    let lastDate = null
-
-    function formatMessageDate(unixTime) {
-        const date = new Date(unixTime);
-        const now = new Date();
-        const isCurrentYear = date.getFullYear() === now.getFullYear();
-
-        if (isCurrentYear) {
-            return date.toLocaleDateString('ru-RU', {
-                day: 'numeric',
-                month: 'long'
-            });
-        } else {
-            const day = date.getDate();
-            const month = date.toLocaleString('ru-RU', { month: 'long' });
-            const year = date.getFullYear();
-            return `${day} ${month}, ${year}`;
-        }
-    }
-
-    function isNewDay(unixTime) {
-        const date = new Date(unixTime);
-        if (!lastDate || lastDate.toDateString() !== date.toDateString()) {
-            lastDate = date;
-            return true;
-        }
-        return false;
-    }
-
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -439,11 +412,7 @@
         <E2eModal gotSecretChatRequest={gotSecretChatRequest}/>
 
         {#each uiMessages as msg (msg.id)}
-            {#if isNewDay(msg.time)}
-                <div class="date-separator">
-                    <a>{formatMessageDate(msg.time)}</a>
-                </div>
-            {/if}
+            <DateSeparator msg={msg} bind:lastDate={lastDate}/>
 
             <div class="message-wrapper">
                 <div class="message-clickable-area"
@@ -635,21 +604,6 @@
   }
   .grab-scroll:active {
     cursor: grabbing;
-  }
-
-  .date-separator {
-    text-align: center;
-    margin: 8px 0 16px 0;
-    color: #aaa;
-    position: relative;
-  }
-
-  .date-separator a {
-    padding: 4px 16px;
-    border-radius: 100px;
-    background-color: #fff2;
-    font-size: 13px;
-    font-weight: 500;
   }
 
   .message-wrapper {
