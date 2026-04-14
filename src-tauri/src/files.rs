@@ -87,7 +87,7 @@ pub async fn upload(
 
     #[cfg(target_os = "android")]
     let file: File = {
-        use tauri_plugin_android_fs::AndroidFsExt;
+        use tauri_plugin_android_fs::{ AndroidFsExt, FileUri };
         let api = app.android_fs_async();
 
         if !api.public_storage().request_permission().await.map_err(|e| e.to_string())? {

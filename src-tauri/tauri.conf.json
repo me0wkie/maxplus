@@ -19,9 +19,15 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https: stream:; media-src 'self' https: stream: blob: tauri:; img-src 'self' https: data:; script-src 'self' 'unsafe-inline'; default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: http://asset.localhost",
+      "csp": "default-src 'self' ipc: http://ipc.localhost; connect-src 'self' https: http: stream:; img-src 'self' data: blob: asset: http://asset.localhost; media-src 'self' blob: asset: https: stream:; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';",
       "assetProtocol": {
-        "enable": true
+        "enable": true,
+        "scope": {
+            "requireLiteralLeadingDot": false,
+            "allow": [
+                "**/*"
+            ]
+        }
       }
     }
   },

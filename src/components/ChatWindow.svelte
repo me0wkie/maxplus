@@ -1,6 +1,5 @@
 <script>
     import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
-    import { invoke } from '@tauri-apps/api/core';
     import { fade, fly } from 'svelte/transition';
     import { writable, get } from 'svelte/store';
 
@@ -8,8 +7,9 @@
     import Bubbles from '$components/Bubbles.svelte';
     import '$lib/styles/AnimatedPanel.css';
     import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts, currentSessionChats } from '$lib/stores/api'
-    import { sendMessage, handleReaction } from '$components/ChatWindow/actions.js'
+    import { handleReaction } from '$components/ChatWindow/actions.js'
     import { checkForEncryptionRequest, deobfuscate_msg } from '$components/ChatWindow/e2e.js'
+    import { scrollToBottom } from '$lib/utils/scroll.js';
     import * as Caching from '$lib/utils/caching.js'
     import Settings from '$components/ChatWindow/Settings.svelte'
     import E2eModal from '$components/ChatWindow/E2eModal.svelte'
@@ -17,18 +17,16 @@
     import Signature from '$lib/utils/Signature.svelte'
     import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
     import DateSeparator from '$components/ChatWindow/DateSeparator.svelte'
+    import Input from '$components/ChatWindow/Input.svelte'
     import Avatar from '$components/main/Avatar.svelte';
 
     export let chat;
 
     let startSecretChatRequest = null;
     let gotSecretChatRequest = null;
-    let chatKeysCached = null;
+    let chatKeysLoaded = null;
 
-    let newMessage = '';
     let replyTo = null;
-    let attaches = [];
-    let elements = [];
 
     let showSettings = false;
     let dropoutActiveAt;
@@ -72,7 +70,7 @@
     });
 
     onMount(async () => {
-        chatKeysCached = await chatKeys.get(chat.id);
+        chatKeysLoaded = await chatKeys.get(chat.id);
         await loadHistory(true);
     });
 
@@ -111,15 +109,6 @@
         scrollElement.scrollTop = startScrollTop - walk;
     }
 
-    const scrollToBottom = async (smooth = false) => {
-        if (!scrollElement) return;
-        await tick();
-        scrollElement.scrollTo({
-            top: scrollElement.scrollHeight,
-            behavior: smooth ? 'smooth' : 'auto'
-        });
-    }
-
     const loadHistory = async (isInitial = false) => {
         if (loading) return;
         if (all_loaded && !isInitial) return;
@@ -141,7 +130,7 @@
                 initialized = true;
                 if (isInitial) {
                     await tick();
-                    scrollToBottom(false);
+                    scrollToBottom(scrollElement, false);
                 }
             } else {
                 const oldestMsg = uiMessages[0];
@@ -175,7 +164,7 @@
         } finally {
             loading = false;
             const check = get(messages).slice(0, 5);
-            checkForEncryptionRequest(chat, chatKeysCached, check);
+            checkForEncryptionRequest(chat, chatKeysLoaded, check);
         }
     };
 
@@ -197,10 +186,10 @@
 
         if (message.sender === $currentUser || wasAtBottom) {
              await tick();
-             scrollToBottom(true);
+             scrollToBottom(scrollElement, true);
         }
 
-        checkForEncryptionRequest(chat, chatKeysCached, [ message ])
+        checkForEncryptionRequest(chat, chatKeysLoaded, [ message ])
     })
 
     function handleScroll(event) {
@@ -215,37 +204,6 @@
                  await loadHistory();
                  scrollLoaderTimeout = null;
              }, 200);
-        }
-    }
-
-    async function onSend() {
-        if (!newMessage.trim() && !attaches.length) return;
-        const textToSend = newMessage;
-        const tempId = Date.now().toString();
-
-        newMessage = "";
-
-        await tick();
-        scrollToBottom(true);
-
-        const _attaches = [];
-        const _elements = [];
-
-        for (const attach of attaches) {
-            const result = await $API.uploadAttachment(attach);
-            if (result) {
-                _attaches.push(result);
-                attaches.splice(attaches.indexOf(attach), 1)
-            }
-            else alert("Не удалось загрузить!\n" + JSON.stringify(attach));
-        }
-
-        if (!textToSend && !_attaches.length) return;
-
-        try {
-            await sendMessage(chat, chatKeysCached, messages, textToSend, replyTo, _attaches, _elements);
-        } catch (e) {
-            console.error(e);
         }
     }
 
@@ -311,7 +269,6 @@
         if (e.detail?.update) messages.update(x => x);
     }
 
-
     const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
 
     let title;
@@ -338,30 +295,6 @@
             }
         }
     });
-
-    function toggleAttachesDropout() {
-        attachesDropout = attachesDropout ? null : { active: true };
-    }
-
-    async function selectFile(type) {
-        attachesDropout = null;
-        console.log('pick me')
-        const response = await invoke('pick', type !== "FILE" ? { type } : null);
-
-        console.log('Selected', JSON.stringify(response))
-        alert(JSON.stringify(response))
-
-        if (!response || response === "CANCEL") return;
-        const { uri, mime_type: mime } = response;
-
-        const path = decodeURIComponent(uri);
-
-        attaches.push({
-            path,
-            type,
-            mime,
-        })
-    }
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -379,7 +312,7 @@
     <header>
         <div class="align-left">
             <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
-                <img src="icons/arrow.svg" style="transform: scale(-1.5)" class="icon"/>
+                <img src="icons/arrow.svg" style="transform: scale(-1.5)"/>
             </button>
             <Avatar size={36} chat={chat} style="margin-left: -8px"/>
             <div on:click={() => dispatch('profile')} class="info">
@@ -390,14 +323,14 @@
         <div class="align-right">
             {#if chat.type !== "CHANNEL"}
              <button class="icon-button" on:click|stopPropagation={openSettings}>
-                <img src="icons/params.svg" class="icon"/>
+                <img src="icons/params.svg"/>
             </button>
             {/if}
         </div>
     </header>
 
     {#if chat.type !== "CHANNEL"}
-    <Settings chat={chat} chatKeysCached={chatKeysCached} messages={messages} showSettings={showSettings}/>
+    <Settings chat={chat} chatKeysLoaded={chatKeysLoaded} messages={messages} showSettings={showSettings}/>
     {/if}
 
     <div
@@ -437,50 +370,13 @@
     <Dropout activeAt={dropoutActiveAt} chat={chat} on:close={handleDropout}/>
 
     {#if chat.type !== "CHANNEL"}
-        <div class="input-area">
-          <div class="input-controls">
-              <button class="send-button" on:click={toggleAttachesDropout}>
-                  <img src="icons/attachment.png" style="transform: scale(0.6) rotate(70deg)" class="icon"/>
-              </button>
-
-              {#if attachesDropout}
-                  <div class="attaches-dropout">
-                      <button on:click={() => selectFile("PHOTO")}>Изображение</button>
-                      <button on:click={() => selectFile("VIDEO")}>Видео</button>
-                      <button on:click={() => selectFile("FILE")}>Файл</button>
-                  </div>
-              {/if}
-
-              <div class="input-container">
-                  <textarea
-                      id="textarea-{chat.id}"
-                      rows="1"
-                      placeholder="Сообщение"
-                      bind:value={newMessage}
-                      on:keydown={async (e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              await onSend();
-                          }
-                      }}
-                  ></textarea>
-
-                  <button class="emoji-btn" type="button" on:click={() => {}}>
-                      <img src="icons/smile.svg" alt="smile" />
-                  </button>
-              </div>
-
-              {#if newMessage.length}
-                  <button class="send-button" on:click={onSend}>
-                      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
-                  </button>
-              {:else}
-                  <button class="send-button">
-                      <img src="icons/voice.svg" style="transform: scale(1.15, 1)" class="icon"/>
-                  </button>
-              {/if}
-          </div>
-      </div>
+        <Input
+        bind:replyTo={replyTo}
+        scrollElement={scrollElement}
+        chat={chat}
+        messages={messages}
+        chatKeysLoaded={chatKeysLoaded}
+        />
     {/if}
 
     {#if showScrollDown}
@@ -489,7 +385,7 @@
         out:fade ={{ duration: 100 }}
         class="scroll-down-btn"
         class:nije={ chat.type === 'CHANNEL' }
-        on:click={() => scrollToBottom(true)}>
+        on:click={() => scrollToBottom(scrollElement, true)}>
         <svg viewBox="0 0 640 640"><path fill="#777" d="M297.4 470.6C309.9 483.1 330.2 483.1 342.7 470.6L534.7 278.6C547.2 266.1 547.2 245.8 534.7 233.3C522.2 220.8 501.9 220.8 489.4 233.3L320 402.7L150.6 233.4C138.1 220.9 117.8 220.9 105.3 233.4C92.8 245.9 92.8 266.2 105.3 278.7L297.3 470.7z"/></svg>
       </button>
     {/if}
@@ -530,6 +426,7 @@
   header .info .presence { font-size: 12px; }
   header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   header .align-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+
   .icon-button {
     background: none;
     border: none;
@@ -615,98 +512,4 @@
     position: relative;
     overflow: visible;
   }
-
-  .input-area { padding: 8px; flex-shrink: 0; background-color: #1e2024; z-index: 5; }
-
-  .input-controls {
-    display: flex;
-    align-items: flex-end;
-    gap: 4px;
-  }
-
-  .input-container {
-    display: flex;
-    align-items: flex-end;
-    background-color: #17191d;
-    border-radius: 12px;
-    flex-grow: 1;
-    min-height: 42px;
-    box-sizing: border-box;
-    border: 1px solid transparent;
-  }
-
-  .attaches-dropout {
-    position: absolute;
-    bottom: 60px;
-    left: 0px;
-    background-color: #17191d;
-    border: 1px solid #333;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    z-index: 10;
-  }
-
-  .attaches-dropout button {
-    background: none;
-    border: none;
-    color: #fff;
-    padding: 16px 32px;
-    text-align: left;
-    cursor: pointer;
-    font-size: 14px;
-  }
-
-  .attaches-dropout button:hover {
-    background-color: #2a2c31;
-  }
-
-  textarea {
-    flex-grow: 1;
-    background-color: transparent;
-    color: #ddd;
-    border: none;
-    resize: none;
-    overflow-y: hidden;
-    min-height: 42px;
-    max-height: 120px;
-    font-size: 16px;
-    line-height: 1.4;
-    padding: 10px 12px;
-    outline: none;
-    font-family: inherit;
-    box-sizing: border-box;
-  }
-
-  textarea::placeholder {
-    color: #555;
-  }
-
-  .emoji-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.6;
-    transition: opacity 0.2s, transform 0.2s;
-    flex-shrink: 0;
-  }
-
-  .emoji-btn img {
-    width: 22px;
-    height: 22px;
-    transform: scale(1.2);
-    margin-right: 2px;
-  }
-
-  .emoji-btn:active {
-    transform: scale(0.9);
-  }
-
-  .send-button { border: none; width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.2s; background: none; opacity: 0.6; }
-  .send-button:active { transform: scale(0.9); }
-  .send-button svg { fill: white; width: 24px; height: 24px; }
 </style>

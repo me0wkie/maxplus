@@ -19,6 +19,7 @@
             android:exported="true"
             android:fitsSystemWindows="true"
             android:enableOnBackInvokedCallback="true"
+            android:requestLegacyExternalStorage="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

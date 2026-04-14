@@ -2,7 +2,7 @@
   import { switchEnc } from '$components/ChatWindow/e2e.js'
   
   export let showSettings;
-  export let chatKeysCached;
+  export let chatKeysLoaded;
   export let chat;
   export let messages;
   
@@ -10,11 +10,11 @@
 
 {#if showSettings}
     <div class="settings-dropout" on:click|stopPropagation>
-        <div class="setting-title">β Шифрование: {chatKeysCached?.current ? 'активно' : 'отключено'}</div>
+        <div class="setting-title">β Шифрование: {chatKeysLoaded?.current ? 'активно' : 'отключено'}</div>
         <p style="margin-bottom: 5px;">Когда включено, только вы и получатель сможете прочитать сообщения.</p>
         <p style="color: red;">Используйте только с другими пользователями Max+!</p>
-        <button class="settings-button animated-panel" on:click={() => switchEnc(chat, chatKeysCached, messages)}>
-            {chatKeysCached?.current ? 'Отключить' : 'Активировать'}
+        <button class="settings-button animated-panel" on:click={() => switchEnc(chat, chatKeysLoaded, messages)}>
+            {chatKeysLoaded?.current ? 'Отключить' : 'Активировать'}
         </button>
     </div>
 {/if}

@@ -43,6 +43,7 @@ tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
 dirs = "6.0.0"
 mime_guess = "2.0.5"
+base64 = "0.22.1"
 
 [profile.dev]
 incremental = true
