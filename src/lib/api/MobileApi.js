@@ -126,7 +126,7 @@ export default class MobileApi extends BaseAPI {
     async register(code, first_name) {
         const checkCode = await invoke("check_code", { code });
 
-        if (!checkCode.token) return { success: false, payload: checkCode }
+        if (!checkCode.token) return checkCode;
         const register = await invoke("register", { first_name });
 
         console.log(register)
@@ -142,6 +142,7 @@ export default class MobileApi extends BaseAPI {
             this.setUserDetails(profile.contact)
             this.setToken(tokenAttrs.LOGIN.token)
         }
+        else return register;
         
         return {
             success,

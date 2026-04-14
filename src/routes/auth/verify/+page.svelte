@@ -31,9 +31,8 @@
             }
             else {
                 const response = await $API.login(code)
-                if(response.payload.error) { // TODO display error
-                    error = "Ошибка проверки"
-                    alert(JSON.stringify(response.payload))
+                if(response.error) {
+                    error = response.localizedMessage
                 }
                 else {
                     Session.set("connected", true)
@@ -48,10 +47,8 @@
         /* Регистрация */
         else {
             const response = await $API.register(code, name)
-            
-            if (!response.success) {
-                error = "Ошибка проверки!";
-                alert(JSON.stringify(response.payload))
+            if (response.error) {
+                error = response.localizedMessage
             }
             else {
                 Session.set("connected", true)
