@@ -4,7 +4,7 @@ import BaseAPI from './BaseApi'
 import { get } from 'svelte/store';
 import { add as addLog } from '$lib/stores/logs'
 import { usersDb, currentUser, currentSessionChats, currentRealChats, currentRealContacts, currentSessionContacts, currentFolders, currentlySyncing, currentPresence, receivedMessage } from '$lib/stores/api'
-import Session from '$lib/stores/session'
+import { get as sessionGet, set as sessionSet } from '$lib/stores/session'
 import { goto } from '$app/navigation';
 
 export default class MobileApi extends BaseAPI {
@@ -65,8 +65,8 @@ export default class MobileApi extends BaseAPI {
         if (this.unlisten) await this.unlisten();
         this.startListener();
 
-        Session.set('connected', false);
-        //Session.set('sync', false);
+        sessionSet('connected', false);
+        //aessionSet('sync', false);
         this.latest_init = Date.now()
         
         const response = await invoke('init', {
@@ -76,7 +76,7 @@ export default class MobileApi extends BaseAPI {
             mtInstance: this.getDevice().mt,
         })
 
-        if (response.success) Session.set('connected', true);
+        if (response.success) sessionSet('connected', true);
         else alert(response);
     }
     
@@ -162,8 +162,8 @@ export default class MobileApi extends BaseAPI {
         this.setUser(undefined);
         this.setUserDetails(undefined);
         currentUser.set(null);
-        Session.set("sync", false);
-        Session.set("connected", false);
+        sessionSet("sync", false);
+        sessionSet("connected", false);
         goto('/auth/login');
     }
     
@@ -171,14 +171,14 @@ export default class MobileApi extends BaseAPI {
         try {
             if (!this.getToken()) throw "Ошибка: токен не установлен"
             if (!this.getUser()) throw "Ошибка: User ID не установлен"
-            if (Session.get("sync")) {
+            if (sessionGet("sync")) {
                 console.warn("Уже синхронизовано!")
                 return;
             }
             
             console.warn('Синхронизируем!')
             
-            Session.set("sync", true);
+            sessionSet("sync", true);
             
             const res = await invoke('sync_client');
             

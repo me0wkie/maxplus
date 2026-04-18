@@ -2,7 +2,7 @@
     import { getContext, onDestroy } from 'svelte';
     import { invoke } from '@tauri-apps/api/core';
     import { goto } from '$app/navigation';
-    import Session from '$lib/stores/session.js';
+    import { set as sessionSet, get as sessionGet } from '$lib/stores/session.js';
     
     import '$lib/styles/AnimatedPanel.css';
     
@@ -10,8 +10,8 @@
     
     let error = '';
     let code = '';
-    const name = Session.get('name');
-    const token = Session.get('token');
+    const name = sessionGet('name');
+    const token = sessionGet('token');
     const state = !name ? "login" : "register";
 
 
@@ -35,7 +35,7 @@
                     error = response.localizedMessage
                 }
                 else {
-                    Session.set("connected", true)
+                    sessionSet("connected", true)
 
                     const id = response.payload.profile.contact.id;
                     currentUser.set(id);
@@ -51,7 +51,7 @@
                 error = response.localizedMessage
             }
             else {
-                Session.set("connected", true)
+                sessionSet("connected", true)
                 error = "Успешно! Перезапустите приложение и авторизуйтесь"
             }
         }

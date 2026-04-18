@@ -4,7 +4,8 @@
     import API from '$lib/stores/api';
     
     import '$lib/styles/AnimatedPanel.css';
-    
+    import OpenDevSettingsButton from '$components/main/dev/OpenButton.svelte';
+
     let phone = '';
     let error = '';
     
@@ -33,6 +34,8 @@
     </form>
     <a href="/auth/register" class="link">Создать аккаунт</a>
 </div>
+
+<OpenDevSettingsButton/>
 
 <style>
     .auth-page {

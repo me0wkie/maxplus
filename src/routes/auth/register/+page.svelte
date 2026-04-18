@@ -1,9 +1,10 @@
 <script>
     import { goto } from '$app/navigation';
-    import Session from '$lib/stores/session.js';
+    import { set as sessionSet } from '$lib/stores/session.js';
     import API from '$lib/stores/api';
     
     import '$lib/styles/AnimatedPanel.css';
+    import OpenDevSettingsButton from '$components/main/dev/OpenButton.svelte';
 
     let error = '';
     let phone = '';
@@ -21,8 +22,8 @@
             error = "Ошибка!"
             alert(response.localizedMessage)
         } else {
-            Session.set('token', response.token)
-            Session.set('name', name)
+            sessionSet('token', response.token)
+            sessionSet('name', name)
             goto('/auth/verify');
         }
     }
@@ -48,6 +49,8 @@
     </form>
     <a href="/auth/login" class="link">Уже есть аккаунт? Войти</a>
 </div>
+
+<OpenDevSettingsButton/>
 
 <style>
     .auth-page {

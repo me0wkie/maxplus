@@ -1,163 +1,165 @@
 <script>
-    import { clearMessages, clearContacts, clearKeys } from '$lib/stores/api';
-    import { scan, Format, checkPermissions, requestPermissions, openAppSettings } from '@tauri-apps/plugin-barcode-scanner';
-    import { platform as getPlatform } from '@tauri-apps/plugin-os';
-    import { readFile } from '@tauri-apps/plugin-fs';
-    import API, { currentUser } from '$lib/stores/api';
-    import { open } from '@tauri-apps/plugin-dialog';
-    import Settings from '$lib/stores/settings';
-    import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
-    import jsQR from "jsqr";
-    
-    let platform;
+  import { clearMessages, clearContacts, clearKeys } from '$lib/stores/api';
+  import { scan, Format, checkPermissions, requestPermissions, openAppSettings } from '@tauri-apps/plugin-barcode-scanner';
+  import { set as sessionSet } from '$lib/stores/session'
+  import { platform as getPlatform } from '@tauri-apps/plugin-os';
+  import { readFile } from '@tauri-apps/plugin-fs';
+  import API, { currentUser } from '$lib/stores/api';
+  import { open } from '@tauri-apps/plugin-dialog';
+  import Settings from '$lib/stores/settings';
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
+  import jsQR from "jsqr";
 
-    let user;
-    let phone;
-    let name;
-    
-    currentUser.subscribe(userId => {
-        user = $API.getUserDetails();
-        if (!user) return;
-        phone = user.phone ? ("+ " + user.phone.toString()[0] + ' ' + user.phone.toString().slice(1, 4) + " *** ** " + user.phone.toString().slice(-2, user.phone.toString().length)) : "";
-        name = user.names[0].firstName + ' ' + user.names[0].lastName
-    })
-    
-    const buttons = [
-      [
-        { icon: "crypto.svg", text: "Настройки шифрования", action: () => goto("setup/tokens?from=/?card=3") }, // card 3 is settings
-      ],
-      [
-        { icon: "logs.svg", text: "Сетевые логи", action: () => goto("settings/logs?from=/?card=3") },
-        { icon: "about.svg", text: "О приложении", action: () => goto("settings/about?from=/?card=3") }
-      ],
-      [
-        { icon: "devices.png", text: "Активные сессии", action: () => goto("settings/sessions?from=/?card=3") },
-        { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
-      ]
+  let platform;
+
+  let user;
+  let phone;
+  let name;
+
+  currentUser.subscribe(userId => {
+    user = $API.getUserDetails();
+    if (!user) return;
+    phone = user.phone ? ("+ " + user.phone.toString()[0] + ' ' + user.phone.toString().slice(1, 4) + " *** ** " + user.phone.toString().slice(-2, user.phone.toString().length)) : "";
+    name = user.names[0].firstName + ' ' + user.names[0].lastName
+  })
+
+  const buttons = [
+    [
+      { icon: "crypto.svg", text: "Настройки шифрования", action: () => goto("setup/tokens?from=/?card=3") }, // card 3 is settings
+    ],
+    [
+      { icon: "logs.svg", text: "Сетевые логи", action: () => goto("settings/logs?from=/?card=3") },
+      { icon: "settings.svg", text: "Настройки отладки", action: () => sessionSet('devSettings', true) },
+      { icon: "about.svg", text: "О приложении", action: () => goto("settings/about?from=/?card=3") }
+    ],
+    [
+      { icon: "devices.png", text: "Активные сессии", action: () => goto("settings/sessions?from=/?card=3") },
+      { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
     ]
-    
-    function clearCache() {
-        clearMessages();
-        clearContacts();
-        alert('Кэш успешно очищен.');
-    }
-    
-    function clearAllKeys() {
-        clearKeys();
-    }
-    
-    function handleLogout() {
-      $API.logout();
-      goto('/auth/login');
-    }
+  ]
 
-    async function scanner() {
-      let content = "";
+  function clearCache() {
+    clearMessages();
+    clearContacts();
+    alert('Кэш успешно очищен.');
+  }
 
-      if (/android|ios/.test(platform)) {
-        let cameraAllowed = await checkPermissions();
+  function clearAllKeys() {
+    clearKeys();
+  }
 
-        if (cameraAllowed.includes("prompt")) await requestPermissions();
-        else if (cameraAllowed === "denied") {
-          alert("Для сканирования QR нужно разрешение камеры."
-          + "\nА зачем ещё вы это используете?")
-          await openAppSettings();
-        }
+  function handleLogout() {
+    $API.logout();
+    goto('/auth/login');
+  }
 
-        if (await checkPermissions() !== "granted") return;
+  async function scanner() {
+    let content = "";
 
-        const scanned = await scan({ formats: [Format.QRCode] });
-        if (!scanned.content) return;
-        content = scanned.content;
-      } else {
-        const image = await open({
-          multiple: false,
-          directory: false,
-          filters: [{
-            name: 'Изображения',
-            extensions: ['png', 'jpeg', 'jpg'],
-          }],
-        });
+    if (/android|ios/.test(platform)) {
+      let cameraAllowed = await checkPermissions();
 
-        if (!image) return;
-
-        const data = await readQRCode(image);
-
-        if (!data) return alert("QR-код не найден!");
-
-        content = data;
+      if (cameraAllowed.includes("prompt")) await requestPermissions();
+      else if (cameraAllowed === "denied") {
+        alert("Для сканирования QR нужно разрешение камеры."
+        + "\nА зачем ещё вы это используете?")
+        await openAppSettings();
       }
 
-      if (content.includes(":auth")) {
-        $API.call(1, { "interactive": true }); // ping
-        $API.call(96, {});                     // get smth
-        const response = await $API.call(290, { "qrLink": content });
-        if (response.error) alert(response.title);
-      }
-      else alert(content);
-    }// забыл закоммитить страницу ебаную
+      if (await checkPermissions() !== "granted") return;
 
-    async function readQRCode(filePath) {
-      const data = await readFile(filePath);
-      const blob = new Blob([new Uint8Array(data)], { type: 'image/png' });
-      const url = URL.createObjectURL(blob);
-
-      const img = new Image();
-      img.src = url;
-
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
+      const scanned = await scan({ formats: [Format.QRCode] });
+      if (!scanned.content) return;
+      content = scanned.content;
+    } else {
+      const image = await open({
+        multiple: false,
+        directory: false,
+        filters: [{
+          name: 'Изображения',
+          extensions: ['png', 'jpeg', 'jpg'],
+        }],
       });
 
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
+      if (!image) return;
 
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(imageData.data, imageData.width, imageData.height);
-      return code?.data || null;
+      const data = await readQRCode(image);
+
+      if (!data) return alert("QR-код не найден!");
+
+      content = data;
     }
 
-    onMount(async () => {
-        platform = await getPlatform();
+    if (content.includes(":auth")) {
+      $API.call(1, { "interactive": true }); // ping
+      $API.call(96, {});                     // get smth
+      const response = await $API.call(290, { "qrLink": content });
+      if (response.error) alert(response.title);
+    }
+    else alert(content);
+  }
+
+  async function readQRCode(filePath) {
+    const data = await readFile(filePath);
+    const blob = new Blob([new Uint8Array(data)], { type: 'image/png' });
+    const url = URL.createObjectURL(blob);
+
+    const img = new Image();
+    img.src = url;
+
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
     });
 
-    /*
-    <div class="top">
-      <img src={ "icons/qr.svg" }/>
-      <img src={ "icons/edit.svg" }/>
-    </div>
-    */
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    return code?.data || null;
+  }
+
+  onMount(async () => {
+      platform = await getPlatform();
+  });
+
+  /*
+  <div class="top">
+    <img src={ "icons/qr.svg" }/>
+    <img src={ "icons/edit.svg" }/>
+  </div>
+  */
 </script>
 
 <div class="settings">
-    <img on:click={scanner} src={ "icons/qr.svg" } class="scanner-icon icon"/>
+  <img on:click={scanner} src={ "icons/qr.svg" } class="scanner-icon icon"/>
 
-    <div class="info">
-      <img src={user?.baseUrl || '/default-avatar.jpg'} alt="avatar" class="avatar"/>
-      <a class="name">{ name }</a>
-      <a class="phone">{ phone }</a>
-    </div>
-    
-    <div class="buttons">
-      {#each buttons as group}
-        <div class="group">
-          {#each group as btn}
-            <div on:click={ btn.action } class="button">
-              <img src={ "icons/" + btn.icon } class="icon"/>
-              <a>{ btn.text }</a>
-              <svg width="40" height="20" viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
-                <polyline points="30,3 38,10 30,17" stroke="#999" fill="none" stroke-width="3"/>
-              </svg>
-            </div>
-          {/each}
-        </div>
-      {/each}
-    </div>
+  <div class="info">
+    <img src={user?.baseUrl || '/default-avatar.jpg'} alt="avatar" class="avatar"/>
+    <a class="name">{ name }</a>
+    <a class="phone">{ phone }</a>
+  </div>
+
+  <div class="buttons">
+    {#each buttons as group}
+      <div class="group">
+        {#each group as btn}
+          <div on:click={ btn.action } class="button">
+            <img src={ "icons/" + btn.icon } class="icon"/>
+            <a>{ btn.text }</a>
+            <svg width="40" height="20" viewBox="0 0 40 20" xmlns="http://www.w3.org/2000/svg">
+              <polyline points="30,3 38,10 30,17" stroke="#999" fill="none" stroke-width="3"/>
+            </svg>
+          </div>
+        {/each}
+      </div>
+    {/each}
+  </div>
 </div>
 
 <style>

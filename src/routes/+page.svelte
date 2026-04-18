@@ -1,81 +1,70 @@
 <script>
-    import Chats from './chats/+page.svelte';
-    import Contacts from './contacts/+page.svelte';
-    import Calls from './calls/+page.svelte';
-    import Settings from './settings/+page.svelte';
-    import Panel from '$components/Panel.svelte';
-    import Card from '$components/main/Card.svelte'
-    import ChatWindow from '$components/ChatWindow.svelte';
+  import Chats from './chats/+page.svelte';
+  import Contacts from './contacts/+page.svelte';
+  import Calls from './calls/+page.svelte';
+  import Settings from './settings/+page.svelte';
+  import Panel from '$components/Panel.svelte';
+  import Card from '$components/main/Card.svelte'
+  import ChatWindow from '$components/ChatWindow.svelte';
 
-    import ProfileModal from '$components/ProfileModal.svelte';
-    
-    import { page } from '$app/stores';
-    import API, { currentSessionChats, currentSessionContacts, currentlySyncing, currentUser } from '$lib/stores/api.js';
-    
-    const pages = [
-      { name: "Контакты", icon: "contacts", component: Contacts },
-      { name: "Звонки", icon: "calls", component: Calls },
-      { name: "Чаты", icon: "chats", component: Chats },
-      { name: "Настройки", icon: "settings", component: Settings },
-    ]
-    
-    let active = +$page.url.searchParams.get('card') || 2;
+  import ProfileModal from '$components/ProfileModal.svelte';
+  import DevSettings from '$components/main/dev/Settings.svelte';
 
-    let openChats = [];
-    
-    const openCard = ({ detail }) => {
-        active = detail.index;
-    }
-    
-    function openChat({ detail }) {
-        const { chatId, messageId } = detail;
-        const exists = openChats.find(c => c.id === chatId);
-        if (exists) {
-            openChats = [...openChats.filter(c => c.id !== chatId), exists];
-        } else {
-            let chat = $currentSessionChats.find(x => x.id === chatId)
-            if (!chat) {
-                const participants = {}
-                participants[$currentUser] = Date.now()
-                participants[chatId] = Date.now()
-                chat = {
-                    id: chatId,
-                    participants
-                }
-            }
-            openChats = [...openChats, { ...chat }];
+  import { page } from '$app/stores';
+  import API, { currentSessionChats, currentSessionContacts, currentlySyncing, currentUser } from '$lib/stores/api.js';
+
+  const pages = [
+    { name: "Контакты", icon: "contacts", component: Contacts },
+    { name: "Звонки", icon: "calls", component: Calls },
+    { name: "Чаты", icon: "chats", component: Chats },
+    { name: "Настройки", icon: "settings", component: Settings },
+  ]
+
+  let active = +$page.url.searchParams.get('card') || 2;
+
+  let openChats = [];
+
+  const openCard = ({ detail }) => {
+      active = detail.index;
+  }
+
+  function openChat({ detail }) {
+    const { chatId, messageId } = detail;
+    const exists = openChats.find(c => c.id === chatId);
+    if (exists) {
+      openChats = [...openChats.filter(c => c.id !== chatId), exists];
+    } else {
+      let chat = $currentSessionChats.find(x => x.id === chatId)
+      if (!chat) {
+        const participants = {}
+        participants[$currentUser] = Date.now()
+        participants[chatId] = Date.now()
+        chat = {
+          id: chatId,
+          participants
         }
+      }
+      openChats = [...openChats, { ...chat }];
     }
-    
-    function closeChat(chatId) {
-        openChats = openChats.filter(c => c.id !== chatId);
-    }
+  }
 
-    function swap() {
+  function closeChat(chatId) {
+    openChats = openChats.filter(c => c.id !== chatId);
+  }
 
-    }
+  /* TODO перенести отсюда нахуй */
+  let profileData = null;
+  let profileType = 'user';
 
-    /* TODO перенести отсюда нахуй */
-    let profileData = null;
-    let profileType = 'user';
-
-    function openProfile({ detail: userId }) {
-        const user = $currentSessionContacts[userId];
-        //const chat = $currentSessionChats.find(c => c.id === chatId);
-        profileData = user;
-        profileType = 'user';
-
-        //profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
-
-        // const contact = $currentSessionContacts[chat.id];
-        // if (contact) profileData = { ...chat, ...contact };
-    }
-
-    function handleBlockUser(event) {
-        const userId = event.detail;
-        // $API.blockUser(userId);
-    }
-  
+  function openProfile({ detail: userId }) {
+    const user = $currentSessionContacts[userId];
+    //const chat = $currentSessionChats.find(c => c.id === chatId);
+    profileData = user;
+    profileType = 'user';
+    //profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
+    // const contact = $currentSessionContacts[chat.id];
+    // if (contact) profileData = { ...chat, ...contact };
+  }
 </script>
 
 <div class="container">
@@ -99,13 +88,13 @@
 <Panel on:open={openCard} pages={pages} active={active} />
 
 {#if profileData}
-    <ProfileModal
-        peer={profileData}
-        type={profileType}
-        on:close={() => profileData = null}
-        on:block={handleBlockUser}
-        on:chat={() => { active = 2; openChat({ detail: { chatId: $currentUser ^ profileData.id } }); profileData = null; }}
-    />
+  <ProfileModal
+    peer={profileData}
+    type={profileType}
+    on:close={() => profileData = null}
+    on:block={() => {}}
+    on:chat={() => { active = 2; openChat({ detail: { chatId: $currentUser ^ profileData.id } }); profileData = null; }}
+  />
 {/if}
 
 <style>

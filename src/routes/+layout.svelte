@@ -1,19 +1,19 @@
 <script>
     import { fade } from 'svelte/transition';
     import API, { currentUser, currentSessionCalls } from '$lib/stores/api.js';
-    import FloatingDebugToggle from '$components/main/FloatingDebugToggle.svelte'
+    import DevSettings from '$components/main/dev/Settings.svelte';
     import * as Settings from '$lib/stores/settings.js';
-    import Session from '$lib/stores/session.js';
+    import Session, { get as sessionGet } from '$lib/stores/session.js';
     import { page } from '$app/stores';
     import { goto } from '$app/navigation';
     import { onMount, setContext } from 'svelte';
     import { onBackButtonPress } from '@tauri-apps/api/app'
     import { type } from '@tauri-apps/plugin-os'
-    
+
     let settings;
     let loaded = false;
     const onBack = {};
-    
+
     setContext('onBack', onBack);
 
     onMount(async () => {
@@ -47,12 +47,12 @@
           }
         }
         else {
-          if (Session.get("sync")) return;
+          if (sessionGet("sync")) return;
 
           if (!$API.getToken())
               await $API.loadToken();
 
-          if (!Session.get("connected"))
+          if (!sessionGet("connected"))
               await $API.init();
 
           await $API.sync();
@@ -83,11 +83,13 @@
   }
 </style>
 
-<FloatingDebugToggle />
+{#if $Session.devSettings}
+  <DevSettings/>
+{/if}
 
 {#if loaded}
   {#key $page.url.pathname}
-      <main in:fade={{ delay: 150, duration: 150 }}>
+      <main in:fade={{ duration: 150 }}>
           <slot />
       </main>
   {/key}
