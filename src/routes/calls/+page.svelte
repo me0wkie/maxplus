@@ -61,12 +61,12 @@
 <style>
   .calls {
     color: #999;
-    height: 90vh;
+    height: 100vh;
     width: 100vw;
     display: flex;
     flex-direction: column;
     margin: 15px;
-    overflow-y: auto;
+    overflow-y: none;
     position: relative;
   }
 
@@ -85,7 +85,7 @@
     flex-grow: 1;
     min-height: 0;
     flex: 1;
-    padding-bottom: 20px;
+    padding-bottom: 80px;
     margin-left: 5px;
   }
 
@@ -141,14 +141,13 @@
     position: absolute;
     height: 50px;
     width: 50px;
-    bottom: 0;
+    bottom: calc(80px + env(safe-area-inset-bottom));
     right: 20px;
     border-radius: 60px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    margin-bottom: env(safe-area-inset-bottom, 20px);
   }
 
   .placeholder-call img {

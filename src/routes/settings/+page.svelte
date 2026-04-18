@@ -164,8 +164,12 @@
 
 <style>
   .settings {
+    position: relative;
     width: 100vw;
     color: #bbb;
+    overflow-y: auto;
+    flex-grow: 1;
+    min-height: 0;
   }
   
   .info {
