@@ -7,9 +7,7 @@
   import Card from '$components/main/Card.svelte'
   import ChatWindow from '$components/ChatWindow.svelte';
 
-  import ProfileModal from '$components/ProfileModal.svelte';
-  import DevSettings from '$components/main/dev/Settings.svelte';
-
+  import Session from '$lib/stores/session';
   import { page } from '$app/stores';
   import API, { currentSessionChats, currentSessionContacts, currentlySyncing, currentUser } from '$lib/stores/api.js';
 
@@ -22,17 +20,15 @@
 
   let active = +$page.url.searchParams.get('card') || 2;
 
-  let openChats = [];
-
   const openCard = ({ detail }) => {
-      active = detail.index;
+    active = detail.index;
   }
 
   function openChat({ detail }) {
     const { chatId, messageId } = detail;
-    const exists = openChats.find(c => c.id === chatId);
+    const exists = $Session.openedChats.find(c => c.id === chatId);
     if (exists) {
-      openChats = [...openChats.filter(c => c.id !== chatId), exists];
+      $Session.openedChats = [...$Session.openedChats.filter(c => c.id !== chatId), exists];
     } else {
       let chat = $currentSessionChats.find(x => x.id === chatId)
       if (!chat) {
@@ -44,26 +40,12 @@
           participants
         }
       }
-      openChats = [...openChats, { ...chat }];
+      $Session.openedChats = [...$Session.openedChats, { ...chat }];
     }
   }
 
   function closeChat(chatId) {
-    openChats = openChats.filter(c => c.id !== chatId);
-  }
-
-  /* TODO перенести отсюда нахуй */
-  let profileData = null;
-  let profileType = 'user';
-
-  function openProfile({ detail: userId }) {
-    const user = $currentSessionContacts[userId];
-    //const chat = $currentSessionChats.find(c => c.id === chatId);
-    profileData = user;
-    profileType = 'user';
-    //profileType = chat.type === 'private' ? 'user' : (chat.type === 'group' ? 'group' : 'channel');
-    // const contact = $currentSessionContacts[chat.id];
-    // if (contact) profileData = { ...chat, ...contact };
+    $Session.openedChats = $Session.openedChats.filter(c => c.id !== chatId);
   }
 </script>
 
@@ -73,11 +55,11 @@
       index={index}
       active={active}
     >
-      <svelte:component openChats={openChats} on:profile={openProfile} on:chat={openChat} this={page.component} />
+      <svelte:component on:chat={openChat} this={page.component} />
     </Card>
   {/each}
   
-  {#each openChats as chat (chat.id)}
+  {#each $Session.openedChats as chat (chat.id)}
     <ChatWindow {chat}
       on:close={() => closeChat(chat.id)}
       on:chat={openChat}
@@ -86,16 +68,6 @@
 </div>
 
 <Panel on:open={openCard} pages={pages} active={active} />
-
-{#if profileData}
-  <ProfileModal
-    peer={profileData}
-    type={profileType}
-    on:close={() => profileData = null}
-    on:block={() => {}}
-    on:chat={() => { active = 2; openChat({ detail: { chatId: $currentUser ^ profileData.id } }); profileData = null; }}
-  />
-{/if}
 
 <style>
   .container {

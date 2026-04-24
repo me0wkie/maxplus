@@ -1,394 +1,400 @@
 <script>
-    import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
-    import { fade, fly } from 'svelte/transition';
-    import { writable, get } from 'svelte/store';
+  import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
+  import { fade, fly } from 'svelte/transition';
+  import { writable, get } from 'svelte/store';
 
-    import Message from '$components/ChatWindow/Message.svelte';
-    import Bubbles from '$components/Bubbles.svelte';
-    import '$lib/styles/AnimatedPanel.css';
-    import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts, currentSessionChats } from '$lib/stores/api'
-    import { handleReaction } from '$components/ChatWindow/actions.js'
-    import { checkForEncryptionRequest, deobfuscate_msg } from '$components/ChatWindow/e2e.js'
-    import { scrollToBottom } from '$lib/utils/scroll.js';
-    import * as Caching from '$lib/utils/caching.js'
-    import Settings from '$components/ChatWindow/Settings.svelte'
-    import E2eModal from '$components/ChatWindow/E2eModal.svelte'
-    import Dropout from '$components/ChatWindow/Dropout.svelte'
-    import Signature from '$lib/utils/Signature.svelte'
-    import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
-    import DateSeparator from '$components/ChatWindow/DateSeparator.svelte'
-    import Input from '$components/ChatWindow/Input.svelte'
-    import Avatar from '$components/main/Avatar.svelte';
+  import Message from '$components/ChatWindow/Message.svelte';
+  import Bubbles from '$components/Bubbles.svelte';
+  import '$lib/styles/AnimatedPanel.css';
+  import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts, currentSessionChats } from '$lib/stores/api'
+  import Session from '$lib/stores/session'
+  import { handleReaction } from '$components/ChatWindow/actions.js'
+  import { checkForEncryptionRequest, deobfuscate_msg } from '$components/ChatWindow/e2e.js'
+  import { scrollToBottom } from '$lib/utils/scroll.js';
+  import * as Caching from '$lib/utils/caching.js'
+  import Settings from '$components/ChatWindow/Settings.svelte'
+  import E2eModal from '$components/ChatWindow/E2eModal.svelte'
+  import Dropout from '$components/ChatWindow/Dropout.svelte'
+  import Signature from '$lib/utils/Signature.svelte'
+  import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
+  import DateSeparator from '$components/ChatWindow/DateSeparator.svelte'
+  import Input from '$components/ChatWindow/Input.svelte'
+  import Avatar from '$components/main/Avatar.svelte';
 
-    export let chat;
+  export let chat;
 
-    let startSecretChatRequest = null;
-    let gotSecretChatRequest = null;
-    let chatKeysLoaded = null;
+  let startSecretChatRequest = null;
+  let gotSecretChatRequest = null;
+  let chatKeysLoaded = null;
 
-    let replyTo = null;
+  let replyTo = null;
 
-    let showSettings = false;
-    let dropoutActiveAt;
-    let attachesDropout = null;
+  let showSettings = false;
+  let dropoutActiveAt;
+  let attachesDropout = null;
 
-    let loading = false;
-    let all_loaded = false;
+  let loading = false;
+  let all_loaded = false;
 
-    let scrollElement;
-    let scrollLoaderTimeout;
-    let showScrollDown = false;
+  let scrollElement;
+  let scrollLoaderTimeout;
+  let showScrollDown = false;
 
-    let viewerOpen = false;
-    let viewerIndex = 0;
+  let viewerOpen = false;
+  let viewerIndex = 0;
 
-    let lastDate;
+  let lastDate;
 
-    let clickStartPos = { x: 0, y: 0 };
+  let clickStartPos = { x: 0, y: 0 };
 
-    $: uiMessages = [...$messages].sort((a, b) => a.time - b.time);
+  $: uiMessages = [...$messages].sort((a, b) => a.time - b.time);
 
-    const dispatch = createEventDispatcher();
-    const messages = writable($API.savedMessages[chat.id] || []);
-    let initialized = false;
+  const dispatch = createEventDispatcher();
+  const messages = writable($API.savedMessages[chat.id] || []);
+  let initialized = false;
 
-    messages.subscribe(async _messages => {
-        if (_messages.length) await chatMessages.set(chat.id, _messages);
+  messages.subscribe(async _messages => {
+    if (_messages.length) await chatMessages.set(chat.id, _messages);
+  })
+
+  const BATCH_SIZE = 50;
+
+  const avatarUserId = chat.type === 'DIALOG' ? chat.id ^ $currentUser : undefined;
+  const onBack = getContext('onBack');
+
+  onBack['chat'] = () => { dispatch('close'); delete onBack['chat']; };
+
+  onDestroy(() => {
+    delete onBack['chat'];
+    if (onBack.dropout) delete onBack['dropout'];
+    if (onBack.chatSettings) delete onBack['chatSettings'];
+  });
+
+  onMount(async () => {
+    chatKeysLoaded = await chatKeys.get(chat.id);
+    await loadHistory(true);
+  });
+
+  let isDragging = false;
+  let startY;
+  let startScrollTop;
+
+  function startDrag(e) {
+    clickStartPos = { x: e.clientX, y: e.clientY };
+
+    if (e.button !== 0) return;
+
+    isDragging = true;
+    startY = e.pageY;
+    startScrollTop = scrollElement.scrollTop;
+
+    scrollElement.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+  }
+
+  function stopDrag() {
+    isDragging = false;
+    if (scrollElement) {
+      scrollElement.style.cursor = 'grab';
+    }
+    document.body.style.userSelect = '';
+  }
+
+  function moveDrag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+
+    const y = e.pageY;
+    const walk = (y - startY) * 1;
+
+    scrollElement.scrollTop = startScrollTop - walk;
+  }
+
+  const loadHistory = async (isInitial = false) => {
+    if (loading) return;
+    if (all_loaded && !isInitial) return;
+
+    loading = true;
+    const oldScrollHeight = scrollElement ? scrollElement.scrollHeight : 0;
+    const oldScrollTop = scrollElement ? scrollElement.scrollTop : 0;
+
+    try {
+      if (!initialized || isInitial) {
+        if (!$messages.length) {
+          const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
+          if (error) throw new Error(error);
+
+          messages.set(syncedMessages);
+          if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
+          $API.savedMessages[chat.id] = syncedMessages;
+        }
+        initialized = true;
+        if (isInitial) {
+          await tick();
+          scrollToBottom(scrollElement, false);
+        }
+      } else {
+        const oldestMsg = uiMessages[0];
+        const fromTime = oldestMsg ? oldestMsg.time : Date.now();
+
+        const { error, messages: syncedMessages } = await $API.getMessages(chat.id, fromTime);
+
+        if (!error && syncedMessages.length > 0) {
+          const currentMsgs = get(messages);
+          const existingIds = new Set(currentMsgs.map(m => m.id));
+          const newUniqueMessages = syncedMessages.filter(m => !existingIds.has(m.id));
+
+          if (newUniqueMessages.length > 0) {
+            messages.update(msgs => [...msgs, ...newUniqueMessages]);
+            await tick();
+
+            if (scrollElement) {
+              const newScrollHeight = scrollElement.scrollHeight;
+              const diff = newScrollHeight - oldScrollHeight;
+              scrollElement.scrollTop = oldScrollTop + diff;
+            }
+          }
+        }
+        if (syncedMessages.length < BATCH_SIZE) {
+          all_loaded = true;
+        }
+      }
+      console.log($messages)
+    } catch (e) {
+      console.error(e);
+    } finally {
+      loading = false;
+      const check = get(messages).slice(0, 5);
+      checkForEncryptionRequest(chat, chatKeysLoaded, check);
+    }
+  };
+
+  receivedMessage.subscribe(async message => {
+    if (!message || message.chatId !== chat.id) return;
+
+    let wasAtBottom = false;
+    if (scrollElement) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+        wasAtBottom = (scrollHeight - scrollTop - clientHeight) < 150;
+    }
+
+    messages.update(_messages => {
+      const idx = _messages.findIndex(x => x.id === message.id)
+      if (idx !== -1) _messages[idx] = message;
+      else _messages.push(message);
+      return _messages;
     })
 
-    const BATCH_SIZE = 50;
-
-    const avatarUserId = chat.type === 'DIALOG' ? chat.id ^ $currentUser : undefined;
-    const onBack = getContext('onBack');
-
-    onBack['chat'] = () => { dispatch('close'); delete onBack['chat']; };
-
-    onDestroy(() => {
-        delete onBack['chat'];
-        if (onBack.dropout) delete onBack['dropout'];
-        if (onBack.chatSettings) delete onBack['chatSettings'];
-    });
-
-    onMount(async () => {
-        chatKeysLoaded = await chatKeys.get(chat.id);
-        await loadHistory(true);
-    });
-
-    let isDragging = false;
-    let startY;
-    let startScrollTop;
-
-    function startDrag(e) {
-        clickStartPos = { x: e.clientX, y: e.clientY };
-
-        if (e.button !== 0) return;
-
-        isDragging = true;
-        startY = e.pageY;
-        startScrollTop = scrollElement.scrollTop;
-
-        scrollElement.style.cursor = 'grabbing';
-        document.body.style.userSelect = 'none';
+    if (message.sender === $currentUser || wasAtBottom) {
+        await tick();
+        scrollToBottom(scrollElement, true);
     }
 
-    function stopDrag() {
-        isDragging = false;
-        if (scrollElement) {
-            scrollElement.style.cursor = 'grab';
-        }
-        document.body.style.userSelect = '';
+    checkForEncryptionRequest(chat, chatKeysLoaded, [ message ])
+  })
+
+  function handleScroll(event) {
+    const target = event.currentTarget;
+
+    const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight;
+    showScrollDown = distanceFromBottom > 50;
+
+    if (target.scrollTop < 200 && !loading && !all_loaded) {
+      if(scrollLoaderTimeout) return;
+      scrollLoaderTimeout = setTimeout(async () => {
+        await loadHistory();
+        scrollLoaderTimeout = null;
+      }, 200);
     }
+  }
 
-    function moveDrag(e) {
-        if (!isDragging) return;
-        e.preventDefault();
+  $: allMedia = uiMessages.flatMap(m =>
+    (m.attaches || [])
+      .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO')
+      .map(a => ({
+        ...a,
+        messageId: m.id,
+        uid: a.videoId || a.photoId || a.url || a.baseUrl
+      }))
+  );
 
-        const y = e.pageY;
-        const walk = (y - startY) * 1;
+  function openMedia(attach) {
+    const targetUid = attach.videoId || attach.photoId || attach.url || attach.baseUrl;
+    const index = allMedia.findIndex(m => m.uid === targetUid);
 
-        scrollElement.scrollTop = startScrollTop - walk;
+    if (index !== -1) {
+      viewerIndex = index;
+      viewerOpen = true;
     }
+  }
 
-    const loadHistory = async (isInitial = false) => {
-        if (loading) return;
-        if (all_loaded && !isInitial) return;
-
-        loading = true;
-        const oldScrollHeight = scrollElement ? scrollElement.scrollHeight : 0;
-        const oldScrollTop = scrollElement ? scrollElement.scrollTop : 0;
-
-        try {
-            if (!initialized || isInitial) {
-                if (!$messages.length) {
-                    const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
-                    if (error) throw new Error(error);
-
-                    messages.set(syncedMessages);
-                    if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
-                    $API.savedMessages[chat.id] = syncedMessages;
-                }
-                initialized = true;
-                if (isInitial) {
-                    await tick();
-                    scrollToBottom(scrollElement, false);
-                }
-            } else {
-                const oldestMsg = uiMessages[0];
-                const fromTime = oldestMsg ? oldestMsg.time : Date.now();
-
-                const { error, messages: syncedMessages } = await $API.getMessages(chat.id, fromTime);
-
-                if (!error && syncedMessages.length > 0) {
-                    const currentMsgs = get(messages);
-                    const existingIds = new Set(currentMsgs.map(m => m.id));
-                    const newUniqueMessages = syncedMessages.filter(m => !existingIds.has(m.id));
-
-                    if (newUniqueMessages.length > 0) {
-                        messages.update(msgs => [...msgs, ...newUniqueMessages]);
-                        await tick();
-
-                        if (scrollElement) {
-                            const newScrollHeight = scrollElement.scrollHeight;
-                            const diff = newScrollHeight - oldScrollHeight;
-                            scrollElement.scrollTop = oldScrollTop + diff;
-                        }
-                    }
-                }
-                if (syncedMessages.length < BATCH_SIZE) {
-                    all_loaded = true;
-                }
-            }
-            console.log($messages)
-        } catch (e) {
-            console.error(e);
-        } finally {
-            loading = false;
-            const check = get(messages).slice(0, 5);
-            checkForEncryptionRequest(chat, chatKeysLoaded, check);
-        }
-    };
-
-    receivedMessage.subscribe(async message => {
-        if (!message || message.chatId !== chat.id) return;
-
-        let wasAtBottom = false;
-        if (scrollElement) {
-             const { scrollTop, scrollHeight, clientHeight } = scrollElement;
-             wasAtBottom = (scrollHeight - scrollTop - clientHeight) < 150;
-        }
-
-        messages.update(_messages => {
-            const idx = _messages.findIndex(x => x.id === message.id)
-            if (idx !== -1) _messages[idx] = message;
-            else _messages.push(message);
-            return _messages;
-        })
-
-        if (message.sender === $currentUser || wasAtBottom) {
-             await tick();
-             scrollToBottom(scrollElement, true);
-        }
-
-        checkForEncryptionRequest(chat, chatKeysLoaded, [ message ])
-    })
-
-    function handleScroll(event) {
-        const target = event.currentTarget;
-
-        const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight;
-        showScrollDown = distanceFromBottom > 50;
-
-        if (target.scrollTop < 200 && !loading && !all_loaded) {
-             if(scrollLoaderTimeout) return;
-             scrollLoaderTimeout = setTimeout(async () => {
-                 await loadHistory();
-                 scrollLoaderTimeout = null;
-             }, 200);
-        }
-    }
-
-    $: allMedia = uiMessages.flatMap(m =>
-      (m.attaches || [])
-        .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO')
-        .map(a => ({
-            ...a,
-            messageId: m.id,
-            uid: a.videoId || a.photoId || a.url || a.baseUrl
-        }))
-    );
-
-    function openMedia(attach) {
-        const targetUid = attach.videoId || attach.photoId || attach.url || attach.baseUrl;
-        const index = allMedia.findIndex(m => m.uid === targetUid);
-
-        if (index !== -1) {
-            viewerIndex = index;
-            viewerOpen = true;
-        }
-    }
-
-    function handleClick(e) {
-        if (dropoutActiveAt) {
-            const isOutside = !['.message-actions-dropout'].some(x => e.target.closest(x))
-            if (isOutside) {
-                dropoutActiveAt = null;
-                e.stopPropagation();
-                if (onBack.dropout) delete onBack['dropout'];
-            }
-        }
-        if (attachesDropout) {
-            const isOutside = !e.target.closest('.attaches-dropout') && !e.target.closest('.send-button');
-            if (isOutside) {
-                attachesDropout = null;
-                e.stopPropagation();
-            }
-        }
-        const reactionClicked = ['.reaction'].some(x => e.target.closest(x))
-        if (reactionClicked) {
-            const reaction = e.target.childNodes[0].nodeValue.trim();
-            const msgId = e.target.parentNode.dataset.msgId;
-            handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
-            messages.update(x => x);
-            e.stopPropagation();
-        }
-    }
-
-    function selectMessage(e, msg) {
-        if (e.target.closest('.grid-item')) return;
-
-        const dx = Math.abs(e.clientX - clickStartPos.x);
-        const dy = Math.abs(e.clientY - clickStartPos.y);
-
-        if (dx > 5 || dy > 5) return;
-
-        dropoutActiveAt = { e, msg };
-    }
-
-    function handleDropout(e) {
+  function handleClick(e) {
+    if (dropoutActiveAt) {
+      const isOutside = !['.message-actions-dropout'].some(x => e.target.closest(x))
+      if (isOutside) {
         dropoutActiveAt = null;
-        if (e.detail?.update) messages.update(x => x);
+        e.stopPropagation();
+        if (onBack.dropout) delete onBack['dropout'];
+      }
     }
+    if (attachesDropout) {
+      const isOutside = !e.target.closest('.attaches-dropout') && !e.target.closest('.send-button');
+      if (isOutside) {
+        attachesDropout = null;
+        e.stopPropagation();
+      }
+    }
+    const reactionClicked = ['.reaction'].some(x => e.target.closest(x))
+    if (reactionClicked) {
+      const reaction = e.target.childNodes[0].nodeValue.trim();
+      const msgId = e.target.parentNode.dataset.msgId;
+      handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
+      messages.update(x => x);
+      e.stopPropagation();
+    }
+  }
 
-    const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
+  function selectMessage(e, msg) {
+    if (e.target.closest('.grid-item')) return;
 
-    let title;
+    const dx = Math.abs(e.clientX - clickStartPos.x);
+    const dy = Math.abs(e.clientY - clickStartPos.y);
 
-    onMount(async () => {
-        if (chat.id === 0) {
-            title = "Избранное"
-        }
-        else {
-            if (!chat.type) {
-                const response = await $API.getChat(chat.id)
+    if (dx > 5 || dy > 5) return;
 
-                Caching.cacheChat(response.chats[0])
-                chat = $currentSessionChats.find(x => x.id === chat.id)
-            }
+    dropoutActiveAt = { e, msg };
+  }
 
-            if (chat.id < 0) {
-                console.log('CHANNEL')
+  function handleDropout(e) {
+    dropoutActiveAt = null;
+    if (e.detail?.update) messages.update(x => x);
+  }
 
-                title = chat.title;
-            }
-            else {
-                title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
-            }
-        }
-    });
+  const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
+
+  let title;
+
+  onMount(async () => {
+    if (chat.id === 0) {
+        title = "Избранное"
+    }
+    else {
+      if (!chat.type) {
+        const response = await $API.getChat(chat.id)
+
+        Caching.cacheChat(response.chats[0])
+        chat = $currentSessionChats.find(x => x.id === chat.id)
+      }
+
+      if (chat.id < 0) {
+        console.log('CHANNEL')
+
+        title = chat.title;
+      }
+      else {
+        title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
+      }
+    }
+  });
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
-    <Bubbles/>
+  <Bubbles/>
 
-    {#if viewerOpen}
-        <MediaViewer
-        chatId={chat.id}
-        bind:index={viewerIndex}
-        allMedia={allMedia}
-        on:close={() => viewerOpen = false}
-        />
-    {/if}
+  {#if viewerOpen}
+    <MediaViewer
+    chatId={chat.id}
+    bind:index={viewerIndex}
+    allMedia={allMedia}
+    on:close={() => viewerOpen = false}
+    />
+  {/if}
 
-    <header>
-        <div class="align-left">
-            <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
-                <img src="icons/arrow.svg" style="transform: scale(-1.5)"/>
-            </button>
-            <Avatar size={36} chat={chat} style="margin-left: -8px"/>
-            <div on:click={() => dispatch('profile')} class="info">
-                <a class="title">{ title }</a>
-                <a class="presence"><Signature chat={chat} /></a>
-            </div>
-        </div>
-        <div class="align-right">
-            {#if chat.type !== "CHANNEL"}
-             <button class="icon-button" on:click|stopPropagation={openSettings}>
-                <img src="icons/params.svg"/>
-            </button>
-            {/if}
-        </div>
-    </header>
-
-    {#if chat.type !== "CHANNEL"}
-    <Settings chat={chat} chatKeysLoaded={chatKeysLoaded} messages={messages} showSettings={showSettings}/>
-    {/if}
-
-    <div
-        bind:this={scrollElement}
-        on:scroll={handleScroll}
-        on:mousedown={startDrag}
-        on:mouseleave={stopDrag}
-        on:mouseup={stopDrag}
-        on:mousemove={moveDrag}
-        class="message-list-container grab-scroll"
-    >
-        <E2eModal gotSecretChatRequest={gotSecretChatRequest}/>
-
-        {#each uiMessages as msg (msg.id)}
-            <DateSeparator msg={msg} bind:lastDate={lastDate}/>
-
-            <div class="message-wrapper">
-                <div class="message-clickable-area"
-                    on:click|stopPropagation={e => selectMessage(e, msg)}>
-                    <Message
-                        {msg}
-                        dropoutActiveAt={dropoutActiveAt}
-                        deobfuscated={deobfuscate_msg(msg)}
-                        chat={chat}
-                        on:openMedia={(e) => openMedia(e.detail.attach)}
-                        on:openChat={(e) => {
-                          dispatch('chat', e.detail)
-                        }}
-                    />
-                </div>
-            </div>
-        {/each}
-
-        <div style="height: 20px; flex-shrink: 0;"></div>
-    </div>
-
-    <Dropout activeAt={dropoutActiveAt} chat={chat} on:close={handleDropout}/>
-
-    {#if chat.type !== "CHANNEL"}
-        <Input
-        bind:replyTo={replyTo}
-        scrollElement={scrollElement}
-        chat={chat}
-        messages={messages}
-        chatKeysLoaded={chatKeysLoaded}
-        />
-    {/if}
-
-    {#if showScrollDown}
-      <button
-        in:fade={{ duration: 100 }}
-        out:fade ={{ duration: 100 }}
-        class="scroll-down-btn"
-        class:nije={ chat.type === 'CHANNEL' }
-        on:click={() => scrollToBottom(scrollElement, true)}>
-        <svg viewBox="0 0 640 640"><path fill="#777" d="M297.4 470.6C309.9 483.1 330.2 483.1 342.7 470.6L534.7 278.6C547.2 266.1 547.2 245.8 534.7 233.3C522.2 220.8 501.9 220.8 489.4 233.3L320 402.7L150.6 233.4C138.1 220.9 117.8 220.9 105.3 233.4C92.8 245.9 92.8 266.2 105.3 278.7L297.3 470.7z"/></svg>
+  <header>
+    <div class="align-left">
+      <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
+        <img src="icons/arrow.svg" style="transform: scale(-1.5)"/>
       </button>
-    {/if}
+      <div class="row" on:click={() => {
+        if (chat.type === 'DIALOG') $Session.profile = { userId: $currentUser ^ chat.id };
+        else alert('TODO');
+      }}>
+      <Avatar size={36} chat={chat} style="margin-left: -8px"/>
+      <div class="info">
+        <a class="title">{ title }</a>
+        <a class="presence"><Signature chat={chat} /></a>
+      </div>
+      </div>
+    </div>
+    <div class="align-right">
+      {#if chat.type !== "CHANNEL"}
+        <button class="icon-button" on:click|stopPropagation={openSettings}>
+        <img src="icons/params.svg"/>
+        </button>
+      {/if}
+    </div>
+  </header>
+
+  {#if chat.type !== "CHANNEL"}
+    <Settings chat={chat} chatKeysLoaded={chatKeysLoaded} messages={messages} showSettings={showSettings}/>
+  {/if}
+
+  <div
+    bind:this={scrollElement}
+    on:scroll={handleScroll}
+    on:mousedown={startDrag}
+    on:mouseleave={stopDrag}
+    on:mouseup={stopDrag}
+    on:mousemove={moveDrag}
+    class="message-list-container grab-scroll"
+  >
+    <E2eModal gotSecretChatRequest={gotSecretChatRequest}/>
+
+    {#each uiMessages as msg (msg.id)}
+      <DateSeparator msg={msg} bind:lastDate={lastDate}/>
+
+      <div class="message-wrapper">
+        <div class="message-clickable-area"
+          on:click|stopPropagation={e => selectMessage(e, msg)}>
+          <Message
+            {msg}
+            dropoutActiveAt={dropoutActiveAt}
+            deobfuscated={deobfuscate_msg(msg)}
+            chat={chat}
+            on:openMedia={(e) => openMedia(e.detail.attach)}
+            on:openChat={(e) => {
+              dispatch('chat', e.detail)
+            }}
+          />
+        </div>
+      </div>
+    {/each}
+
+    <div style="height: 20px; flex-shrink: 0;"></div>
+  </div>
+
+  <Dropout activeAt={dropoutActiveAt} chat={chat} on:close={handleDropout}/>
+
+  {#if chat.type !== "CHANNEL"}
+    <Input
+      bind:replyTo={replyTo}
+      scrollElement={scrollElement}
+      chat={chat}
+      messages={messages}
+      chatKeysLoaded={chatKeysLoaded}
+    />
+  {/if}
+
+  {#if showScrollDown}
+    <button
+      in:fade={{ duration: 100 }}
+      out:fade ={{ duration: 100 }}
+      class="scroll-down-btn"
+      class:nije={ chat.type === 'CHANNEL' }
+      on:click={() => scrollToBottom(scrollElement, true)}>
+      <svg viewBox="0 0 640 640"><path fill="#777" d="M297.4 470.6C309.9 483.1 330.2 483.1 342.7 470.6L534.7 278.6C547.2 266.1 547.2 245.8 534.7 233.3C522.2 220.8 501.9 220.8 489.4 233.3L320 402.7L150.6 233.4C138.1 220.9 117.8 220.9 105.3 233.4C92.8 245.9 92.8 266.2 105.3 278.7L297.3 470.7z"/></svg>
+    </button>
+  {/if}
 </div>
 
 <style>
@@ -422,10 +428,19 @@
     z-index: 5;
   }
 
-  header .info { display: flex; flex-direction: column; min-width: 0; }
+  .row {
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+    padding-left: 15px;
+  }
+
+  header .info { display: flex; flex-direction: column; min-width: 0; width: 100%; }
   header .info .presence { font-size: 12px; }
   header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  header .align-left { display: flex; flex-direction: row; align-items: center; gap: 10px; }
+  header .align-left { display: flex; flex-direction: row; align-items: center; flex: 1; }
 
   .icon-button {
     background: none;

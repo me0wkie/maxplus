@@ -141,8 +141,8 @@
     position: absolute;
     height: 50px;
     width: 50px;
-    bottom: calc(80px + env(safe-area-inset-bottom));
-    right: 20px;
+    bottom: calc(85px + env(safe-area-inset-bottom));
+    right: 25px;
     border-radius: 60px;
     display: flex;
     align-items: center;
