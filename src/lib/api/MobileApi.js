@@ -5,6 +5,7 @@ import { get } from 'svelte/store';
 import { add as addLog } from '$lib/stores/logs'
 import { usersDb, currentUser, currentSessionChats, currentRealChats, currentRealContacts, currentSessionContacts, currentFolders, currentlySyncing, currentPresence, receivedMessage } from '$lib/stores/api'
 import { get as sessionGet, set as sessionSet } from '$lib/stores/session'
+import { cacheChat } from '$lib/utils/caching'
 import { goto } from '$app/navigation';
 
 export default class MobileApi extends BaseAPI {
@@ -202,33 +203,12 @@ export default class MobileApi extends BaseAPI {
             // TODO wtf?
             
             let updated = false;
+
             chats.forEach(chat => {
-                const { id, cid, title, admins, baseIconUrl: avatar,
-                adminParticipants, videoConversation, status, lastMessage,
-                lastEventTime, participants, newMessages, type } = chat
-
-                const exists = currentChats.find(entry => entry.id === id);
-                if(!exists) currentChats.push({ id, type, title, status, avatar, lastMessage, lastEventTime, participants, newMessages });
-
-                else {
-                    const before = updated ? null : JSON.stringify(exists)
-                    exists.lastMessage = lastMessage;
-                    exists.lastEventTime = lastEventTime;
-                    exists.participant = participants;
-                    exists.type = type;
-                    exists.newMessages = newMessages;
-                    exists.avatar = avatar;
-                    if(exists.title) exists.title = title;
-                    if(exists.status) exists.status = status;
-                    if(exists.admins) {
-                        exists.admins = admins;
-                        exists.adminParticipants = adminParticipants;
-                    }
-                    if(exists.videoConversation) exists.videoConversation = videoConversation;
-                    if(exists.status) exists.status = status;
-                    if(!updated && before !== JSON.stringify(exists)) updated = true;
-                }
+                updated ||= cacheChat(chat, currentChats);
             });
+
+            console.log('updated', updated);
             
             let requireInfo = new Set();
             
@@ -301,7 +281,7 @@ export default class MobileApi extends BaseAPI {
         } catch (e) {
             alert(e)
             console.error(e)
-            if (e.includes("login.token")) await this.logout();
+            if (e?.includes("login.token")) await this.logout();
         } finally {
             this.resolve_sync();
             console.log('Синхронизация завершена!');
