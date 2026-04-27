@@ -322,7 +322,13 @@
       <Avatar size={36} chat={chat} style="margin-left: -8px"/>
       <div class="info">
         <a class="title">{ title }</a>
-        <a class="presence"><Signature chat={chat} /></a>
+          <a class="presence">
+            {#if chat.type === 'DIALOG' && chat.id !== 0}
+              <Signature chat={chat} />
+            {:else if chat.type === 'CHANNEL'}
+              {chat.participantsCount} подписчиков
+            {/if}
+          </a>
       </div>
       </div>
     </div>
@@ -437,10 +443,35 @@
     padding-left: 15px;
   }
 
-  header .info { display: flex; flex-direction: column; min-width: 0; width: 100%; }
-  header .info .presence { font-size: 12px; }
-  header .title { color: white; font-size: 16px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  header .align-left { display: flex; flex-direction: row; align-items: center; flex: 1; }
+  header .info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
+
+  header .info .presence {
+    font-size: 12px;
+  }
+
+  header .title {
+    color: white;
+    font-size: 16px;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+  }
+
+  header .align-left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 1;
+  }
 
   .icon-button {
     background: none;
