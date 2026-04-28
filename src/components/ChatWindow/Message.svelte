@@ -42,8 +42,6 @@
     return $API.getFileById(chat.id, msg.id, fileId);
   }
 
-
-
   $: hasForward = msg.link && msg.link.type === 'FORWARD';
   $: forwardMsg = msg.link?.message;
   $: forwardLines = forwardMsg?.text?.split("\n");

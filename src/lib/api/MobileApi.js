@@ -5,7 +5,7 @@ import { get } from 'svelte/store';
 import { add as addLog } from '$lib/stores/logs'
 import { usersDb, currentUser, currentSessionChats, currentRealChats, currentRealContacts, currentSessionContacts, currentFolders, currentlySyncing, currentPresence, receivedMessage } from '$lib/stores/api'
 import { get as sessionGet, set as sessionSet } from '$lib/stores/session'
-import { cacheChat } from '$lib/utils/caching'
+import { cacheChat, syncContacts } from '$lib/utils/caching'
 import { goto } from '$app/navigation';
 
 export default class MobileApi extends BaseAPI {
@@ -220,60 +220,7 @@ export default class MobileApi extends BaseAPI {
                 }
             })
 
-            contacts.forEach(contact => {
-                const { baseRawUrl: avatar, id, names, options, /*photoId*/ description, gender, updateTime, status, accountStatus: acs } = contact
-
-                if (!currentContacts[contact.id]) {
-                    currentContacts[contact.id] = {
-                        id,
-                        avatar,
-                        names,
-                        gender,
-                        description,
-                        updateTime,
-                        options,
-                        status,
-                        accountStatus: acs
-                    }
-                } else {
-                    const prev = currentContacts[contact.id]
-                    if (avatar !== prev.avatar) prev.avatar = avatar;
-                    if (gender !== prev.gender) prev.gender = gender;
-                    if (names  !== prev.names) prev.names = names;
-                    if (description !== prev.description) prev.description = description;
-                    if (updateTime !== prev.updateTime) prev.updateTime = updateTime;
-                    if (options !== prev.options) prev.options = options;
-                    if (status !== prev.status) prev.status = status;
-                    if (acs !== prev.accountStatus) prev.accountStatus = acs;
-                }
-
-                requireInfo.delete(+id)
-            })
-
-            if(requireInfo.size) {
-                console.log('Необходимые для обновления контакты', requireInfo)
-                const response = await invoke('fetch_contacts', { userIds: [ ...requireInfo ] });
-
-                console.log('Ответ', response)
-
-                response.contacts.forEach(contact => {
-                    if(currentContacts[contact.id]) {
-                        currentContacts[contact.id].avatar = contact.baseUrl
-                        currentContacts[contant.id].options = contact.options
-                    }
-                    else {
-                        currentContacts[contact.id] = {
-                            id: contact.id,
-                            avatar: contact.baseUrl,
-                            names: contact.names,
-                            gender: contact.gender,
-                            description: contact.description,
-                            updateTime: contact.updateTime,
-                            options: contact.options
-                        }
-                    }
-                })
-            }
+            syncContacts(contacts, currentContacts, requireInfo);
             
             currentSessionChats.set(currentChats);
             currentSessionContacts.set(currentContacts);

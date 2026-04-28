@@ -47,6 +47,55 @@ const normalizeChat = (chat) => {
     };
 };
 
+export const syncContacts = async (contacts, currentContacts, requireInfo) => {
+    contacts.forEach(raw => {
+        const contact = normalizeContact(raw);
+        upsertContact(currentContacts, contact);
+        requireInfo.delete(+contact.id);
+    });
+
+    if (requireInfo.size) {
+        console.log('Необходимые для обновления контакты', requireInfo);
+
+        const response = await invoke('fetch_contacts', {
+            userIds: [...requireInfo]
+        });
+
+        console.log('Ответ', response);
+
+        response.contacts.forEach(raw => {
+            const contact = normalizeContact(raw);
+
+            upsertContact(currentContacts, contact);
+        });
+    }
+};
+
+const upsertContact = (store, contact) => {
+    const id = contact.id;
+    const existing = store[id];
+
+    if (!existing) {
+        store[id] = contact;
+        return;
+    }
+
+    for (const key in contact) {
+        if (contact[key] !== existing[key]) {
+            existing[key] = contact[key];
+        }
+    }
+};
+
+const normalizeContact = (contact) => {
+    const { baseRawUrl, baseUrl, ...rest } = contact;
+
+    return {
+        ...rest,
+        avatar: baseRawUrl || baseUrl,
+    };
+};
+
 // access, baseIconUrl, baseRawIconUrl, created, description
 // id, lastDelayedUpdateTime, lastEventTime, lastFireDelayedErrorTime,
 // lastMessage, link, messagesCount, modified, options, owner, participants

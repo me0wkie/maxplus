@@ -4,30 +4,39 @@
   import { createEventDispatcher } from 'svelte';
   import { goto } from '$app/navigation';
   import ConfirmModal from '$components/main/ConfirmModal.svelte';
-  import API, { currentUser, currentSessionContacts, currentSessionChats, currentPresence } from '$lib/stores/api'
-  import Session from '$lib/stores/session'
-  import Signature from '$lib/utils/Signature.svelte'
+  import API, { currentUser, currentSessionContacts, currentSessionChats, currentPresence } from '$lib/stores/api';
+  import Session from '$lib/stores/session';
+  import Signature from '$lib/utils/Signature.svelte';
+  import { formatMs } from '$lib/utils/time.js';
 
-  const { userId, chatId } = $Session.profile;
+  let { userId, chatId } = $Session.profile;
 
-  const peer = userId ? $currentSessionContacts[userId] : null;
-  const type = userId ? 'user' : 'chat';
+  if (!userId) userId = $currentUser ^ chatId;
+  if (!chatId) chatId = $currentUser ^ userId;
 
-  console.log(userId, chatId, $Session, peer, type)
+  const peer = userId ? $currentSessionContacts[userId] || {} : {};
+  const chat = $currentSessionChats.find(x => x.id === chatId);
 
   const dispatch = createEventDispatcher();
 
   let showMenu = false;
   let showBlockConfirm = false;
 
-  //let participants = Object.keys(peer.participants).filter(x => x !== $currentUser);
+  //let participants = Object.keys(chat.participants).filter(x => x !== $currentUser);
 
-  $: title = type === 'user' ? peer.names[0].firstName : "Избранное";
-  $: avatar = peer.avatar;
+  $: title = (() => {
+    if (peer.id) return peer?.names?.[0]?.firstName;
+    else return chat.title;
+  })();
+  $: avatar = peer.avatar || chat.avatar;
 
   $: infoFields = [
+    chat.link && { icon: 'info', label: 'Тэг', value: chat.link.replace('https://max.ru/','') },
+    chat.description && { icon: 'info', label: 'Описание', value: chat.description },
     peer.description && { icon: 'info', label: 'Описание', value: peer.description },
-    peer.phone && { icon: 'phone', label: 'Мобильный', value: peer.phone }
+    chat.phone && { icon: 'phone', label: 'Мобильный', value: chat.phone },
+    chat.created && { icon: 'info', label: 'Дата создания', value: formatMs(chat.created) },
+    peer.registrationTime && { icon: 'info', label: 'Дата регистрации', value: formatMs(peer.registrationTime) },
   ].filter(Boolean);
 
   function toggleMenu() { showMenu = !showMenu; }
@@ -77,6 +86,10 @@
       $Session.openedChats = [...$Session.openedChats, { ...chat }];
     }
   }
+
+  function formatId(num) {
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
 </script>
 
 <svelte:window on:click={handleWindowClick} />
@@ -87,6 +100,9 @@
     class="profile-panel"
     transition:fly={{ x: 380, duration: 300, opacity: 1, easing: cubicOut }}
   >
+    <div class="peer-id">
+      ID { formatId(peer.id || chat.id) }
+    </div>
 
     <div class="header-controls">
       <button class="icon-btn" on:click={() => dispatch('close')}>
@@ -101,7 +117,7 @@
         {#if showMenu}
           <div class="dropdown" transition:scale={{ duration: 150, start: 0.9 }}>
             <div class="menu-item" on:click={() => handleAction('edit')}>Изменить</div>
-            {#if type === 'user'}
+            {#if peer}
               <div class="menu-item danger" on:click={() => handleAction('block')}>Заблокировать</div>
               <div class="menu-item danger" on:click={() => handleAction('delete')}>Удалить контакт</div>
             {:else}
@@ -117,7 +133,7 @@
         {#if avatar}
           <img src={avatar} alt={title} />
         {:else}
-          <div class="avatar-placeholder" style="background: {getGradient(peer.id)}">
+          <div class="avatar-placeholder" style="background: {getGradient(peer.id || chat.id)}">
             {title.charAt(0).toUpperCase()}
           </div>
         {/if}
@@ -125,8 +141,14 @@
       <div class="hero-info">
         <h2>{title}</h2>
         <a
-        class:online={ $currentPresence[peer?.id]?.on === "ON" }
-        class="status"><Signature contact={peer} /></a>
+          class:online={ $currentPresence[peer?.id]?.on === "ON" }
+          class="status">
+          {#if chat.type === "CHANNEL"}
+            { chat.participantsCount } участников
+          {:else if peer !== undefined}
+            <Signature contact={peer} />
+          {/if}
+        </a>
       </div>
     </div>
 
@@ -144,7 +166,9 @@
       on:click={() => openChat()}
       >
         <div class="icon-wrap">💭</div> <div class="button">
-          <span class="label">Перейти в чат</span>
+          <span class="label">{
+            chat.type === 'CHANNEL' ? 'Перейти в канал' : 'Открыть чат'
+          }</span>
         </div>
       </div>
       <hr>
@@ -197,6 +221,17 @@
     color: #3333;
   }
 
+  .peer-id {
+    position: absolute;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    top: 22px;
+    color: #fff2;
+    font-size: 14px;
+    font-weight: 1000;
+  }
+
   .hero { padding: 80px 20px 30px; display: flex; flex-direction: column; align-items: center; background: linear-gradient(to bottom, #2a2a2a, #1c1c1c); border-bottom: 1px solid #333; }
   .avatar-large { width: 120px; height: 120px; margin-bottom: 20px; border-radius: 50%; overflow: hidden; }
   .avatar-large img, .avatar-placeholder { width: 100%; height: 100%; object-fit: cover; }
@@ -206,7 +241,13 @@
   .status { color: #666; font-size: 14px; } .status.online { color: #4ade80; }
 
   .info-list { background: #1c1c1c; padding: 10px 0; }
-  .info-item { display: flex; align-items: center; padding: 15px 20px; gap: 20px; }
+  .info-item {
+    display: flex;
+    padding: 15px 20px;
+    gap: 20px;
+    word-break: break-word;
+    white-space: pre-line;
+  }
   .info-content { flex: 1; display: flex; flex-direction: column; }
   .info-content .value { color: #eee; } .info-content .label { color: #777; font-size: 13px; }
   .info-item .button {

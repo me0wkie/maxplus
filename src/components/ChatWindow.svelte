@@ -281,7 +281,10 @@
     else {
       if (!chat.type) {
         const response = await $API.getChat(chat.id)
-
+        console.log(response)
+        if (!response.chats.length) {
+          return alert("Не удалось получить информацию о чате.")
+        }
         Caching.cacheChat(response.chats[0])
         chat = $currentSessionChats.find(x => x.id === chat.id)
       }
@@ -317,7 +320,7 @@
       </button>
       <div class="row" on:click={() => {
         if (chat.type === 'DIALOG') $Session.profile = { userId: $currentUser ^ chat.id };
-        else alert('TODO');
+        else $Session.profile = { chatId: chat.id };
       }}>
       <Avatar size={36} chat={chat} style="margin-left: -8px"/>
       <div class="info">
