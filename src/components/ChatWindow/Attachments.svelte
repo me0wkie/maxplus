@@ -156,10 +156,12 @@
     cursor: pointer;
     background-color: #0002;
     min-width: 130px;
+    margin-right: 10px;
   }
 
   .file-icon {
-    width: 36px;
+    min-width: 36px;
+    max-width: 36px;
     height: 36px;
     border-radius: 50%;
     background: rgba(255,255,255,0.1);

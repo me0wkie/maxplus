@@ -59,7 +59,7 @@
 
   function getGradient(id) {
     const colors = [['#f093fb', '#f5576c'], ['#5ee7df', '#b490ca'], ['#667eea', '#764ba2']];
-    const c = colors[(id || 0) % colors.length];
+    const c = colors[(id || 0) % colors.length] || [];
     return `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 100%)`;
   }
 

@@ -17,7 +17,7 @@ export const invoke = async (command, args) => {
             await get(API).init();
             return invoke(command, args);
         }
-        else if (e.toString().includes('FAIL_LOGIN_TOKEN')) {
+        else if (e.toString().includes('FAIL_LOGIN_TOKEN') || e.toString().includes('FAIL_LOGOUT_ALL')) {
             alert('Выкинуло из аккаунта...');
             return get(API).logout();
         }
