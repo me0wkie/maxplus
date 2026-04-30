@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
+  import { getAttachText } from '$components/main/attachs.js';
   import { openPath } from '@tauri-apps/plugin-opener';
   import Avatar from '$components/main/Avatar.svelte';
   import Reactions from './Reactions.svelte';
@@ -42,9 +43,10 @@
     return $API.getFileById(chat.id, msg.id, fileId);
   }
 
-  $: hasForward = msg.link && msg.link.type === 'FORWARD';
-  $: forwardMsg = msg.link?.message;
-  $: forwardLines = forwardMsg?.text?.split("\n");
+  const linkedMsg = msg.link && msg.link.message;
+  const forwardLines = linkedMsg?.text?.split("\n");
+  const linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
+  const linkedMsgAttaches = linkedMsg && getAttachText(chat, linkedMsg);
 </script>
 
 <div class="message-row"
@@ -61,34 +63,46 @@
         <div class="row">
             <div class="text">
 
-                {#if hasForward}
-                  <div class="forward-block">
-                    <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
-                      {#if msg.link.chatIconUrl}
-                        <img src={msg.link.chatIconUrl} alt="" class="forward-avatar" />
+                {#if linkedMsg}
+                  {#if msg.link.type === 'FORWARD'}
+                    <div class="forward-block">
+                      <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
+                        {#if msg.link.chatIconUrl}
+                          <img src={msg.link.chatIconUrl} alt="" class="forward-avatar" />
+                        {/if}
+                        <div class="forward-info">
+                          <span class="forward-name">{msg.link.chatName}</span>
+                          <span class="forward-label">Пересланное сообщение</span>
+                        </div>
+                        <svg class="forward-arrow" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                      </div>
+
+                      {#if forwardLines}
+                        <div class="forward-content">
+                          {#each forwardLines as fLine}
+                            <p class="line allow-selection">{fLine}</p>
+                          {/each}
+                        </div>
                       {/if}
-                      <div class="forward-info">
-                        <span class="forward-name">{msg.link.chatName}</span>
-                        <span class="forward-label">Пересланное сообщение</span>
-                      </div>
-                      <svg class="forward-arrow" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+
+                      {#if linkedMsg.attaches}
+                        <Attachments
+                        getFile={getFile}
+                        attaches={linkedMsg.attaches}
+                        handleMediaClick={handleMediaClick}/>
+                      {/if}
                     </div>
-
-                    {#if forwardLines}
-                      <div class="forward-content">
-                        {#each forwardLines as fLine}
-                          <p class="line allow-selection">{fLine}</p>
-                        {/each}
+                  {:else if msg.link.type === 'REPLY'}
+                    <div class="reply-block">
+                      <div class="reply-content">
+                        <p class="line allow-selection">
+                          <b>{ linkedMsgContact?.names?.[0]?.firstName || "?" }</b>
+                          <b>{linkedMsgAttaches ? (linkedMsgAttaches + (linkedMsg.text ? "," : "")) : ""}</b>
+                          { linkedMsg.text?.slice(0, 20) + (linkedMsg.text.length > 20 ? "..." : "") }
+                        </p>
                       </div>
-                    {/if}
-
-                    {#if forwardMsg.attaches}
-                      <Attachments
-                      getFile={getFile}
-                      attaches={forwardMsg.attaches}
-                      handleMediaClick={handleMediaClick}/>
-                    {/if}
-                  </div>
+                    </div>
+                  {/if}
                 {/if}
 
                 {#if isSystem}
@@ -204,6 +218,21 @@
     width: 14px;
     height: 14px;
     fill: #34b7f1;
+  }
+
+  .reply-block {
+    border-left: 3px solid #4a90e2;
+    padding: 10px 4px 10px 8px;
+    margin-bottom: 6px;
+    opacity: 0.85;
+    font-size: 12px;
+    background-color: #0001;
+  }
+
+  .reply-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
 
   .message-status { display: flex; flex-direction: row; gap: 10px; justify-content: end; }
