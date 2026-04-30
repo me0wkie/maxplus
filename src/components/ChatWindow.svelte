@@ -382,7 +382,11 @@
     <div style="height: 20px; flex-shrink: 0;"></div>
   </div>
 
-  <Dropout activeAt={dropoutActiveAt} chat={chat} on:close={handleDropout}/>
+  <Dropout
+    activeAt={dropoutActiveAt}
+    chat={chat}
+    on:reply={e => replyTo = e.detail.id}
+    on:close={handleDropout}/>
 
   {#if chat.type !== "CHANNEL"}
     <Input

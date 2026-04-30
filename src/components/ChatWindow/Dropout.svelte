@@ -1,86 +1,93 @@
 <script>
-    import { createEventDispatcher, getContext, onDestroy } from 'svelte';
-    import { fade, fly } from 'svelte/transition';
-    import { tick } from 'svelte';
-    
-    import { handleReaction } from '$components/ChatWindow/actions'
-    import API from '$lib/stores/api'
-    
-    export let activeAt;
-    export let chat;
-    
-    const dispatch = createEventDispatcher()
-    
-    let menuPosition = { top: 0, left: 0 };
-    let menuNode;
-    
-    const reactions = ["👍", "❤️", "🤣", "🔥", "💯", "💩", "😡"]
-    
-    const onBack = getContext('onBack');
-    
-    async function updatePosition(clientX, clientY) {
-        await tick(); 
-        if (!menuNode) return;
-        const { offsetWidth, offsetHeight } = menuNode;
-        const { innerWidth, innerHeight } = window;
-        let x = clientX;
-        let y = clientY;
-        if (x + offsetWidth > innerWidth) {
-            x = x - offsetWidth; 
-            if (x < 0) x = innerWidth - offsetWidth - 10; 
-        }
-        if (y + offsetHeight > innerHeight) {
-            y = y - offsetHeight;
-             if (y < 0) y = innerHeight - offsetHeight - 10;
-        }
-        menuPosition = { top: y, left: x };
-        if (onBack.chatSettings) onBack.chatSettings();
-        onBack['dropout'] = () => {
-            dispatch('close', { update: false });
-            delete onBack['dropout'];
-        };
+  import { createEventDispatcher, getContext, onDestroy } from 'svelte';
+  import { fade, fly } from 'svelte/transition';
+  import { tick } from 'svelte';
+
+  import { handleReaction } from '$components/ChatWindow/actions'
+  import API from '$lib/stores/api'
+
+  export let activeAt;
+  export let chat;
+
+  const dispatch = createEventDispatcher()
+
+  let menuPosition = { top: 0, left: 0 };
+  let menuNode;
+
+  const reactions = ["👍", "❤️", "🤣", "🔥", "💯", "💩", "😡"]
+
+  const onBack = getContext('onBack');
+
+  async function updatePosition(clientX, clientY) {
+    await tick();
+    if (!menuNode) return;
+    const { offsetWidth, offsetHeight } = menuNode;
+    const { innerWidth, innerHeight } = window;
+    let x = clientX;
+    let y = clientY;
+    if (x + offsetWidth > innerWidth) {
+      x = x - offsetWidth;
+      if (x < 0) x = innerWidth - offsetWidth - 10;
     }
-    
-    $: if (activeAt) {
-      updatePosition(activeAt.e.clientX, activeAt.e.clientY);
+    if (y + offsetHeight > innerHeight) {
+      y = y - offsetHeight;
+        if (y < 0) y = innerHeight - offsetHeight - 10;
     }
-    
-    const clickReaction = async emoji => {
-        handleReaction(chat, activeAt.msg, emoji)
-        
-        dispatch('close', { update: true });
-        
-        if (onBack.dropout) delete onBack['dropout'];
-    }
-        
-    onDestroy(() => {
-        delete onBack['dropout'];
-    });
+    menuPosition = { top: y, left: x };
+    if (onBack.chatSettings) onBack.chatSettings();
+    onBack['dropout'] = () => {
+      dispatch('close', { update: false });
+      delete onBack['dropout'];
+    };
+  }
+
+  $: if (activeAt) {
+    updatePosition(activeAt.e.clientX, activeAt.e.clientY);
+  }
+
+  const clickReaction = async emoji => {
+    handleReaction(chat, activeAt.msg, emoji)
+
+    dispatch('close', { update: true });
+
+    if (onBack.dropout) delete onBack['dropout'];
+  }
+
+  onDestroy(() => {
+    delete onBack['dropout'];
+  });
+
+  function handleSetReply() {
+    dispatch('reply', { id: activeAt.msg.id });
+    dispatch('close', {});
+
+    if (onBack.dropout) delete onBack['dropout'];
+  }
 </script>
 {#if activeAt}
-    <div class="message-actions-dropout" 
-         bind:this={menuNode}
-         transition:fly="{{ y: -10, duration: 200 }}"
-         style="top:{menuPosition.top}px; left:{menuPosition.left}px;" 
-         on:click|stopPropagation>
-         
-        <div class="reactions-picker" on:wheel={e => {
-              if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
-                e.preventDefault();
-                e.currentTarget.scrollLeft += e.deltaY / 4;
-              }
-          }}>
-            {#each reactions as emoji (emoji)}
-                <button on:click={() => clickReaction(emoji)}>{ emoji }</button>
-            {/each}
-        </div>
-        
-        <div class="actions">
-            <button on:click={() => handleSetReply()}>Ответить</button>
-            <button on:click={() => handlePinMessage()}>Закрепить</button>
-            <button on:click={() => handleDeleteMessage()}>Удалить</button>
-        </div>
+  <div class="message-actions-dropout"
+    bind:this={menuNode}
+    transition:fly="{{ y: -10, duration: 200 }}"
+    style="top:{menuPosition.top}px; left:{menuPosition.left}px;"
+    on:click|stopPropagation>
+
+    <div class="reactions-picker" on:wheel={e => {
+        if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
+          e.preventDefault();
+          e.currentTarget.scrollLeft += e.deltaY / 4;
+        }
+      }}>
+      {#each reactions as emoji (emoji)}
+        <button on:click={() => clickReaction(emoji)}>{ emoji }</button>
+      {/each}
     </div>
+
+    <div class="actions">
+      <button on:click={() => handleSetReply()}>Ответить</button>
+      <button on:click={() => handlePinMessage()}>Закрепить</button>
+      <button on:click={() => handleDeleteMessage()}>Удалить</button>
+    </div>
+  </div>
 {/if}
 
 <style>

@@ -9,9 +9,8 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
     let text = encrypt ? await encryptMessage(newMessage) : newMessage;
     
     let chatId = chat.id;
-    let replyToId = replyTo;
     
-    newMessage = ''; replyTo = null;
+    newMessage = '';
     
     const id = Date.now()
     
@@ -23,7 +22,7 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
         elements,
         type: 'USER',
         time: Date.now(),
-        replyTo: replyToId,
+        link: { type: 'REPLY', messageId: replyTo },
         status: 0
     }
     
@@ -33,7 +32,7 @@ export async function sendMessage(chat, chatKeysCached, messages, newMessage, re
     
     const params = {
         notify: true,
-        ...(replyToId && { replyTo: replyToId }),
+        replyTo,
         attaches,
         elements,
     };

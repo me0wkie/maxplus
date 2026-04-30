@@ -1,6 +1,7 @@
 <script>
     import { createEventDispatcher } from 'svelte';
     import { currentUser, currentSessionContacts } from '$lib/stores/api';
+    import { getAttachText } from '$components/main/attachs.js';
     import Avatar from '$components/main/Avatar.svelte';
 
     export let chat;
@@ -20,19 +21,7 @@
         : (chat.title || contact?.names?.[0]?.name || 'Без названия');
 
     $: lastMsg = chat.lastMessage;
-
-    console.log(chat.lastMessage);
-
-    $: attaches = has("PHOTO") ? "Изображение" :
-                  has("VIDEO") ? "Видео" :
-                  has("FILE") ? "Файл" :
-                  has("INLINE_KEYBOARD") ? "Клавиатура" :
-                  has("CONTROL") ? lastMsg?.attaches?.find(x => x._type === "CONTROL")?.shortMessage :
-                  lastMsg?.link ? "Пересланное сообщение" : null;
-
-    function has(type) {
-      return lastMsg?.attaches?.find(x => x._type === type);
-    }
+    $: attaches = getAttachText(lastMsg);
 
     $: timeDisplay = (() => {
         if (!lastMsg?.time) return '';

@@ -5,6 +5,7 @@
   import { scrollToBottom } from '$lib/utils/scroll.js';
   import { sendMessage } from '$components/ChatWindow/actions.js';
   import VideoPreview from '$components/ChatWindow/VideoPreview.svelte';
+  import Reply from '$components/ChatWindow/input/Reply.svelte';
   import API from '$lib/stores/api';
 
   export let replyTo;
@@ -32,6 +33,9 @@
     const _attaches = [];
     const _elements = [];
 
+    const _replyTo = replyTo;
+    replyTo = null;
+
     for (const attach of attaches) {
       const result = await $API.uploadAttachment(attach);
       if (result) {
@@ -44,7 +48,7 @@
     if (!textToSend && !_attaches.length) return;
 
     try {
-      await sendMessage(chat, chatKeysLoaded, messages, textToSend, replyTo, _attaches, _elements);
+      await sendMessage(chat, chatKeysLoaded, messages, textToSend, _replyTo, _attaches, _elements);
     } catch (e) {
       console.error(e);
     }
@@ -108,7 +112,7 @@
         resolve(canvas.toDataURL("image/jpeg", 0.8))
       })
     })
-}
+  }
 </script>
 
 {#if attaches.length}
@@ -134,6 +138,13 @@
       </div>
     {/each}
   </div>
+{/if}
+
+{#if replyTo}
+  <Reply
+    messages={messages}
+    bind:replyTo={replyTo}
+    />
 {/if}
 
 <div class="input-area">
