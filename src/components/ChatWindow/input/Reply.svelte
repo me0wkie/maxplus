@@ -4,10 +4,11 @@
 
   export let replyTo;
   export let messages;
+  export let chat;
 
   $: replyToMsg = $messages.find(x => x.id === replyTo);
   $: contact = $currentSessionContacts[replyToMsg.sender] || { names: [{ first_name: "?" }] };
-  $: attachText = getAttachText(replyToMsg);
+  $: attachText = getAttachText(chat, replyToMsg);
 </script>
 
 <div class="reply-preview">

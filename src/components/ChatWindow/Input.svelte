@@ -142,6 +142,7 @@
 
 {#if replyTo}
   <Reply
+    chat={chat}
     messages={messages}
     bind:replyTo={replyTo}
     />

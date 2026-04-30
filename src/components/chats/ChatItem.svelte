@@ -21,7 +21,7 @@
         : (chat.title || contact?.names?.[0]?.name || 'Без названия');
 
     $: lastMsg = chat.lastMessage;
-    $: attaches = getAttachText(lastMsg);
+    $: attaches = getAttachText(chat, lastMsg);
 
     $: timeDisplay = (() => {
         if (!lastMsg?.time) return '';
