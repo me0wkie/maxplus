@@ -192,6 +192,8 @@ export default class MobileApi extends BaseAPI {
             currentRealChats.set(chats.map(x => x.id));
             currentRealContacts.set(contacts.map(x => x.id));
 
+            sessionSet("reactions", config.server["reactions-menu"]);
+
             //const reactions = config.server['reactions-menu'];
             //const callsEndpoint = config.server['calls-endpoint'];
             

@@ -1,5 +1,6 @@
 <script>
   import { createEventDispatcher, getContext, onDestroy } from 'svelte';
+  import { get as sessionGet } from '$lib/stores/session'
   import { fade, fly } from 'svelte/transition';
   import { tick } from 'svelte';
 
@@ -14,7 +15,7 @@
   let menuPosition = { top: 0, left: 0 };
   let menuNode;
 
-  const reactions = ["👍", "❤️", "🤣", "🔥", "💯", "💩", "😡"]
+  const reactions = sessionGet("reactions") || [];
 
   const onBack = getContext('onBack');
 
@@ -71,16 +72,18 @@
     style="top:{menuPosition.top}px; left:{menuPosition.left}px;"
     on:click|stopPropagation>
 
-    <div class="reactions-picker" on:wheel={e => {
-        if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
-          e.preventDefault();
-          e.currentTarget.scrollLeft += e.deltaY / 4;
-        }
-      }}>
-      {#each reactions as emoji (emoji)}
-        <button on:click={() => clickReaction(emoji)}>{ emoji }</button>
-      {/each}
-    </div>
+    {#if !chat.reactions || !!chat.reactions.isActive}
+      <div class="reactions-picker" on:wheel={e => {
+          if (e.currentTarget.scrollWidth > e.currentTarget.clientWidth) {
+            e.preventDefault();
+            e.currentTarget.scrollLeft += e.deltaY / 4;
+          }
+        }}>
+        {#each reactions as emoji (emoji)}
+          <button on:click={() => clickReaction(emoji)}>{ emoji }</button>
+        {/each}
+      </div>
+    {/if}
 
     <div class="actions">
       <button on:click={() => handleSetReply()}>Ответить</button>
