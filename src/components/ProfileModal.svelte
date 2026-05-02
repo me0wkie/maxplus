@@ -35,7 +35,7 @@
     chat.description && { icon: 'info', label: 'Описание', value: chat.description },
     peer.description && { icon: 'info', label: 'Описание', value: peer.description },
     chat.phone && { icon: 'phone', label: 'Мобильный', value: chat.phone },
-    chat.created && { icon: 'info', label: 'Дата создания', value: formatMs(chat.created) },
+    chat.created > 1 && { icon: 'info', label: 'Дата создания', value: formatMs(chat.created) },
     peer.registrationTime && { icon: 'info', label: 'Дата регистрации', value: formatMs(peer.registrationTime) },
   ].filter(Boolean);
 

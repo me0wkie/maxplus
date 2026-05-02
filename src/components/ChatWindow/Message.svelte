@@ -9,10 +9,11 @@
 
   const dispatch = createEventDispatcher();
 
-  export let deobfuscated;
-  export let dropoutActiveAt;
   export let msg;
   export let chat;
+  export let dropoutActiveAt;
+  export let deobfuscated;
+  export let scrollElement;
 
   $: isMe = msg.sender === $currentUser;
   $: isSystem = msg.attaches?.[0]?._type === 'CONTROL';
@@ -43,6 +44,27 @@
     return $API.getFileById(chat.id, msg.id, fileId);
   }
 
+  function openReply() {
+    const target = document.getElementById("m-" + linkedMsg.id);
+    if (!target || !scrollElement) return;
+
+    const containerRect = scrollElement.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+
+    const offset = targetRect.top - containerRect.top;
+
+    scrollElement.scrollTo({
+      top: scrollElement.scrollTop + offset,
+      behavior: "smooth"
+    });
+
+    target.style.background = "rgba(255,255,255,0.05)";
+
+    setTimeout(() => {
+      target.style.background = null;
+    }, 1000);
+  }
+
   const linkedMsg = msg.link && msg.link.message;
   const forwardLines = linkedMsg?.text?.split("\n");
   const linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
@@ -50,105 +72,108 @@
 </script>
 
 <div class="message-row"
-     class:is-me={isMe}
-     class:is-system={isSystem}
-     class:is-deleted={msg.deleted}
-     class:inactive={dropoutActiveAt && dropoutActiveAt?.msg?.id !== msg.id}>
+  id={"m-" + msg.id}
+  class:is-me={isMe}
+  class:is-system={isSystem}
+  class:is-deleted={msg.deleted}
+  class:inactive={dropoutActiveAt && dropoutActiveAt?.msg?.id !== msg.id}>
 
-    {#if chat.type !== "CHANNEL" && !isMe && !isSystem}
-        <Avatar size={32} chat={chat}/>
-    {/if}
+  {#if chat.type !== "CHANNEL" && !isMe && !isSystem}
+      <Avatar size={32} chat={chat}/>
+  {/if}
 
-    <div class="message-bubble">
-        <div class="row">
-            <div class="text">
+  <div class="message-bubble">
+    <div class="row">
+        <div class="text">
 
-                {#if linkedMsg}
-                  {#if msg.link.type === 'FORWARD'}
-                    <div class="forward-block">
-                      <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
-                        {#if msg.link.chatIconUrl}
-                          <img src={msg.link.chatIconUrl} alt="" class="forward-avatar" />
-                        {/if}
-                        <div class="forward-info">
-                          <span class="forward-name">{msg.link.chatName}</span>
-                          <span class="forward-label">Пересланное сообщение</span>
-                        </div>
-                        <svg class="forward-arrow" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
-                      </div>
-
-                      {#if forwardLines}
-                        <div class="forward-content">
-                          {#each forwardLines as fLine}
-                            <p class="line allow-selection">{fLine}</p>
-                          {/each}
-                        </div>
-                      {/if}
-
-                      {#if linkedMsg.attaches}
-                        <Attachments
-                        getFile={getFile}
-                        attaches={linkedMsg.attaches}
-                        handleMediaClick={handleMediaClick}/>
-                      {/if}
-                    </div>
-                  {:else if msg.link.type === 'REPLY'}
-                    <div class="reply-block">
-                      <div class="reply-content">
-                        <p class="line allow-selection">
-                          <b>{ linkedMsgContact?.names?.[0]?.firstName || "?" }</b>
-                          <b>{linkedMsgAttaches ? (linkedMsgAttaches + (linkedMsg.text ? "," : "")) : ""}</b>
-                          { linkedMsg.text?.slice(0, 20) + (linkedMsg.text.length > 20 ? "..." : "") }
-                        </p>
-                      </div>
-                    </div>
+          {#if linkedMsg}
+            {#if msg.link.type === 'FORWARD'}
+              <div class="forward-block">
+                <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
+                  {#if msg.link.chatIconUrl}
+                    <img src={msg.link.chatIconUrl} alt="" class="forward-avatar" />
                   {/if}
-                {/if}
-
-                {#if isSystem}
-                  <p class="line system">{ displaySystemMessage() }</p>
-                {:else}
-                  {#if deobfuscated}
-                    {#await deobfuscated}
-                      <p class="line">Загрузка...</p>
-                    {:then text}<p class="line">{@html text }</p>
-                    {/await}
-                  {:else if lines}
-                     {#each lines as line}<p class="line">{line}</p>{/each}
-                  {/if}
-
-                  {#if msg.attaches}
-                    <Attachments
-                    getFile={getFile}
-                    attaches={msg.attaches}
-                    handleMediaClick={handleMediaClick}/>
-                  {/if}
-                {/if}
-            </div>
-
-            <div class="message-status">
-                <div class="status-meta">
-                  {#if msg.stats?.views}
-                    <span class="views">
-                      <svg viewBox="0 0 24 24" class="views-icon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-                      {msg.stats.views}
-                    </span>
-                  {/if}
-                  <span class="timestamp">{new Date(msg.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                  <div class="forward-info">
+                    <span class="forward-name">{msg.link.chatName}</span>
+                    <span class="forward-label">Пересланное сообщение</span>
+                  </div>
+                  <svg class="forward-arrow" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
                 </div>
-                {#if isMe && !isSystem}
-                  <div class="status-ticks">
-                      {#if msg.status === 3}
-                        <svg class="status-icon is-read" viewBox="0 0 22 13"><path d="M11 12.025L5 6L6.5 4.5L11 9.52502L20.05 0L21.45 1.425L11 12.025ZM4.9999 12.025L0 7L1.5 5.50002L4.9999 9.5L14.375 0.025L15.8 1.425L4.9999 12.025Z"/></svg>
-                      {:else}
-                        <svg class="status-icon" viewBox="0 0 24 13"><path d="M6 12.025L0 6L1.5 4.5L6 9.52502L15.05 0L16.45 1.425L6 12.025Z"/></svg>
-                      {/if}
+
+                {#if forwardLines}
+                  <div class="forward-content">
+                    {#each forwardLines as fLine}
+                      <p class="line allow-selection">{fLine}</p>
+                    {/each}
                   </div>
                 {/if}
-            </div>
+
+                {#if linkedMsg.attaches}
+                  <Attachments
+                  getFile={getFile}
+                  attaches={linkedMsg.attaches}
+                  handleMediaClick={handleMediaClick}/>
+                {/if}
+              </div>
+            {:else if msg.link.type === 'REPLY'}
+              <div
+                on:click|stopPropagation={openReply}
+                class="reply-block">
+                <div class="reply-content">
+                  <p class="line allow-selection">
+                    <b>{ linkedMsgContact?.names?.[0]?.firstName || "?" }</b>
+                    <b>{linkedMsgAttaches ? (linkedMsgAttaches + (linkedMsg.text ? "," : "")) : ""}</b>
+                    { linkedMsg.text?.slice(0, 20) + (linkedMsg.text.length > 20 ? "..." : "") }
+                  </p>
+                </div>
+              </div>
+            {/if}
+          {/if}
+
+          {#if isSystem}
+            <p class="line system">{ displaySystemMessage() }</p>
+          {:else}
+            {#if deobfuscated}
+              {#await deobfuscated}
+                <p class="line">Загрузка...</p>
+              {:then text}<p class="line">{@html text }</p>
+              {/await}
+            {:else if lines}
+                {#each lines as line}<p class="line">{line}</p>{/each}
+            {/if}
+
+            {#if msg.attaches}
+              <Attachments
+              getFile={getFile}
+              attaches={msg.attaches}
+              handleMediaClick={handleMediaClick}/>
+            {/if}
+          {/if}
         </div>
-      <Reactions info={msg.reactionInfo} msgId={msg.id} isMe={isMe}/>
-    </div>
+
+        <div class="message-status">
+          <div class="status-meta">
+            {#if msg.stats?.views}
+              <span class="views">
+                <svg viewBox="0 0 24 24" class="views-icon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                {msg.stats.views}
+              </span>
+            {/if}
+            <span class="timestamp">{new Date(msg.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+          </div>
+          {#if isMe && !isSystem}
+            <div class="status-ticks">
+              {#if msg.status === 3}
+                <svg class="status-icon is-read" viewBox="0 0 22 13"><path d="M11 12.025L5 6L6.5 4.5L11 9.52502L20.05 0L21.45 1.425L11 12.025ZM4.9999 12.025L0 7L1.5 5.50002L4.9999 9.5L14.375 0.025L15.8 1.425L4.9999 12.025Z"/></svg>
+              {:else}
+                <svg class="status-icon" viewBox="0 0 24 13"><path d="M6 12.025L0 6L1.5 4.5L6 9.52502L15.05 0L16.45 1.425L6 12.025Z"/></svg>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      </div>
+    <Reactions info={msg.reactionInfo} msgId={msg.id} isMe={isMe}/>
+  </div>
 </div>
 
 <style>
@@ -159,6 +184,8 @@
     width: 100%;
     transition: opacity 0.2s;
     gap: 8px;
+    transition: background 0.5s;
+    width: 100%;
   }
 
   .message-row.inactive { opacity: 0.5; }
@@ -169,6 +196,7 @@
     background: #3a3c55;
     color: #fff;
     padding: 8px 12px;
+    margin-right: 10px;
     border-radius: 18px;
     min-width: 100px;
     max-width: 80%;
@@ -179,7 +207,6 @@
   .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); }
   .message-row.is-deleted .message-bubble { background-color: #c99; }
 
-  /* ссылки или репосты чё это */
   .forward-block {
     border-left: 2px solid #34b7f1;
     padding-left: 8px;
@@ -227,6 +254,7 @@
     opacity: 0.85;
     font-size: 12px;
     background-color: #0001;
+    cursor: pointer;
   }
 
   .reply-content {
@@ -247,7 +275,7 @@
     margin: 0;
     line-height: 1.4;
     word-break: break-word;
-    pointer-events: none;
+    pointer-events: auto;
   }
 
   /*.spinner {

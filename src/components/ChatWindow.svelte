@@ -18,7 +18,7 @@
   import Signature from '$lib/utils/Signature.svelte'
   import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
   import DateSeparator from '$components/ChatWindow/DateSeparator.svelte'
-  import Input from '$components/ChatWindow/Input.svelte'
+  import Input from '$components/ChatWindow/input/Input.svelte'
   import Avatar from '$components/main/Avatar.svelte';
 
   export let chat;
@@ -229,6 +229,8 @@
   }
 
   function handleClick(e) {
+    if (e.target.closest('.reply-block')) return;
+    if (e.target.closest('.forward-block')) return;
     if (dropoutActiveAt) {
       const isOutside = !['.message-actions-dropout'].some(x => e.target.closest(x))
       if (isOutside) {
@@ -255,7 +257,9 @@
   }
 
   function selectMessage(e, msg) {
-    if (e.target.closest('.grid-item')) return;
+    if (
+      e.target.closest('.grid-item') || e.target.closest('.reply-block')
+    ) return;
 
     const dx = Math.abs(e.clientX - clickStartPos.x);
     const dy = Math.abs(e.clientY - clickStartPos.y);
@@ -367,9 +371,10 @@
           on:click|stopPropagation={e => selectMessage(e, msg)}>
           <Message
             {msg}
+            {chat}
             dropoutActiveAt={dropoutActiveAt}
             deobfuscated={deobfuscate_msg(msg)}
-            chat={chat}
+            scrollElement={scrollElement}
             on:openMedia={(e) => openMedia(e.detail.attach)}
             on:openChat={(e) => {
               dispatch('chat', e.detail)
@@ -433,7 +438,7 @@
     justify-content: space-between;
     flex-direction: row;
     align-items: center;
-    padding: 10px 0;
+    padding: 11px 0;
     height: 32px;
     cursor: grab;
     flex-shrink: 0;
@@ -527,7 +532,6 @@
   .message-list-container {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
