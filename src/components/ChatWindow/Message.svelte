@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
   import { getAttachText } from '$components/main/attachs.js';
+  import MessagePreview from '$components/main/MessagePreview.svelte';
   import { openPath } from '@tauri-apps/plugin-opener';
   import Avatar from '$components/main/Avatar.svelte';
   import Reactions from './Reactions.svelte';
@@ -68,7 +69,6 @@
   const linkedMsg = msg.link && msg.link.message;
   const forwardLines = linkedMsg?.text?.split("\n");
   const linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
-  const linkedMsgAttaches = linkedMsg && getAttachText(chat, linkedMsg);
 </script>
 
 <div class="message-row"
@@ -122,8 +122,7 @@
                 <div class="reply-content">
                   <p class="line allow-selection">
                     <b>{ linkedMsgContact?.names?.[0]?.firstName || "?" }</b>
-                    <b>{linkedMsgAttaches ? (linkedMsgAttaches + (linkedMsg.text ? "," : "")) : ""}</b>
-                    { linkedMsg.text?.slice(0, 20) + (linkedMsg.text.length > 20 ? "..." : "") }
+                    <MessagePreview chat={chat} msg={linkedMsg} cut={true}/>
                   </p>
                 </div>
               </div>

@@ -4,6 +4,7 @@
   import { writable, get } from 'svelte/store';
 
   import Message from '$components/ChatWindow/Message.svelte';
+  import PinnedMessage from '$components/ChatWindow/PinnedMessage.svelte'
   import Bubbles from '$components/Bubbles.svelte';
   import '$lib/styles/AnimatedPanel.css';
   import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts, currentSessionChats } from '$lib/stores/api'
@@ -303,6 +304,8 @@
       }
     }
   });
+
+  console.log(chat)
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -362,6 +365,10 @@
     class="message-list-container grab-scroll"
   >
     <E2eModal gotSecretChatRequest={gotSecretChatRequest}/>
+
+    {#if chat.pinnedMessage}
+      <PinnedMessage msg={chat.pinnedMessage} chat={chat}/>
+    {/if}
 
     {#each uiMessages as msg (msg.id)}
       <DateSeparator msg={msg} bind:lastDate={lastDate}/>
