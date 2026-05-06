@@ -5,6 +5,7 @@
   import { tick } from 'svelte';
 
   import { handleReaction } from '$components/ChatWindow/actions'
+  import { cacheChat } from '$lib/utils/caching';
   import API from '$lib/stores/api'
 
   export let activeAt;
@@ -62,6 +63,16 @@
     dispatch('reply', { id: activeAt.msg.id });
     dispatch('close', {});
 
+    if (onBack.dropout) delete onBack['dropout'];
+  }
+
+  async function handlePinMessage() {
+    const response = await $API.pinMessage(chat.id, activeAt.msg.id)
+
+    console.log(response);
+    cacheChat(response.chat);
+
+    dispatch('close', {});
     if (onBack.dropout) delete onBack['dropout'];
   }
 </script>

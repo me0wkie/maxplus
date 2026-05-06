@@ -18,6 +18,8 @@
         if (log.response) return 'response';
         return 'generic';
     };
+
+    // !!! не отображается актуальный messageId из-за обрезки integer
 </script>
 
 <div class="logs-page">

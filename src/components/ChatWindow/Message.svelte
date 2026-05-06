@@ -28,10 +28,11 @@
     const event = msg.attaches?.[0]?.event;
     if (event === 'botStarted') return "Вы запустили бота!";
     const first = msg.attaches?.[0];
-    if (event === 'new') return "Чат " + first.title + " создан";
+    if (event === 'new') return "Чат " + first.title + " создан!";
     if (event === 'icon') return "Фото чата изменено";
-    if (event === 'joinByLink') return "Вы вступили по ссылке";
+    if (event === 'joinByLink') return "Вы вступили по ссылке!";
     if (event === 'system') return first.message;
+    if (msg.text) return msg.text;
     return event;
   }
 
@@ -66,9 +67,18 @@
     }, 1000);
   }
 
-  const linkedMsg = msg.link && msg.link.message;
+  $: linkedMsg = (() => {
+    if (msg.link) return msg.link.message;
+    if (isSystem) {
+      return msg.attaches[0].pinnedMessage;
+    }
+    return undefined;
+  })();
+  $: linkedType = msg.link ? msg.link.type : 'REPLY';
   const forwardLines = linkedMsg?.text?.split("\n");
   const linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
+
+  console.log(isSystem, linkedMsg)
 </script>
 
 <div class="message-row"
@@ -87,7 +97,7 @@
         <div class="text">
 
           {#if linkedMsg}
-            {#if msg.link.type === 'FORWARD'}
+            {#if linkedType === 'FORWARD'}
               <div class="forward-block">
                 <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
                   {#if msg.link.chatIconUrl}
@@ -115,7 +125,7 @@
                   handleMediaClick={handleMediaClick}/>
                 {/if}
               </div>
-            {:else if msg.link.type === 'REPLY'}
+            {:else if linkedType === 'REPLY'}
               <div
                 on:click|stopPropagation={openReply}
                 class="reply-block">

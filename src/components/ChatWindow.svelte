@@ -22,7 +22,9 @@
   import Input from '$components/ChatWindow/input/Input.svelte'
   import Avatar from '$components/main/Avatar.svelte';
 
-  export let chat;
+  export let chatId;
+  const chat = $currentSessionChats.find(c => c.id === chatId);
+  console.log(chat)
 
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
@@ -285,13 +287,7 @@
     }
     else {
       if (!chat.type) {
-        const response = await $API.getChat(chat.id)
-        console.log(response)
-        if (!response.chats.length) {
-          return alert("Не удалось получить информацию о чате.")
-        }
-        Caching.cacheChat(response.chats[0])
-        chat = $currentSessionChats.find(x => x.id === chat.id)
+        return;
       }
 
       if (chat.id < 0) {
@@ -304,8 +300,6 @@
       }
     }
   });
-
-  console.log(chat)
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>

@@ -24,28 +24,27 @@
     active = detail.index;
   }
 
-  function openChat({ detail }) {
+  async function openChat({ detail }) {
     const { chatId, messageId } = detail;
-    const exists = $Session.openedChats.find(c => c.id === chatId);
-    if (exists) {
-      $Session.openedChats = [...$Session.openedChats.filter(c => c.id !== chatId), exists];
-    } else {
-      let chat = $currentSessionChats.find(x => x.id === chatId)
+    const exists = $Session.openedChats.find(id => id === chatId);
+    if (!exists) {
+      let chat = $currentSessionChats.find(x => x.id === chatId);
       if (!chat) {
-        const participants = {}
-        participants[$currentUser] = Date.now()
-        participants[chatId] = Date.now()
-        chat = {
-          id: chatId,
-          participants
+        console.log('no chat found, requesting:', chat)
+        const response = await $API.getChat(chatId);
+        console.log(response);
+        if (!response.chats.length) {
+          return alert("Не удалось получить информацию о чате.")
         }
+        Caching.cacheChat(response.chats[0]);
+        console.log('Чат кеширован')
       }
-      $Session.openedChats = [...$Session.openedChats, { ...chat }];
+      $Session.openedChats = [ ...$Session.openedChats, chatId ];
     }
   }
 
   function closeChat(chatId) {
-    $Session.openedChats = $Session.openedChats.filter(c => c.id !== chatId);
+    $Session.openedChats = $Session.openedChats.filter(id => id !== chatId);
   }
 </script>
 
@@ -59,9 +58,10 @@
     </Card>
   {/each}
   
-  {#each $Session.openedChats as chat (chat.id)}
-    <ChatWindow {chat}
-      on:close={() => closeChat(chat.id)}
+  {#each $Session.openedChats as chatId}
+    <ChatWindow
+      {chatId}
+      on:close={() => closeChat(chatId)}
       on:chat={openChat}
     />
   {/each}

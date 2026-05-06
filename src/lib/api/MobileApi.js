@@ -257,6 +257,11 @@ export default class MobileApi extends BaseAPI {
         if (!reaction) return await invoke('remove_reaction', { chatId, messageId })
         return await invoke('add_reaction', { chatId, messageId, reaction })
     }
+
+    async pinMessage(chatId, messageId) {
+        await this.synchronized;
+        return await invoke('pin_message', { chatId, messageId, notify: true });
+    }
     
     async addContact(name, phone) {
         await this.synchronized;

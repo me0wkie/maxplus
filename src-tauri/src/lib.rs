@@ -180,6 +180,7 @@ pub fn run() {
             commands::send_message,
             commands::add_reaction,
             commands::remove_reaction,
+            commands::pin_message,
             commands::set_token,
             commands::fetch_contacts,
             commands::fetch_history,
