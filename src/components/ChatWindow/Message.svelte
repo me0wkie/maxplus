@@ -75,10 +75,8 @@
     return undefined;
   })();
   $: linkedType = msg.link ? msg.link.type : 'REPLY';
-  const forwardLines = linkedMsg?.text?.split("\n");
-  const linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
-
-  console.log(isSystem, linkedMsg)
+  $: forwardLines = linkedMsg?.text?.split("\n");
+  $: linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
 </script>
 
 <div class="message-row"
@@ -213,7 +211,7 @@
     position: relative;
   }
   .message-row.is-me .message-bubble { background: #7b4cd6; }
-  .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); }
+  .message-row.is-system .message-bubble { background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%); backdrop-filter: blur(2px); }
   .message-row.is-deleted .message-bubble { background-color: #c99; }
 
   .forward-block {
@@ -260,6 +258,8 @@
     border-left: 3px solid #4a90e2;
     padding: 10px 4px 10px 8px;
     margin-bottom: 6px;
+    margin-left: -4px;
+    border-radius: 4px 0 0 0;
     opacity: 0.85;
     font-size: 12px;
     background-color: #0001;
