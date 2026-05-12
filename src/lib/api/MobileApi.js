@@ -260,7 +260,12 @@ export default class MobileApi extends BaseAPI {
         await this.synchronized;
         return await invoke('pin_message', { chatId, messageId, notify: true });
     }
-    
+
+    async deleteMessage(chatId, messageId, forMe) {
+        await this.synchronized;
+        return await invoke('delete_message', { chatId, messageId, forMe });
+    }
+
     async addContact(name, phone) {
         await this.synchronized;
         let oldContact;

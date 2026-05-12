@@ -67,12 +67,21 @@
   }
 
   async function handlePinMessage() {
-    const response = await $API.pinMessage(chat.id, activeAt.msg.id)
+    const response = await $API.pinMessage(chat.id, activeAt.msg.id);
 
-    console.log(response);
     cacheChat(response.chat);
 
     dispatch('close', {});
+    if (onBack.dropout) delete onBack['dropout'];
+  }
+
+  async function handleDeleteMessage() {
+    const response = await $API.deleteMessage(chat.id, activeAt.msg.id, false);
+
+    $API.savedMessages[chat.id] = $API.savedMessages[chat.id]
+      .filter(x => x.id !== activeAt.msg.id);
+
+    dispatch('close', { update: true });
     if (onBack.dropout) delete onBack['dropout'];
   }
 </script>

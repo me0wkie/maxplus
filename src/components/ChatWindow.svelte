@@ -274,7 +274,9 @@
 
   function handleDropout(e) {
     dropoutActiveAt = null;
-    if (e.detail?.update) messages.update(x => x);
+    if (e.detail?.update) {
+      messages.set($API.savedMessages[chat.id]);
+    }
   }
 
   const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
