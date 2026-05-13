@@ -39,7 +39,7 @@
 <style>
   .date-separator {
     text-align: center;
-    margin: 8px 0 16px 0;
+    margin: 8px 0 8px 0;
     color: #aaa;
     position: relative;
   }

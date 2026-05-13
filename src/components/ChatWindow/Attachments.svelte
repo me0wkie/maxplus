@@ -102,6 +102,7 @@
     display: grid;
     gap: 4px;
     margin-top: 6px;
+    margin-right: 8px;
     border-radius: 10px;
     overflow: hidden;
     width: 100%;

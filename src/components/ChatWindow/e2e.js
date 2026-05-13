@@ -70,7 +70,7 @@ async function encryptMessage(chat, text) {
 
 
 function decryptMessage(chatKeysCached, message, deobfuscated) {
-    const entry = chatKeysCached.messages.find(entry => entry.from <= message.id && entry.to >= message.id)
+    const entry = chatKeysCached.messages?.find(entry => entry.from <= message.id && entry.to >= message.id)
     if (!entry) return { error: 'Ключи шифрования не найдены!' };
     return handleIncomingEnvelope(deobfuscated, $currentUser, chatKeysCached.keys[entry.key]);
 }

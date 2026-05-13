@@ -12,3 +12,4 @@ vite.config.ts.timestamp-*
 bun.lock
 .prevgit
 **/*.pem
+**/*.jks

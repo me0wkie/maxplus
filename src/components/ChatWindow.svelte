@@ -535,9 +535,10 @@
   .message-list-container {
     flex-grow: 1;
     overflow-y: auto;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     overflow-anchor: auto !important;
   }
 
