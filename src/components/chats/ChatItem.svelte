@@ -5,6 +5,7 @@
     import Avatar from '$components/main/Avatar.svelte';
 
     export let chat;
+    export let replace;
     export let isSelected = false;    // Выбран ли этот чат
     export let selectionMode = false; // Включен ли вообще режим выбора
 
@@ -20,12 +21,12 @@
         ? 'Избранное'
         : (chat.title || contact?.names?.[0]?.name || 'Без названия');
 
-    $: lastMsg = chat.lastMessage;
-    $: attaches = getAttachText(chat, lastMsg);
+    $: shownMessage = replace?.message || chat.lastMessage;
+    $: attaches = getAttachText(chat, shownMessage);
 
     $: timeDisplay = (() => {
-        if (!lastMsg?.time) return '';
-        const msgDate = new Date(lastMsg.time);
+        if (!shownMessage?.time) return '';
+        const msgDate = new Date(shownMessage.time);
         const now = new Date();
         const isToday = msgDate.getDate() === now.getDate() &&
                         msgDate.getMonth() === now.getMonth() &&
@@ -37,8 +38,8 @@
         return msgDate.toLocaleDateString([], {day: '2-digit', month: '2-digit'});
     })();
 
-    $: isMe = lastMsg?.sender === $currentUser;
-    $: isRead = lastMsg?.read;
+    $: isMe = shownMessage?.sender === $currentUser;
+    $: isRead = shownMessage?.read;
 
     let pressTimer;
     let isLongPress = false;
@@ -102,9 +103,13 @@
             <p class="preview">
                 {#if isMe}<span class="you-prefix">Вы:</span>{/if}
                 {#if attaches}
-                    <b>{ attaches }</b>{#if lastMsg?.text}, {/if}
+                    <b>{ attaches }</b>{#if shownMessage?.text}, {/if}
                 {/if}
-                {lastMsg?.text}
+                {#if replace}
+                    {@html replace.text}
+                {:else}
+                    {shownMessage?.text}
+                {/if}
             </p>
             {#if chat.newMessages > 0}
                 <div class="badge" style="{chat.newMessages >= 99 ? 'width: 26px;' : ''}">

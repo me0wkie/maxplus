@@ -3,7 +3,7 @@
 
   export let chat;
   export let msg;
-  export let cut;
+  export let cut = false;
 
   const attachText = getAttachText(chat, msg);
 

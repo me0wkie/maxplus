@@ -84,7 +84,8 @@ export default class API {
     reaction() { throw "reaction: Unimplemented" }
     addContact() { throw "addContact: Unimplemented" }
     removeContact() { throw "removeContact: Unimplemented" }
-    search() { throw "search: Unimplemented" }
+    searchPublic() { throw "searchPublic: Unimplemented" }
+    searchMsg() { throw "searchMsg: Unimplemented" }
     getVideoById() { throw "getVideoById: Unimplemented" }
     getFileById() { throw "getFileById: Unimplemented" }
     readMessage() { throw "readMessage: Unimplemented" }

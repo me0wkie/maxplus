@@ -327,9 +327,14 @@ export default class MobileApi extends BaseAPI {
         return await invoke('get_file_by_id', { chatId, messageId, fileId });
     }
 
-    async publicSearch(query) {
+    async searchPublic(query) {
         await this.synchronized;
-        return await invoke('public_search', { query, count: 5, type: "ALL" });
+        return await invoke('search_public', { query, count: 5, type: "ALL" });
+    }
+
+    async searchMsg(query) {
+        await this.synchronized;
+        return await invoke('search_msg', { query, count: 30 });
     }
 
     async getChats(chatIds) {

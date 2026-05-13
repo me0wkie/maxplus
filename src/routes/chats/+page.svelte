@@ -7,6 +7,8 @@
   import AddContactBtn from '$components/main/AddContactBtn.svelte';
   import Search from '$components/main/Search.svelte';
   import FolderEditModal from '$components/chats/FolderEditModal.svelte';
+  import { getAttachText } from '$components/main/attachs.js';
+  import { escapeHtml } from '$lib/utils/text.js';
 
   import API, { currentSessionChats, currentSessionContacts, currentSessionCalls, currentRealChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
   import { debounce } from '$lib/utils/debounce.js';
@@ -29,8 +31,9 @@
 
   $: isSelectionMode = selectedChats.size > 0;
 
-  let searchResults = [];
   let searchQuery = "";
+  let searchPublic = [];
+  let searchMsg = [];
 
   receivedMessage.subscribe(msg => {
     if (!msg || !msg.chatId) return;
@@ -164,17 +167,18 @@
     searchQuery = search;
     if (!search.length || await debounce("pubsearch", 700)) return;
     if (!searchQuery.length) {
-      searchResults = [];
+      searchPublic = [];
+      searchMsg = [];
       return;
     }
 
-    const { result } = await $API.publicSearch(search)
+    /* сначала паблики */
+    const { result: publicResult } = await $API.searchPublic(search)
 
-    if (!result) alert("Ошибка поиска!")
+    if (!publicResult) alert("Ошибка поиска!")
 
-    console.log(result)
-
-    for (const entry of result) {
+    for (const entry of publicResult) {
+      /* немного реструктурирования. todo убрать */
       if (entry.chat) entry.chat.avatar = entry.chat.baseIconUrl;
       else if (entry.contact) {
         entry.contact = entry.contact.contact;
@@ -182,7 +186,12 @@
       }
     }
 
-    searchResults = result;
+    searchPublic = publicResult;
+
+    /* потом сообщения */
+    const { result: msgResult } = await $API.searchMsg(search)
+console.log(msgResult)
+    searchMsg = msgResult;
   }
 
   let showFolderModal = false;
@@ -240,29 +249,54 @@
     on:editFolder={(e) => { folderToEdit = e.detail; showFolderModal = true; }}
   />
 
-  {#if searchResults.length && searchQuery.length}
-    {#each searchResults as result, i ((result.chat || result.contact).id)}
-      <ChatItem
-        chat={result.chat || result.contact}
-        on:open={() => {
-          let chatId;
+  {#if searchQuery.length}
+    <div class="search-scrollable">
+      {#if searchPublic.length}
+        {#each searchPublic as result, i ((result.chat || result.contact).id)}
+          <ChatItem
+            chat={result.chat || result.contact}
+            on:open={() => {
+              let chatId;
 
-          if (result.chat) chatId = result.chat.id;
-          else if (result.contact) {
-            const contact = result.contact;
+              if (result.chat) chatId = result.chat.id;
+              else if (result.contact) {
+                const contact = result.contact;
 
-            chatId = $currentUser ^ contact.id;
+                chatId = $currentUser ^ contact.id;
 
-            if (!$currentSessionContacts[contact.id]) {
-              $currentSessionContacts[contact.id] = contact;
-            }
-          }
+                if (!$currentSessionContacts[contact.id]) {
+                  $currentSessionContacts[contact.id] = contact;
+                }
+              }
 
-          dispatch('chat', { chatId })
-        }}
-      />
-    {/each}
-    <hr/>
+              dispatch('chat', { chatId })
+            }}
+          />
+        {/each}
+        <hr/>
+      {/if}
+
+      {#if searchMsg.length}
+        {#each searchMsg as result (result.count)}
+          {@const chat = $currentSessionChats.find(x => x.id === result.chatId)}
+          {#if chat && result.message}
+            {@const hl = result.highlights[0]}
+            <ChatItem
+              chat={chat}
+              replace={{
+                message: result.message,
+                text: escapeHtml(result.message.text).replace(
+                  new RegExp(hl, 'gi'),
+                  `<b>${hl}</b>`
+                )
+              }}
+              on:open={() => dispatch('chat', { chatId: result.chatId })}
+            />
+          {/if}
+        {/each}
+        <hr />
+      {/if}
+    </div>
   {/if}
 
   <div
@@ -424,5 +458,11 @@
     text-align: center;
     color: #777;
     margin-top: 50px;
+  }
+
+  .search-scrollable {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
 </style>
