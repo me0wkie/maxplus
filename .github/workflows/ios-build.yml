@@ -1,4 +1,5 @@
 name: Build Max iOS
+
 on:
   workflow_dispatch:
 
@@ -8,6 +9,8 @@ env:
 jobs:
   build:
     runs-on: macos-14
+    timeout-minutes: 60
+
     steps:
       - uses: actions/checkout@v4
 

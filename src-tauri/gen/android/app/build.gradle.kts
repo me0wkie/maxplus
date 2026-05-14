@@ -26,18 +26,34 @@ android {
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
     }
 	signingConfigs {
-		create("release") {
-		    val keystorePropertiesFile = rootProject.file("keystore.properties")
-		    val keystoreProperties = Properties()
-		    if (keystorePropertiesFile.exists()) {
-		        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
-		    }
-
-		    keyAlias = keystoreProperties["keyAlias"] as String
-		    keyPassword = keystoreProperties["password"] as String
-		    storeFile = file(keystoreProperties["storeFile"] as String)
-		    storePassword = keystoreProperties["password"] as String
-		}
+    create("release") {
+      
+      val isCI = System.getenv("CI") == "true"
+      
+      if (isCI) { // github actions
+        val storeFilePath = System.getenv("ANDROID_KEYSTORE")
+        
+        keyAlias = System.getenv("ANDROID_KEY_ALIAS")
+        keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
+        storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+        storeFile = file(storeFilePath)
+        
+      } else { // using local keystore
+        val keystorePropertiesFile = rootProject.file("keystore.properties")
+        val keystoreProperties = Properties()
+        
+        if (keystorePropertiesFile.exists()) {
+          keystorePropertiesFile.inputStream().use {
+            keystoreProperties.load(it)
+          }
+        }
+        
+        keyAlias = keystoreProperties["keyAlias"] as String
+        keyPassword = keystoreProperties["password"] as String
+        storePassword = keystoreProperties["password"] as String
+        storeFile = file(keystoreProperties["storeFile"] as String)
+      }
+    }
 	}
     buildTypes {
         getByName("debug") {
