@@ -1,4 +1,4 @@
-name: Build Max iOS
+name: Build Max+ iOS
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ env:
 jobs:
   build:
     runs-on: macos-14
-    timeout-minutes: 60
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -81,6 +81,6 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Max-iOS-Build
-          path: Max_Unsigned.ipa
+          name: Mobile-iOS-Build
+          path: maxplus_unsigned.ipa
           if-no-files-found: error
