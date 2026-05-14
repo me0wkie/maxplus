@@ -1,16 +1,16 @@
 <script>
-  import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import { slide, fly } from 'svelte/transition';
-  import { flip } from 'svelte/animate';
-  import { page } from '$app/stores';
-  import API from '$lib/stores/api';
+  import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
+  import { slide, fly } from "svelte/transition";
+  import { flip } from "svelte/animate";
+  import { page } from "$app/stores";
+  import API from "$lib/stores/api";
 
   let sessions = [];
   let loading = true;
   let expandedId = null;
 
-  $: from = $page.url.searchParams.get('from') || "/auth/login";
+  $: from = $page.url.searchParams.get("from") || "/auth/login";
 
   onMount(async () => {
     sessions = [];
@@ -43,7 +43,11 @@
   function formatDate(ms) {
     if (!ms) return "";
     const date = new Date(ms);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return (
+      date.toLocaleDateString() +
+      " " +
+      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    );
   }
 </script>
 
@@ -55,56 +59,60 @@
 
   <div class="sessions-container">
     {#if loading}
-        <div class="status-msg">Загрузка данных...</div>
+      <div class="status-msg">Загрузка данных...</div>
     {:else if sessions.length === 0}
-        <div class="status-msg">Список сессий пуст</div>
+      <div class="status-msg">Список сессий пуст</div>
     {:else}
-        {#each sessions as session, i (session.time + i)}
-          <div
-            animate:flip={{ duration: 300 }}
-            in:fly={{ x: 20, duration: 400, opacity: 0 }}
-            class="session-card"
-            class:expanded={expandedId === session.time}
-            on:click={() => toggleSession(session.time)}
-          >
+      {#each sessions as session, i (session.time + i)}
+        <div
+          animate:flip={{ duration: 300 }}
+          in:fly={{ x: 20, duration: 400, opacity: 0 }}
+          class="session-card"
+          class:expanded={expandedId === session.time}
+          on:click={() => toggleSession(session.time)}
+        >
           <div class="session-header">
             <div class="main-info">
-              <span class="client-name">{session.client || 'Unknown Client'}</span>
+              <span class="client-name"
+                >{session.client || "Unknown Client"}</span
+              >
               <span class="location-brief">
-                {session.location ? session.location.split(',').slice(0, 2).join(',') : 'Unknown Location'}
+                {session.location
+                  ? session.location.split(",").slice(0, 2).join(",")
+                  : "Unknown Location"}
               </span>
             </div>
-            <div class="time-badge">{formatDate(session.time).split(' ')[0]}</div>
+            <div class="time-badge">
+              {formatDate(session.time).split(" ")[0]}
+            </div>
           </div>
 
           {#if expandedId === session.time}
             <div class="session-details" transition:slide={{ duration: 200 }}>
-                <div class="detail-row">
-                  <span class="label">Информация:</span>
-                  <span class="val">{session.info}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Локация и IP:</span>
-                  <span class="val">{session.location}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="label">Дата входа:</span>
-                  <span class="val">{formatDate(session.time)}</span>
-                </div>
+              <div class="detail-row">
+                <span class="label">Информация:</span>
+                <span class="val">{session.info}</span>
               </div>
-            {/if}
-          </div>
-        {/each}
-      {/if}
+              <div class="detail-row">
+                <span class="label">Локация и IP:</span>
+                <span class="val">{session.location}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Дата входа:</span>
+                <span class="val">{formatDate(session.time)}</span>
+              </div>
+            </div>
+          {/if}
+        </div>
+      {/each}
+    {/if}
   </div>
 
   <div class="actions-panel">
-      <button class="terminate-btn" on:click={handleTerminateAll}>
-          Завершить все сессии
-      </button>
-      <button class="back-btn" on:click={() => goto(from)}>
-            Назад
-      </button>
+    <button class="terminate-btn" on:click={handleTerminateAll}>
+      Завершить все сессии
+    </button>
+    <button class="back-btn" on:click={() => goto(from)}> Назад </button>
   </div>
 </div>
 

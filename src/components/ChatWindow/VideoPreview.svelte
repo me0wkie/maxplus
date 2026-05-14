@@ -1,11 +1,11 @@
 <script>
-  import { onMount } from "svelte"
-  import { invoke } from '@tauri-apps/api/core';
+  import { onMount } from "svelte";
+  import { invoke } from "@tauri-apps/api/core";
 
-  export let attach
+  export let attach;
 
-  let thumb = null
-  let loading = true
+  let thumb = null;
+  let loading = true;
 
   /*async function getVideoFrame(fileUrl) {
     const base64 = await invoke('thumbnail', { url: fileUrl })
@@ -17,18 +17,18 @@
     try {
       //thumb = await getVideoFrame(attach.path)
     } catch (e) {
-      console.error("thumbnail error:", e)
+      console.error("thumbnail error:", e);
     } finally {
-      loading = false
+      loading = false;
     }
-  })
+  });
 </script>
 
 <div class="video-wrapper">
   {#if loading}
     <div class="loading">...</div>
   {:else}
-    <img src={thumb}/>
+    <img src={thumb} />
   {/if}
 
   <div class="overlay">▶</div>

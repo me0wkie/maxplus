@@ -1,13 +1,15 @@
 <script>
-  import { getAttachText } from '$components/main/attachs.js';
-  import { currentSessionContacts } from '$lib/stores/api';
+  import { getAttachText } from "$components/main/attachs.js";
+  import { currentSessionContacts } from "$lib/stores/api";
 
   export let replyTo;
   export let messages;
   export let chat;
 
-  $: replyToMsg = $messages.find(x => x.id === replyTo);
-  $: contact = $currentSessionContacts[replyToMsg.sender] || { names: [{ first_name: "?" }] };
+  $: replyToMsg = $messages.find((x) => x.id === replyTo);
+  $: contact = $currentSessionContacts[replyToMsg.sender] || {
+    names: [{ first_name: "?" }],
+  };
   $: attachText = getAttachText(chat, replyToMsg);
 </script>
 
@@ -20,13 +22,12 @@
     </div>
 
     <div class="reply-text">
-      <b>{attachText ? (attachText + (replyToMsg.text ? "," : "")) : ""}</b> {replyToMsg.text}
+      <b>{attachText ? attachText + (replyToMsg.text ? "," : "") : ""}</b>
+      {replyToMsg.text}
     </div>
   </div>
 
-  <button class="reply-close" on:click={() => replyTo = null}>
-    ✕
-  </button>
+  <button class="reply-close" on:click={() => (replyTo = null)}> ✕ </button>
 </div>
 
 <style>

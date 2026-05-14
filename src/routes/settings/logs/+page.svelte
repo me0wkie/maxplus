@@ -1,11 +1,11 @@
 <script>
-  import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
-  import logs, { total } from '$lib/stores/logs';
-  import { slide, fly, fade } from 'svelte/transition';
-  import { flip } from 'svelte/animate';
+  import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
+  import logs, { total } from "$lib/stores/logs";
+  import { slide, fly, fade } from "svelte/transition";
+  import { flip } from "svelte/animate";
 
-  $: from = $page.url.searchParams.get('from') || "/auth/login";
+  $: from = $page.url.searchParams.get("from") || "/auth/login";
 
   let expandedId = null;
 
@@ -14,14 +14,14 @@
   };
 
   const getLogType = (log) => {
-    if (log.request) return 'request';
-    if (log.response) return 'response';
-    return 'generic';
+    if (log.request) return "request";
+    if (log.response) return "response";
+    return "generic";
   };
 
-  $: preparedLogs = $logs.map(log => ({
+  $: preparedLogs = $logs.map((log) => ({
     ...log,
-    formatted: JSON.stringify(log.data, null, 1)
+    formatted: JSON.stringify(log.data, null, 1),
   }));
 
   // !!! не отображается актуальный messageId из-за обрезки integer
@@ -58,7 +58,7 @@
 
   <div class="footer-panel">
     <button class="back-btn" on:click={() => goto(from)}>
-        Вернуться назад
+      Вернуться назад
     </button>
   </div>
 </div>
@@ -132,7 +132,7 @@
     align-items: center;
     padding: 10px 15px;
     gap: 12px;
-    font-family: 'Fira Code', monospace;
+    font-family: "Fira Code", monospace;
     font-size: 0.85rem;
   }
 
@@ -152,10 +152,22 @@
     text-align: center;
   }
 
-  .request .badge { background: #3b82f6; color: white; }
-  .response .badge { background: #10b981; color: white; }
-  .error .badge { background: #f22727; color: white; }
-  .generic .badge { background: #6b7280; color: white; }
+  .request .badge {
+    background: #3b82f6;
+    color: white;
+  }
+  .response .badge {
+    background: #10b981;
+    color: white;
+  }
+  .error .badge {
+    background: #f22727;
+    color: white;
+  }
+  .generic .badge {
+    background: #6b7280;
+    color: white;
+  }
 
   .log-content {
     padding: 0 15px 15px 15px;

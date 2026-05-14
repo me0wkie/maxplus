@@ -1,18 +1,22 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import { goto } from '$app/navigation';
-  import API, { currentSessionContacts, currentRealContacts, currentUser } from '$lib/stores/api';
-  import { set as sessionSet } from '$lib/stores/session';
-  import Search from '$components/main/Search.svelte';
-  import ConfirmModal from '$components/main/ConfirmModal.svelte';
-  import Avatar from '$components/main/Avatar.svelte';
+  import { createEventDispatcher } from "svelte";
+  import { goto } from "$app/navigation";
+  import API, {
+    currentSessionContacts,
+    currentRealContacts,
+    currentUser,
+  } from "$lib/stores/api";
+  import { set as sessionSet } from "$lib/stores/session";
+  import Search from "$components/main/Search.svelte";
+  import ConfirmModal from "$components/main/ConfirmModal.svelte";
+  import Avatar from "$components/main/Avatar.svelte";
 
-  import AddContactBtn from '$components/main/AddContactBtn.svelte';
+  import AddContactBtn from "$components/main/AddContactBtn.svelte";
 
-  import Signature from '$lib/utils/Signature.svelte';
-  import '$lib/styles/AnimatedPanel.css';
+  import Signature from "$lib/utils/Signature.svelte";
+  import "$lib/styles/AnimatedPanel.css";
 
-  const dispatch = createEventDispatcher()
+  const dispatch = createEventDispatcher();
 
   let grouped = {};
   let filter = "";
@@ -24,24 +28,33 @@
 
     let rawData;
     if (showAll) {
-      rawData = Object.entries($currentSessionContacts).map(([id, c]) => ({ id, ...c }));
-    } else {
-      rawData = $currentRealContacts.map(id => ({
+      rawData = Object.entries($currentSessionContacts).map(([id, c]) => ({
         id,
-        ...$currentSessionContacts[id]
-      }))
+        ...c,
+      }));
+    } else {
+      rawData = $currentRealContacts.map((id) => ({
+        id,
+        ...$currentSessionContacts[id],
+      }));
     }
 
-    const contacts = rawData.filter(x =>
-      x.id !== $currentUser
-      && (!filter || x.names[0].name.match(new RegExp(filter, 'i')))
-      && (showAll || x.options?.includes("TT") && x.status !== "REMOVED" && x.accountStatus !== undefined)
+    const contacts = rawData.filter(
+      (x) =>
+        x.id !== $currentUser &&
+        (!filter || x.names[0].name.match(new RegExp(filter, "i"))) &&
+        (showAll ||
+          (x.options?.includes("TT") &&
+            x.status !== "REMOVED" &&
+            x.accountStatus !== undefined)),
     );
 
-    contacts.sort((a, b) => (a.names?.[0]?.name || '').localeCompare(b.names?.[0]?.name || '', 'ru'));
+    contacts.sort((a, b) =>
+      (a.names?.[0]?.name || "").localeCompare(b.names?.[0]?.name || "", "ru"),
+    );
 
     return contacts.reduce((acc, c) => {
-      const letter = (c.names?.[0]?.name || '').charAt(0).toUpperCase();
+      const letter = (c.names?.[0]?.name || "").charAt(0).toUpperCase();
       if (!acc[letter]) acc[letter] = [];
       acc[letter].push(c);
       return acc;
@@ -52,22 +65,22 @@
     await $API.removeContact(id);
   }
 
-  const search = query => {
+  const search = (query) => {
     filter = query;
-  }
+  };
 
-  const filterSwap = event => {
+  const filterSwap = (event) => {
     showAll = event?.target?.checked || false;
-  }
+  };
 
   const open = (e, contact) => {
-    const toDelete = ['.delete'].some(x => e.target.closest(x));
+    const toDelete = [".delete"].some((x) => e.target.closest(x));
     if (toDelete) {
       removeContact(contact.id);
     } else {
-      sessionSet('profile', { userId: contact.id });
+      sessionSet("profile", { userId: contact.id });
     }
-  }
+  };
 
   function deleteSelected() {
     if (selectedChats.size === 0) return;
@@ -80,7 +93,6 @@
     clearSelection();
     showDeleteConfirm = false;
   }
-
 </script>
 
 <div class="container">
@@ -88,10 +100,10 @@
     <div class="row">
       <h3 style="margin-left: 15px;">Контакты</h3>
       <div style="margin-right: 15px;" class="flex-end">
-        <AddContactBtn/>
+        <AddContactBtn />
+      </div>
     </div>
-    </div>
-    <Search input={search} placeholder="Имя, фамилия или ник"/>
+    <Search input={search} placeholder="Имя, фамилия или ник" />
   </header>
 
   {#if showDeleteConfirm}
@@ -100,7 +112,7 @@
       message={`Вы точно хотите удалить выбранные чаты (${selectedChats.size})? Это действие нельзя отменить.`}
       confirmText="Удалить"
       isDangerous={true}
-      on:cancel={() => showDeleteConfirm = false}
+      on:cancel={() => (showDeleteConfirm = false)}
       on:confirm={onConfirmDelete}
     />
   {/if}
@@ -118,26 +130,24 @@
 
   <main class="content">
     {#each Object.keys(grouped) as letter}
-      <a>{ letter }</a>
+      <a>{letter}</a>
       {#each grouped[letter] as contact}
-      <div class="contact"
-            on:click={e => open(e, contact)}
-            >
-          <Avatar contact={contact} size={44}/>
+        <div class="contact" on:click={(e) => open(e, contact)}>
+          <Avatar {contact} size={44} />
           <div class="column">
             <div class="name">
-                { contact.names[0].name }
+              {contact.names[0].name}
             </div>
-            <a><Signature contact={contact}/></a>
+            <a><Signature {contact} /></a>
           </div>
           <div class="action">
-              {#if $currentRealContacts.includes(contact.id) && contact.status !== "REMOVED"}
-                <a class="delete">Удалить</a>
-              {:else}
-                <a>Не контакт</a>
-              {/if}
+            {#if $currentRealContacts.includes(contact.id) && contact.status !== "REMOVED"}
+              <a class="delete">Удалить</a>
+            {:else}
+              <a>Не контакт</a>
+            {/if}
           </div>
-      </div>
+        </div>
       {/each}
     {/each}
     {#if Object.keys(grouped).length === 0}
@@ -150,7 +160,7 @@
   .container {
     overflow: hidden;
   }
-  
+
   header {
     z-index: 10;
     display: flex;
@@ -168,7 +178,7 @@
     font-size: 18px;
     color: #ccc;
   }
-  
+
   .row {
     width: 100%;
     display: flex;
@@ -177,12 +187,12 @@
     align-items: center;
     margin-bottom: 4px;
   }
-  
+
   .flex-end {
     display: flex;
     gap: 15px;
   }
-  
+
   .showAll {
     color: #999;
     width: 100%;
@@ -233,8 +243,6 @@
     border-color: #4f46e5;
   }
 
-  
-
   .content {
     height: calc(100% - 140px);
     color: #ccc;
@@ -245,7 +253,7 @@
     overflow-y: scroll;
     overflow-x: hidden;
   }
-  
+
   .contact {
     position: relative;
     height: 40px;
@@ -261,22 +269,22 @@
     display: flex;
     flex-direction: column;
   }
-  
+
   .contact .name {
     font-size: 14px;
     display: flex;
   }
-  
+
   .contact a {
     font-size: 12px;
     color: #999;
     position: relative;
   }
-  
+
   .contact .delete {
     color: #f88;
   }
-  
+
   .contact .action {
     position: absolute;
     right: 10px;

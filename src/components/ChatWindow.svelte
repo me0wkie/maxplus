@@ -1,30 +1,46 @@
 <script>
-  import { createEventDispatcher, getContext, onMount, onDestroy, tick } from 'svelte';
-  import { fade, fly } from 'svelte/transition';
-  import { writable, get } from 'svelte/store';
+  import {
+    createEventDispatcher,
+    getContext,
+    onMount,
+    onDestroy,
+    tick,
+  } from "svelte";
+  import { fade, fly } from "svelte/transition";
+  import { writable, get } from "svelte/store";
 
-  import Message from '$components/ChatWindow/Message.svelte';
-  import PinnedMessage from '$components/ChatWindow/PinnedMessage.svelte'
-  import Bubbles from '$components/Bubbles.svelte';
-  import '$lib/styles/AnimatedPanel.css';
-  import API, { currentUser, receivedMessage, chatMessages, chatKeys, currentSessionContacts, currentSessionChats } from '$lib/stores/api'
-  import Session from '$lib/stores/session'
-  import { handleReaction } from '$components/ChatWindow/actions.js'
-  import { checkForEncryptionRequest, deobfuscate_msg } from '$components/ChatWindow/e2e.js'
-  import { scrollToBottom } from '$lib/utils/scroll.js';
-  import * as Caching from '$lib/utils/caching.js'
-  import Settings from '$components/ChatWindow/Settings.svelte'
-  import E2eModal from '$components/ChatWindow/E2eModal.svelte'
-  import Dropout from '$components/ChatWindow/Dropout.svelte'
-  import Signature from '$lib/utils/Signature.svelte'
-  import MediaViewer from '$components/ChatWindow/MediaViewer.svelte'
-  import DateSeparator from '$components/ChatWindow/DateSeparator.svelte'
-  import Input from '$components/ChatWindow/input/Input.svelte'
-  import Avatar from '$components/main/Avatar.svelte';
+  import Message from "$components/ChatWindow/Message.svelte";
+  import PinnedMessage from "$components/ChatWindow/PinnedMessage.svelte";
+  import Bubbles from "$components/Bubbles.svelte";
+  import "$lib/styles/AnimatedPanel.css";
+  import API, {
+    currentUser,
+    receivedMessage,
+    chatMessages,
+    chatKeys,
+    currentSessionContacts,
+    currentSessionChats,
+  } from "$lib/stores/api";
+  import Session from "$lib/stores/session";
+  import { handleReaction } from "$components/ChatWindow/actions.js";
+  import {
+    checkForEncryptionRequest,
+    deobfuscate_msg,
+  } from "$components/ChatWindow/e2e.js";
+  import { scrollToBottom } from "$lib/utils/scroll.js";
+  import * as Caching from "$lib/utils/caching.js";
+  import Settings from "$components/ChatWindow/Settings.svelte";
+  import E2eModal from "$components/ChatWindow/E2eModal.svelte";
+  import Dropout from "$components/ChatWindow/Dropout.svelte";
+  import Signature from "$lib/utils/Signature.svelte";
+  import MediaViewer from "$components/ChatWindow/MediaViewer.svelte";
+  import DateSeparator from "$components/ChatWindow/DateSeparator.svelte";
+  import Input from "$components/ChatWindow/input/Input.svelte";
+  import Avatar from "$components/main/Avatar.svelte";
 
   export let chatId;
-  const chat = $currentSessionChats.find(c => c.id === chatId);
-  console.log(chat)
+  const chat = $currentSessionChats.find((c) => c.id === chatId);
+  console.log(chat);
 
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
@@ -56,21 +72,25 @@
   const messages = writable($API.savedMessages[chat.id] || []);
   let initialized = false;
 
-  messages.subscribe(async _messages => {
+  messages.subscribe(async (_messages) => {
     if (_messages.length) await chatMessages.set(chat.id, _messages);
-  })
+  });
 
   const BATCH_SIZE = 50;
 
-  const avatarUserId = chat.type === 'DIALOG' ? chat.id ^ $currentUser : undefined;
-  const onBack = getContext('onBack');
+  const avatarUserId =
+    chat.type === "DIALOG" ? chat.id ^ $currentUser : undefined;
+  const onBack = getContext("onBack");
 
-  onBack['chat'] = () => { dispatch('close'); delete onBack['chat']; };
+  onBack["chat"] = () => {
+    dispatch("close");
+    delete onBack["chat"];
+  };
 
   onDestroy(() => {
-    delete onBack['chat'];
-    if (onBack.dropout) delete onBack['dropout'];
-    if (onBack.chatSettings) delete onBack['chatSettings'];
+    delete onBack["chat"];
+    if (onBack.dropout) delete onBack["dropout"];
+    if (onBack.chatSettings) delete onBack["chatSettings"];
   });
 
   onMount(async () => {
@@ -91,16 +111,16 @@
     startY = e.pageY;
     startScrollTop = scrollElement.scrollTop;
 
-    scrollElement.style.cursor = 'grabbing';
-    document.body.style.userSelect = 'none';
+    scrollElement.style.cursor = "grabbing";
+    document.body.style.userSelect = "none";
   }
 
   function stopDrag() {
     isDragging = false;
     if (scrollElement) {
-      scrollElement.style.cursor = 'grab';
+      scrollElement.style.cursor = "grab";
     }
-    document.body.style.userSelect = '';
+    document.body.style.userSelect = "";
   }
 
   function moveDrag(e) {
@@ -124,7 +144,9 @@
     try {
       if (!initialized || isInitial) {
         if (!$messages.length) {
-          const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
+          const { error, messages: syncedMessages } = await $API.getMessages(
+            chat.id,
+          );
           if (error) throw new Error(error);
 
           messages.set(syncedMessages);
@@ -140,15 +162,20 @@
         const oldestMsg = uiMessages[0];
         const fromTime = oldestMsg ? oldestMsg.time : Date.now();
 
-        const { error, messages: syncedMessages } = await $API.getMessages(chat.id, fromTime);
+        const { error, messages: syncedMessages } = await $API.getMessages(
+          chat.id,
+          fromTime,
+        );
 
         if (!error && syncedMessages.length > 0) {
           const currentMsgs = get(messages);
-          const existingIds = new Set(currentMsgs.map(m => m.id));
-          const newUniqueMessages = syncedMessages.filter(m => !existingIds.has(m.id));
+          const existingIds = new Set(currentMsgs.map((m) => m.id));
+          const newUniqueMessages = syncedMessages.filter(
+            (m) => !existingIds.has(m.id),
+          );
 
           if (newUniqueMessages.length > 0) {
-            messages.update(msgs => [...msgs, ...newUniqueMessages]);
+            messages.update((msgs) => [...msgs, ...newUniqueMessages]);
             await tick();
 
             if (scrollElement) {
@@ -162,7 +189,7 @@
           all_loaded = true;
         }
       }
-      console.log($messages)
+      console.log($messages);
     } catch (e) {
       console.error(e);
     } finally {
@@ -172,38 +199,41 @@
     }
   };
 
-  receivedMessage.subscribe(async message => {
+  receivedMessage.subscribe(async (message) => {
     if (!message || message.chatId !== chat.id) return;
 
     let wasAtBottom = false;
     if (scrollElement) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollElement;
-        wasAtBottom = (scrollHeight - scrollTop - clientHeight) < 150;
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      wasAtBottom = scrollHeight - scrollTop - clientHeight < 150;
     }
 
-    messages.update(_messages => {
-      const idx = _messages.findIndex(x => x.id === message.id)
+    messages.update((_messages) => {
+      const idx = _messages.findIndex((x) => x.id === message.id);
       if (idx !== -1) _messages[idx] = message;
       else _messages.push(message);
       return _messages;
-    })
+    });
 
     if (message.sender === $currentUser || wasAtBottom) {
-        await tick();
-        scrollToBottom(scrollElement, true);
+      await tick();
+      scrollToBottom(scrollElement, true);
     }
 
-    checkForEncryptionRequest(chat, chatKeysLoaded, [ message ])
-  })
+    checkForEncryptionRequest(chat, chatKeysLoaded, [message]);
+  });
 
   function handleScroll(event) {
     const target = event.currentTarget;
 
-    const distanceFromBottom = scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight;
+    const distanceFromBottom =
+      scrollElement.scrollHeight -
+      scrollElement.scrollTop -
+      scrollElement.clientHeight;
     showScrollDown = distanceFromBottom > 50;
 
     if (target.scrollTop < 200 && !loading && !all_loaded) {
-      if(scrollLoaderTimeout) return;
+      if (scrollLoaderTimeout) return;
       scrollLoaderTimeout = setTimeout(async () => {
         await loadHistory();
         scrollLoaderTimeout = null;
@@ -211,19 +241,20 @@
     }
   }
 
-  $: allMedia = uiMessages.flatMap(m =>
+  $: allMedia = uiMessages.flatMap((m) =>
     (m.attaches || [])
-      .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO')
-      .map(a => ({
+      .filter((a) => a._type === "PHOTO" || a._type === "VIDEO")
+      .map((a) => ({
         ...a,
         messageId: m.id,
-        uid: a.videoId || a.photoId || a.url || a.baseUrl
-      }))
+        uid: a.videoId || a.photoId || a.url || a.baseUrl,
+      })),
   );
 
   function openMedia(attach) {
-    const targetUid = attach.videoId || attach.photoId || attach.url || attach.baseUrl;
-    const index = allMedia.findIndex(m => m.uid === targetUid);
+    const targetUid =
+      attach.videoId || attach.photoId || attach.url || attach.baseUrl;
+    const index = allMedia.findIndex((m) => m.uid === targetUid);
 
     if (index !== -1) {
       viewerIndex = index;
@@ -232,37 +263,44 @@
   }
 
   function handleClick(e) {
-    if (e.target.closest('.reply-block')) return;
-    if (e.target.closest('.forward-block')) return;
+    if (e.target.closest(".reply-block")) return;
+    if (e.target.closest(".forward-block")) return;
     if (dropoutActiveAt) {
-      const isOutside = !['.message-actions-dropout'].some(x => e.target.closest(x))
+      const isOutside = ![".message-actions-dropout"].some((x) =>
+        e.target.closest(x),
+      );
       if (isOutside) {
         dropoutActiveAt = null;
         e.stopPropagation();
-        if (onBack.dropout) delete onBack['dropout'];
+        if (onBack.dropout) delete onBack["dropout"];
       }
     }
     if (attachesDropout) {
-      const isOutside = !e.target.closest('.attaches-dropout') && !e.target.closest('.send-button');
+      const isOutside =
+        !e.target.closest(".attaches-dropout") &&
+        !e.target.closest(".send-button");
       if (isOutside) {
         attachesDropout = null;
         e.stopPropagation();
       }
     }
-    const reactionClicked = ['.reaction'].some(x => e.target.closest(x))
+    const reactionClicked = [".reaction"].some((x) => e.target.closest(x));
     if (reactionClicked) {
       const reaction = e.target.childNodes[0].nodeValue.trim();
       const msgId = e.target.parentNode.dataset.msgId;
-      handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
-      messages.update(x => x);
+      handleReaction(
+        chat,
+        $messages.find((x) => x.id === msgId),
+        reaction,
+      );
+      messages.update((x) => x);
       e.stopPropagation();
     }
   }
 
   function selectMessage(e, msg) {
-    if (
-      e.target.closest('.grid-item') || e.target.closest('.reply-block')
-    ) return;
+    if (e.target.closest(".grid-item") || e.target.closest(".reply-block"))
+      return;
 
     const dx = Math.abs(e.clientX - clickStartPos.x);
     const dy = Math.abs(e.clientY - clickStartPos.y);
@@ -279,25 +317,27 @@
     }
   }
 
-  const openSettings = () => { showSettings = !showSettings; if (showSettings) onBack.chatSettings = () => showSettings = false; else delete onBack['chatSettings']; }
+  const openSettings = () => {
+    showSettings = !showSettings;
+    if (showSettings) onBack.chatSettings = () => (showSettings = false);
+    else delete onBack["chatSettings"];
+  };
 
   let title;
 
   onMount(async () => {
     if (chat.id === 0) {
-        title = "Избранное"
-    }
-    else {
+      title = "Избранное";
+    } else {
       if (!chat.type) {
         return;
       }
 
       if (chat.id < 0) {
-        console.log('CHANNEL')
+        console.log("CHANNEL");
 
         title = chat.title;
-      }
-      else {
+      } else {
         title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
       }
     }
@@ -305,50 +345,57 @@
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
-  <Bubbles/>
+  <Bubbles />
 
   {#if viewerOpen}
     <MediaViewer
-    chatId={chat.id}
-    bind:index={viewerIndex}
-    allMedia={allMedia}
-    on:close={() => viewerOpen = false}
+      chatId={chat.id}
+      bind:index={viewerIndex}
+      {allMedia}
+      on:close={() => (viewerOpen = false)}
     />
   {/if}
 
   <header>
     <div class="align-left">
-      <button class="icon-button" on:click|stopPropagation={() => dispatch('close')}>
-        <img src="icons/arrow.svg" style="transform: scale(-1.5)"/>
+      <button
+        class="icon-button"
+        on:click|stopPropagation={() => dispatch("close")}
+      >
+        <img src="icons/arrow.svg" style="transform: scale(-1.5)" />
       </button>
-      <div class="row" on:click={() => {
-        if (chat.type === 'DIALOG') $Session.profile = { userId: $currentUser ^ chat.id };
-        else $Session.profile = { chatId: chat.id };
-      }}>
-      <Avatar size={36} chat={chat} style="margin-left: -8px"/>
-      <div class="info">
-        <a class="title">{ title }</a>
+      <div
+        class="row"
+        on:click={() => {
+          if (chat.type === "DIALOG")
+            $Session.profile = { userId: $currentUser ^ chat.id };
+          else $Session.profile = { chatId: chat.id };
+        }}
+      >
+        <Avatar size={36} {chat} style="margin-left: -8px" />
+        <div class="info">
+          <a class="title">{title}</a>
           <a class="presence">
-            {#if chat.type === 'DIALOG' && chat.id !== 0}
-              <Signature chat={chat} />
-            {:else if chat.type === 'CHANNEL'}
+            {#if chat.type === "DIALOG" && chat.id !== 0}
+              <Signature {chat} />
+            {:else if chat.type === "CHANNEL"}
               {chat.participantsCount} подписчиков
             {/if}
           </a>
-      </div>
+        </div>
       </div>
     </div>
     <div class="align-right">
       {#if chat.type !== "CHANNEL"}
         <button class="icon-button" on:click|stopPropagation={openSettings}>
-        <img src="icons/params.svg"/>
+          <img src="icons/params.svg" />
         </button>
       {/if}
     </div>
   </header>
 
   {#if chat.type !== "CHANNEL"}
-    <Settings chat={chat} chatKeysLoaded={chatKeysLoaded} messages={messages} showSettings={showSettings}/>
+    <Settings {chat} {chatKeysLoaded} {messages} {showSettings} />
   {/if}
 
   <div
@@ -360,27 +407,29 @@
     on:mousemove={moveDrag}
     class="message-list-container grab-scroll"
   >
-    <E2eModal gotSecretChatRequest={gotSecretChatRequest}/>
+    <E2eModal {gotSecretChatRequest} />
 
     {#if chat.pinnedMessage}
-      <PinnedMessage msg={chat.pinnedMessage} chat={chat}/>
+      <PinnedMessage msg={chat.pinnedMessage} {chat} />
     {/if}
 
     {#each uiMessages as msg (msg.id)}
-      <DateSeparator msg={msg} bind:lastDate={lastDate}/>
+      <DateSeparator {msg} bind:lastDate />
 
       <div class="message-wrapper">
-        <div class="message-clickable-area"
-          on:click|stopPropagation={e => selectMessage(e, msg)}>
+        <div
+          class="message-clickable-area"
+          on:click|stopPropagation={(e) => selectMessage(e, msg)}
+        >
           <Message
             {msg}
             {chat}
-            dropoutActiveAt={dropoutActiveAt}
+            {dropoutActiveAt}
             deobfuscated={deobfuscate_msg(msg)}
-            scrollElement={scrollElement}
+            {scrollElement}
             on:openMedia={(e) => openMedia(e.detail.attach)}
             on:openChat={(e) => {
-              dispatch('chat', e.detail)
+              dispatch("chat", e.detail);
             }}
           />
         </div>
@@ -392,28 +441,29 @@
 
   <Dropout
     activeAt={dropoutActiveAt}
-    chat={chat}
-    on:reply={e => replyTo = e.detail.id}
-    on:close={handleDropout}/>
+    {chat}
+    on:reply={(e) => (replyTo = e.detail.id)}
+    on:close={handleDropout}
+  />
 
   {#if chat.type !== "CHANNEL"}
-    <Input
-      bind:replyTo={replyTo}
-      scrollElement={scrollElement}
-      chat={chat}
-      messages={messages}
-      chatKeysLoaded={chatKeysLoaded}
-    />
+    <Input bind:replyTo {scrollElement} {chat} {messages} {chatKeysLoaded} />
   {/if}
 
   {#if showScrollDown}
     <button
       in:fade={{ duration: 100 }}
-      out:fade ={{ duration: 100 }}
+      out:fade={{ duration: 100 }}
       class="scroll-down-btn"
-      class:nije={ chat.type === 'CHANNEL' }
-      on:click={() => scrollToBottom(scrollElement, true)}>
-      <svg viewBox="0 0 640 640"><path fill="#777" d="M297.4 470.6C309.9 483.1 330.2 483.1 342.7 470.6L534.7 278.6C547.2 266.1 547.2 245.8 534.7 233.3C522.2 220.8 501.9 220.8 489.4 233.3L320 402.7L150.6 233.4C138.1 220.9 117.8 220.9 105.3 233.4C92.8 245.9 92.8 266.2 105.3 278.7L297.3 470.7z"/></svg>
+      class:nije={chat.type === "CHANNEL"}
+      on:click={() => scrollToBottom(scrollElement, true)}
+    >
+      <svg viewBox="0 0 640 640"
+        ><path
+          fill="#777"
+          d="M297.4 470.6C309.9 483.1 330.2 483.1 342.7 470.6L534.7 278.6C547.2 266.1 547.2 245.8 534.7 233.3C522.2 220.8 501.9 220.8 489.4 233.3L320 402.7L150.6 233.4C138.1 220.9 117.8 220.9 105.3 233.4C92.8 245.9 92.8 266.2 105.3 278.7L297.3 470.7z"
+        /></svg
+      >
     </button>
   {/if}
 </div>

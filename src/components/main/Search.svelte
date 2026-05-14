@@ -1,32 +1,33 @@
 <script>
   export let placeholder;
   export let input; // func
-  
+
   let focused = false;
   let query = "";
-  
-  // Реактивный поиск
+
   $: input && input(query);
 
   function handleClickOutside(event) {
-  const isOutside = !['.search-block','.search-overlay'].some(x => event.target.closest(x))
+    const isOutside = ![".search-block", ".search-overlay"].some((x) =>
+      event.target.closest(x),
+    );
     if (isOutside) {
-        focused = false;
+      focused = false;
     }
   }
 </script>
 
-<div class="search-block" class:active={ focused }>
-  <img src="icons/search.svg"/>
+<div class="search-block" class:active={focused}>
+  <img src="icons/search.svg" />
   {#if !query.length}
-    <a>{ placeholder }</a>
+    <a>{placeholder}</a>
   {/if}
   <input
     type="text"
     placeholder=""
-    bind:value={ query }
-    on:focus={() => ( focused = true )}
-    on:focusout={() => ( focused = false )}
+    bind:value={query}
+    on:focus={() => (focused = true)}
+    on:focusout={() => (focused = false)}
   />
 </div>
 
@@ -44,17 +45,17 @@
     font-size: 14px;
     cursor: pointer;
   }
-  
+
   .search-block.active {
     cursor: text;
   }
-  
+
   .search-block img {
     height: 20px;
     margin: 0 5px;
     filter: invert(40%);
   }
-  
+
   .search-block a {
     position: absolute;
     margin-left: 30px;
@@ -62,7 +63,7 @@
     opacity: 1;
     transition: opacity 0.1s;
   }
-  
+
   .search-block.active a {
     opacity: 0;
   }

@@ -1,5 +1,7 @@
 ### Браузерные запросы которые могут повлиять на блокировку аккаунта
+
 ### Нужно реализовать в клиенте
+
 <b>Актуально на 1 октября</b>
 
 <b>Первый запрос</b>
@@ -18,9 +20,9 @@
 <br/>
 {"ver":11,"cmd":0,"seq":19,"opcode":158,"payload":{}}
 
-<b>запрос при нажатии на окно, после перехода из окна screen_to и screen_from меняются местами</b>
+<b>запрос при нажатии на окно, после перехода из окна screen*to и screen_from меняются местами</b>
 <br/>
-{"ver":11,"cmd":0,"seq":86,"opcode":5,"payload":{"events":[{"type":"NAV","event":"GO","userId":id_аккаунта?,"time":876543567,"params":{"session_id":1312312122,"action_id":27,"screen_to":1,"screen_from":???,"prev_time":123456789012}}]}}
+{"ver":11,"cmd":0,"seq":86,"opcode":5,"payload":{"events":[{"type":"NAV","event":"GO","userId":id*аккаунта?,"time":876543567,"params":{"session_id":1312312122,"action_id":27,"screen_to":1,"screen_from":???,"prev_time":123456789012}}]}}
 
 <b>запрос каждые 30 секунд</b>
 <br/>
@@ -37,24 +39,19 @@
 <b>app.tracer каждые 60 секунд</b>
 <br/>
 await fetch("https://sdk-api.apptracer.ru/api/perf/upload?crashToken=краш токен хз&sdkVersion=2.5.1", {
-    "credentials": "omit",
-    "headers": {
-        "User-Agent": "",
-        "Accept": "*/*",
-        "Accept-Language": "en-US,en;q=0.5",
-        "Content-Type": "application/json",
-        "Sec-GPC": "1",
-        "Sec-Fetch-Dest": "empty",
-        "Sec-Fetch-Mode": "cors",
-        "Sec-Fetch-Site": "cross-site"
-    },
-    "referrer": "https://web.max.ru/",
-    "body": "{\"osVersion\":\"unknown\",\"vendor\":\"Firefox\",\"device\":\"float строка\",\"samples\":[{\"name\":\"Network - Roundtrip\",\"timeUnixNano\":1346853467870000,\"value\":хз,\"unit\":\"хз\",\"attributes\":{\"warp\":\"OFF\",\"opcode\":\"0x4B\"}}],\"versionName\":\"25.9.16\",\"versionCode\":\"8641\",\"sessionUuid\":\"строка uuid с тире\",\"deviceId\":\"строка uuid\",\"clientTimeUnixNano\":\"123456789875432\"}",
-    "method": "POST",
-    "mode": "cors"
+"credentials": "omit",
+"headers": {
+"User-Agent": "",
+"Accept": "_/_",
+"Accept-Language": "en-US,en;q=0.5",
+"Content-Type": "application/json",
+"Sec-GPC": "1",
+"Sec-Fetch-Dest": "empty",
+"Sec-Fetch-Mode": "cors",
+"Sec-Fetch-Site": "cross-site"
+},
+"referrer": "https://web.max.ru/",
+"body": "{\"osVersion\":\"unknown\",\"vendor\":\"Firefox\",\"device\":\"float строка\",\"samples\":[{\"name\":\"Network - Roundtrip\",\"timeUnixNano\":1346853467870000,\"value\":хз,\"unit\":\"хз\",\"attributes\":{\"warp\":\"OFF\",\"opcode\":\"0x4B\"}}],\"versionName\":\"25.9.16\",\"versionCode\":\"8641\",\"sessionUuid\":\"строка uuid с тире\",\"deviceId\":\"строка uuid\",\"clientTimeUnixNano\":\"123456789875432\"}",
+"method": "POST",
+"mode": "cors"
 });
-
-
-
-
-

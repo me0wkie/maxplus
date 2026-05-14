@@ -1,24 +1,24 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
+  import { createEventDispatcher } from "svelte";
   const dispatch = createEventDispatcher();
-  
+
   export let pages;
   export let active;
-  
+
   function handleClick(index) {
-    dispatch('open', { index });
+    dispatch("open", { index });
   }
-  
 </script>
 
 <div class="panel">
   {#each pages as page, index}
-    <div class="option"
+    <div
+      class="option"
       class:active={index === active}
       on:click={() => handleClick(index)}
-      >
-      <img src={"icons/" + page.icon + ".svg"}/>
-      <a>{ page.name }</a>
+    >
+      <img src={"icons/" + page.icon + ".svg"} />
+      <a>{page.name}</a>
     </div>
   {/each}
 </div>
@@ -38,23 +38,23 @@
     padding-top: env(safe-area-inset-top, 10px);
     padding-bottom: env(safe-area-inset-bottom, 20px);
   }
-  
+
   .option {
     display: flex;
     flex-direction: column;
     font-size: 11px;
     gap: 4px;
   }
-  
+
   .option img {
     height: 24px;
     filter: invert(50%);
   }
-  
+
   .option.active a {
     color: #09f;
   }
-  
+
   .option.active img {
     filter: invert(50%) sepia(100%) saturate(5000%) hue-rotate(200deg);
   }

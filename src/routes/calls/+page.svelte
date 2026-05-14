@@ -1,34 +1,40 @@
 <script>
-  import { onMount } from 'svelte';
-  import API, { currentSessionCalls, currentUser, currentSessionContacts, currentSessionChats } from '$lib/stores/api';
+  import { onMount } from "svelte";
+  import API, {
+    currentSessionCalls,
+    currentUser,
+    currentSessionContacts,
+    currentSessionChats,
+  } from "$lib/stores/api";
 
-  $: callsWithInfo = $currentSessionCalls?.history.map(call => {
+  $: callsWithInfo = $currentSessionCalls?.history.map((call) => {
     const attach = call.message.attaches[0];
     const duration = formatSeconds(attach.duration);
 
     if (call.chatType === "CHAT") {
-      const chat = $currentSessionChats.find(x => x.id === call.chatId);
+      const chat = $currentSessionChats.find((x) => x.id === call.chatId);
       return {
         avatar: chat.avatar || chat.baseUrl,
         name: chat.title,
         duration,
-      }
+      };
     } else if (call.chatType === "DIALOG") {
       const cid = call.chatId ^ $currentUser;
       const contact = $currentSessionContacts[cid] || {};
-      const type = attach.callType === "AUDIO" ? "Аудиозвонок " : "Видеозвонок ";
+      const type =
+        attach.callType === "AUDIO" ? "Аудиозвонок " : "Видеозвонок ";
       return {
         avatar: contact.avatar,
         name: type + contact.names[0].firstName,
         duration,
-      }
+      };
     }
   });
 
   function formatSeconds(seconds) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 </script>
 
@@ -39,22 +45,24 @@
     {#each callsWithInfo as call}
       <div class="call">
         {#if call.avatar}
-          <img class="avatar" src="{call.avatar}"/>
+          <img class="avatar" src={call.avatar} />
         {:else}
           <div class="avatar"></div>
         {/if}
 
-        <a>{ call.name }</a>
+        <a>{call.name}</a>
 
-        <a class="duration">{ call.duration }</a>
+        <a class="duration">{call.duration}</a>
       </div>
     {/each}
   </div>
 
   <div
-  on:click={() => alert("В разработке!\nСледи за новостями:\nt.me/CatBestSoft")}
-  class="placeholder-call animated-panel">
-    <img src="icons/call.svg"/>
+    on:click={() =>
+      alert("В разработке!\nСледи за новостями:\nt.me/CatBestSoft")}
+    class="placeholder-call animated-panel"
+  >
+    <img src="icons/call.svg" />
   </div>
 </div>
 
@@ -126,7 +134,7 @@
     max-width: 46px;
     max-height: 46px;
     border-radius: 32px;
-    background-color: #222
+    background-color: #222;
   }
 
   .call .duration {

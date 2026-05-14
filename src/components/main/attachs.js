@@ -1,3 +1,4 @@
+// prettier-ignore
 export function getAttachText(chat, msg) {
   return has(msg, "PHOTO") ? "Изображение" :
          has(msg, "VIDEO") ? "Видео" :
@@ -10,5 +11,5 @@ export function getAttachText(chat, msg) {
 }
 
 function has(msg, type) {
-  return msg?.attaches?.find(x => x._type === type);
+  return msg?.attaches?.find((x) => x._type === type);
 }

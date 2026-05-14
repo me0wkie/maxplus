@@ -1,22 +1,28 @@
 <script>
-  import { switchEnc } from '$components/ChatWindow/e2e.js'
-  
+  import { switchEnc } from "$components/ChatWindow/e2e.js";
+
   export let showSettings;
   export let chatKeysLoaded;
   export let chat;
   export let messages;
-  
 </script>
 
 {#if showSettings}
-    <div class="settings-dropout" on:click|stopPropagation>
-        <div class="setting-title">β Шифрование: {chatKeysLoaded?.current ? 'активно' : 'отключено'}</div>
-        <p style="margin-bottom: 5px;">Когда включено, только вы и получатель сможете прочитать сообщения.</p>
-        <p style="color: red;">Используйте только с другими пользователями Max+!</p>
-        <button class="settings-button animated-panel" on:click={() => switchEnc(chat, chatKeysLoaded, messages)}>
-            {chatKeysLoaded?.current ? 'Отключить' : 'Активировать'}
-        </button>
+  <div class="settings-dropout" on:click|stopPropagation>
+    <div class="setting-title">
+      β Шифрование: {chatKeysLoaded?.current ? "активно" : "отключено"}
     </div>
+    <p style="margin-bottom: 5px;">
+      Когда включено, только вы и получатель сможете прочитать сообщения.
+    </p>
+    <p style="color: red;">Используйте только с другими пользователями Max+!</p>
+    <button
+      class="settings-button animated-panel"
+      on:click={() => switchEnc(chat, chatKeysLoaded, messages)}
+    >
+      {chatKeysLoaded?.current ? "Отключить" : "Активировать"}
+    </button>
+  </div>
 {/if}
 
 <style>
@@ -32,13 +38,13 @@
     z-index: 10;
   }
 
-  .setting-title { 
+  .setting-title {
     font-weight: 500;
     margin-bottom: 8px;
     font-size: 16px;
   }
 
-  .settings-dropout p { 
+  .settings-dropout p {
     font-size: 13px;
     color: #666;
     margin: 0 0 12px 0;
@@ -56,5 +62,7 @@
     transition: opacity 0.2s;
   }
 
-  .settings-button:hover { opacity: 0.9; }
+  .settings-button:hover {
+    opacity: 0.9;
+  }
 </style>

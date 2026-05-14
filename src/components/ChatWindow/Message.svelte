@@ -1,12 +1,12 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import API, { currentUser, currentSessionContacts } from '$lib/stores/api';
-  import { getAttachText } from '$components/main/attachs.js';
-  import MessagePreview from '$components/main/MessagePreview.svelte';
-  import { openPath } from '@tauri-apps/plugin-opener';
-  import Avatar from '$components/main/Avatar.svelte';
-  import Reactions from './Reactions.svelte';
-  import Attachments from '$components/ChatWindow/Attachments.svelte';
+  import { createEventDispatcher } from "svelte";
+  import API, { currentUser, currentSessionContacts } from "$lib/stores/api";
+  import { getAttachText } from "$components/main/attachs.js";
+  import MessagePreview from "$components/main/MessagePreview.svelte";
+  import { openPath } from "@tauri-apps/plugin-opener";
+  import Avatar from "$components/main/Avatar.svelte";
+  import Reactions from "./Reactions.svelte";
+  import Attachments from "$components/ChatWindow/Attachments.svelte";
 
   const dispatch = createEventDispatcher();
 
@@ -17,28 +17,31 @@
   export let scrollElement;
 
   const isMe = msg.sender === $currentUser;
-  const isSystem = msg.attaches?.[0]?._type === 'CONTROL';
+  const isSystem = msg.attaches?.[0]?._type === "CONTROL";
   $: lines = msg.text?.split("\n");
 
   function handleMediaClick(attach) {
-    dispatch('openMedia', { attach });
+    dispatch("openMedia", { attach });
   }
 
   function displaySystemMessage() {
     const event = msg.attaches?.[0]?.event;
-    if (event === 'botStarted') return "Вы запустили бота!";
+    if (event === "botStarted") return "Вы запустили бота!";
     const first = msg.attaches?.[0];
-    if (event === 'new') return "Чат " + first.title + " создан!";
-    if (event === 'icon') return "Фото чата изменено";
-    if (event === 'joinByLink') return "Вы вступили по ссылке!";
-    if (event === 'system') return first.message;
+    if (event === "new") return "Чат " + first.title + " создан!";
+    if (event === "icon") return "Фото чата изменено";
+    if (event === "joinByLink") return "Вы вступили по ссылке!";
+    if (event === "system") return first.message;
     if (msg.text) return msg.text;
     return event;
   }
 
   function handleForwardHeaderClick() {
     if (msg.link?.chatId) {
-      dispatch('openChat', { chatId: msg.link.chatId, messageId: msg.link.message.id });
+      dispatch("openChat", {
+        chatId: msg.link.chatId,
+        messageId: msg.link.message.id,
+      });
     }
   }
 
@@ -57,7 +60,7 @@
 
     scrollElement.scrollTo({
       top: scrollElement.scrollTop + offset,
-      behavior: "smooth"
+      behavior: "smooth",
     });
 
     target.style.background = "rgba(255,255,255,0.05)";
@@ -74,50 +77,60 @@
     }
     return undefined;
   })();
-  $: linkedType = msg.link ? msg.link.type : 'REPLY';
+  $: linkedType = msg.link ? msg.link.type : "REPLY";
   $: forwardLines = linkedMsg?.text?.split("\n");
   $: linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
 
-  $: column = msg.text?.length > 20
-    || msg.attaches.length
-    || msg.reactionInfo?.totalCount
-    || msg.link;
+  $: column =
+    msg.text?.length > 20 ||
+    msg.attaches.length ||
+    msg.reactionInfo?.totalCount ||
+    msg.link;
 
   const showAvatar = chat.type !== "CHANNEL" && !isMe && !isSystem;
 </script>
 
-<div class="message-row"
+<div
+  class="message-row"
   id={"m-" + msg.id}
   class:is-me={isMe}
   class:is-system={isSystem}
   class:is-deleted={msg.deleted}
-  class:inactive={
-    /* todo optimize */
-    dropoutActiveAt && dropoutActiveAt?.msg?.id !== msg.id
-  }>
-
+  class:inactive={/* todo optimize */
+  dropoutActiveAt && dropoutActiveAt?.msg?.id !== msg.id}
+>
   <div class="indent">
     {#if showAvatar}
-      <Avatar size={32} chat={chat}/>
+      <Avatar size={32} {chat} />
     {/if}
   </div>
 
   <div class={"message-bubble " + (column ? "column" : "row")}>
     <div class="direction">
       <div class="text">
-
         {#if linkedMsg}
-          {#if linkedType === 'FORWARD'}
+          {#if linkedType === "FORWARD"}
             <div class="forward-block">
-              <div class="forward-header" on:click|stopPropagation={handleForwardHeaderClick}>
+              <div
+                class="forward-header"
+                on:click|stopPropagation={handleForwardHeaderClick}
+              >
                 {#if msg.link.chatIconUrl}
-                  <img src={msg.link.chatIconUrl} alt="" class="forward-avatar" />
+                  <img
+                    src={msg.link.chatIconUrl}
+                    alt=""
+                    class="forward-avatar"
+                  />
                 {/if}
                 <div class="forward-info">
                   <span class="forward-name">{msg.link.chatName}</span>
                   <span class="forward-label">Пересланное сообщение</span>
                 </div>
-                <svg class="forward-arrow" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                <svg class="forward-arrow" viewBox="0 0 24 24"
+                  ><path
+                    d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"
+                  /></svg
+                >
               </div>
 
               {#if forwardLines}
@@ -130,19 +143,18 @@
 
               {#if linkedMsg.attaches}
                 <Attachments
-                getFile={getFile}
-                attaches={linkedMsg.attaches}
-                handleMediaClick={handleMediaClick}/>
+                  {getFile}
+                  attaches={linkedMsg.attaches}
+                  {handleMediaClick}
+                />
               {/if}
             </div>
-          {:else if linkedType === 'REPLY'}
-            <div
-              on:click|stopPropagation={openReply}
-              class="reply-block">
+          {:else if linkedType === "REPLY"}
+            <div on:click|stopPropagation={openReply} class="reply-block">
               <div class="reply-content">
                 <p class="line allow-selection">
-                  <b>{ linkedMsgContact?.names?.[0]?.firstName || "?" }</b>
-                  <MessagePreview chat={chat} msg={linkedMsg} cut={true}/>
+                  <b>{linkedMsgContact?.names?.[0]?.firstName || "?"}</b>
+                  <MessagePreview {chat} msg={linkedMsg} cut={true} />
                 </p>
               </div>
             </div>
@@ -150,44 +162,58 @@
         {/if}
 
         {#if isSystem}
-          <p class="line system">{ displaySystemMessage() }</p>
+          <p class="line system">{displaySystemMessage()}</p>
         {:else}
           {#if deobfuscated}
             {#await deobfuscated}
               <p class="line">Загрузка...</p>
-            {:then text}<p class="line">{@html text }</p>
+            {:then text}<p class="line">{@html text}</p>
             {/await}
           {:else if lines}
             {#each lines as line}<p class="line">{line}</p>{/each}
           {/if}
 
           {#if msg.attaches?.length}
-            <Attachments
-            getFile={getFile}
-            attaches={msg.attaches}
-            handleMediaClick={handleMediaClick}/>
+            <Attachments {getFile} attaches={msg.attaches} {handleMediaClick} />
           {/if}
         {/if}
       </div>
       <div class={column ? "bottom cmn" : "bottom"}>
-        <Reactions info={msg.reactionInfo} msgId={msg.id} isMe={isMe}/>
+        <Reactions info={msg.reactionInfo} msgId={msg.id} {isMe} />
 
         <div class="message-status">
           <div class="status-meta">
             {#if msg.stats?.views}
               <span class="views">
-                <svg viewBox="0 0 24 24" class="views-icon"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                <svg viewBox="0 0 24 24" class="views-icon"
+                  ><path
+                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                  /></svg
+                >
                 {msg.stats.views}
               </span>
             {/if}
-            <span class="timestamp">{new Date(msg.time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+            <span class="timestamp"
+              >{new Date(msg.time).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}</span
+            >
           </div>
           {#if isMe && !isSystem}
             <div class="status-ticks">
               {#if msg.status === 3}
-                <svg class="status-icon is-read" viewBox="0 0 22 13"><path d="M11 12.025L5 6L6.5 4.5L11 9.52502L20.05 0L21.45 1.425L11 12.025ZM4.9999 12.025L0 7L1.5 5.50002L4.9999 9.5L14.375 0.025L15.8 1.425L4.9999 12.025Z"/></svg>
+                <svg class="status-icon is-read" viewBox="0 0 22 13"
+                  ><path
+                    d="M11 12.025L5 6L6.5 4.5L11 9.52502L20.05 0L21.45 1.425L11 12.025ZM4.9999 12.025L0 7L1.5 5.50002L4.9999 9.5L14.375 0.025L15.8 1.425L4.9999 12.025Z"
+                  /></svg
+                >
               {:else}
-                <svg class="status-icon" viewBox="0 0 24 13"><path d="M6 12.025L0 6L1.5 4.5L6 9.52502L15.05 0L16.45 1.425L6 12.025Z"/></svg>
+                <svg class="status-icon" viewBox="0 0 24 13"
+                  ><path
+                    d="M6 12.025L0 6L1.5 4.5L6 9.52502L15.05 0L16.45 1.425L6 12.025Z"
+                  /></svg
+                >
               {/if}
             </div>
           {/if}
@@ -202,7 +228,9 @@
     display: flex;
     align-items: flex-end;
     width: 100%;
-    transition: opacity 0.2s, background 0.5s;
+    transition:
+      opacity 0.2s,
+      background 0.5s;
   }
 
   .message-row.inactive {
@@ -241,13 +269,17 @@
     border-radius: 16px 16px 0px 16px;
   }
 
-  .message-row:not(.is-me,.is-system) .message-bubble {
+  .message-row:not(.is-me, .is-system) .message-bubble {
     background: #3a3c55;
     border-radius: 16px 16px 16px 0;
   }
 
   .message-row.is-system .message-bubble {
-    background: linear-gradient(90deg,rgba(33, 133, 124, .3) 0%, rgba(117, 66, 107, .3) 100%);
+    background: linear-gradient(
+      90deg,
+      rgba(33, 133, 124, 0.3) 0%,
+      rgba(117, 66, 107, 0.3) 100%
+    );
     backdrop-filter: blur(2px);
   }
 
@@ -264,7 +296,7 @@
     background: inherit;
   }
 
-  .message-row:not(.is-me,.is-system) .message-bubble::before {
+  .message-row:not(.is-me, .is-system) .message-bubble::before {
     left: -10px;
     clip-path: path("M10 0 Q5 10 0 10 Q0 10 10 10 Z");
   }

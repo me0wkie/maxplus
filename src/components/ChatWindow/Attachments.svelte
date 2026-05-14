@@ -1,6 +1,6 @@
 <script>
-  import { writeFile, BaseDirectory } from '@tauri-apps/plugin-fs';
-  import { invoke } from '@tauri-apps/api/core';
+  import { writeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
+  import { invoke } from "@tauri-apps/api/core";
 
   export let getFile;
   export let attaches;
@@ -8,8 +8,9 @@
 
   let downloadingMap = {};
 
-  $: mediaAttaches = (attaches || [])
-    .filter(a => a._type === 'PHOTO' || a._type === 'VIDEO' || a._type === 'FILE');
+  $: mediaAttaches = (attaches || []).filter(
+    (a) => a._type === "PHOTO" || a._type === "VIDEO" || a._type === "FILE",
+  );
 
   function isDownloaded(attach) {
     return !!attach.filePath;
@@ -31,22 +32,24 @@
 
     try {
       // TODO скачивание стримом
-      console.log(attach)
+      console.log(attach);
       const response = await getFile(attach.fileId);
       console.log(response.url);
 
-      const filePath = await invoke('download', { url: response.url, name: attach.name });
+      const filePath = await invoke("download", {
+        url: response.url,
+        name: attach.name,
+      });
 
-      console.log(filePath)
+      console.log(filePath);
 
       for (const a of attaches) {
         if (a.fileId === attach.fileId) {
           a.filePath = filePath;
         }
       }
-
     } catch (err) {
-      console.error('Ошибка при загрузке файла:', err);
+      console.error("Ошибка при загрузке файла:", err);
     } finally {
       downloadingMap = { ...downloadingMap, [attach.fileId]: false };
     }
@@ -58,42 +61,50 @@
   }
 </script>
 
-<div class="media-grid"
-     class:grid-single={mediaAttaches.length === 1}
-     class:grid-many={mediaAttaches.length > 1}
-     style="--cols: {mediaAttaches.length >= 2 ? 2 : 1}">
+<div
+  class="media-grid"
+  class:grid-single={mediaAttaches.length === 1}
+  class:grid-many={mediaAttaches.length > 1}
+  style="--cols: {mediaAttaches.length >= 2 ? 2 : 1}"
+>
   {#each mediaAttaches as attach}
-  <div class="grid-item" on:click|stopPropagation={() => handleMediaClick(attach)}>
-    {#if attach._type === 'PHOTO'}
-    <img src={attach.baseUrl} alt="photo" loading="lazy" />
-    {:else if attach._type === 'VIDEO'}
-    <div class="video-preview">
-      <img src={attach.thumbnail} />
-      <div class="play-icon">▶</div>
-    </div>
-    {:else if attach._type === 'FILE'}
-    <div class="file-attach" on:click|stopPropagation={() => handleFileClick(attach)}>
-      <div class="file-icon">
-      {#if isDownloading(attach)}
-          <div class="spinner"></div>
-      {:else if isDownloaded(attach)}
-          📄
-      {:else}
-          ⬇️
-      {/if}
-      </div>
+    <div
+      class="grid-item"
+      on:click|stopPropagation={() => handleMediaClick(attach)}
+    >
+      {#if attach._type === "PHOTO"}
+        <img src={attach.baseUrl} alt="photo" loading="lazy" />
+      {:else if attach._type === "VIDEO"}
+        <div class="video-preview">
+          <img src={attach.thumbnail} />
+          <div class="play-icon">▶</div>
+        </div>
+      {:else if attach._type === "FILE"}
+        <div
+          class="file-attach"
+          on:click|stopPropagation={() => handleFileClick(attach)}
+        >
+          <div class="file-icon">
+            {#if isDownloading(attach)}
+              <div class="spinner"></div>
+            {:else if isDownloaded(attach)}
+              📄
+            {:else}
+              ⬇️
+            {/if}
+          </div>
 
-      <div class="file-info">
-      <div class="file-name">{attach.name}</div>
-      <div class="file-size">{(attach.size / 1024).toFixed(1)} KB</div>
-      </div>
+          <div class="file-info">
+            <div class="file-name">{attach.name}</div>
+            <div class="file-size">{(attach.size / 1024).toFixed(1)} KB</div>
+          </div>
+        </div>
+      {/if}
     </div>
-    {/if}
-  </div>
   {/each}
 </div>
 
-{#each attaches.filter(a => a._type !== 'PHOTO' && a._type !== 'VIDEO' && a._type !== 'FILE' && a._type !== 'CONTROL') as attach}
+{#each attaches.filter((a) => a._type !== "PHOTO" && a._type !== "VIDEO" && a._type !== "FILE" && a._type !== "CONTROL") as attach}
   <div class="unsupported-attach">{attach._type} не поддерживается</div>
 {/each}
 
@@ -137,13 +148,17 @@
 
   .video-preview .play-icon {
     position: absolute;
-    top: 50%; left: 50%;
+    top: 50%;
+    left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.6);
     color: white;
-    width: 40px; height: 40px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 18px;
     pointer-events: none;
   }
@@ -165,7 +180,7 @@
     max-width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -194,8 +209,7 @@
     font-size: 11px;
     opacity: 0.5;
     margin-top: 5px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 3px;
   }
-
 </style>

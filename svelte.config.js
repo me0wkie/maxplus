@@ -9,7 +9,10 @@ import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 const config = {
   preprocess: vitePreprocess(),
   compilerOptions: {
-    warningFilter: (warning) => /*!warning.filename?.includes('node_modules') &&*/ !warning.code.startsWith('a11y')
+    warningFilter: (warning) =>
+      /*!warning.filename?.includes('node_modules') &&*/ !warning.code.startsWith(
+        "a11y",
+      ),
   },
   kit: {
     adapter: adapter({

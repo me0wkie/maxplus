@@ -1,8 +1,12 @@
 <script>
-  import { onMount, onDestroy } from 'svelte';
-  
+  import { onMount, onDestroy } from "svelte";
+
   export let bubbleCount = 40;
-  export let colors = ['rgba(255,255,255,0.35)', 'rgba(200,230,255,0.25)', 'rgba(180,210,255,0.18)'];
+  export let colors = [
+    "rgba(255,255,255,0.35)",
+    "rgba(200,230,255,0.25)",
+    "rgba(180,210,255,0.18)",
+  ];
   export let minRadius = 14; // px
   export let maxRadius = 38; // px
   export let speed = 0.6;
@@ -29,7 +33,7 @@
       const r = rand(minRadius, maxRadius);
       const x = Math.random() * width;
       const y = Math.random() * height;
-      const vy = -rand(0.2, 1.2) * speed * (0.4 + (r / maxRadius));
+      const vy = -rand(0.2, 1.2) * speed * (0.4 + r / maxRadius);
       const vx = rand(-0.3, 0.3) * speed;
       const color = colors[Math.floor(Math.random() * colors.length)];
       const alpha = rand(0.06, 0.28);
@@ -40,13 +44,19 @@
   function resize() {
     if (!canvas) return;
     dpr = window.devicePixelRatio || 1;
-    width = canvas.clientWidth || canvas.parentElement.clientWidth || window.innerWidth;
-    height = canvas.clientHeight || canvas.parentElement.clientHeight || window.innerHeight;
+    width =
+      canvas.clientWidth ||
+      canvas.parentElement.clientWidth ||
+      window.innerWidth;
+    height =
+      canvas.clientHeight ||
+      canvas.parentElement.clientHeight ||
+      window.innerHeight;
     canvas.width = Math.max(1, Math.floor(width * dpr));
     canvas.height = Math.max(1, Math.floor(height * dpr));
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    ctx = canvas.getContext('2d');
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+    ctx = canvas.getContext("2d");
     ctx.scale(dpr, dpr);
 
     if (particles.length === 0) initParticles();
@@ -63,9 +73,16 @@
       ctx.arc(px, py, p.r, 0, Math.PI * 2);
       ctx.closePath();
       ctx.globalAlpha = p.alpha;
-      const g = ctx.createRadialGradient(px - p.r * 0.3, py - p.r * 0.4, p.r * 0.1, px, py, p.r);
-      g.addColorStop(0, p.color.replace(/rgba\((.*)\)/, 'rgba($1)'));
-      g.addColorStop(1, p.color.replace(/rgba\((.*)\)/, 'rgba($1)'));
+      const g = ctx.createRadialGradient(
+        px - p.r * 0.3,
+        py - p.r * 0.4,
+        p.r * 0.1,
+        px,
+        py,
+        p.r,
+      );
+      g.addColorStop(0, p.color.replace(/rgba\((.*)\)/, "rgba($1)"));
+      g.addColorStop(1, p.color.replace(/rgba\((.*)\)/, "rgba($1)"));
       ctx.fillStyle = g;
       ctx.fill();
     }
@@ -105,21 +122,25 @@
   onMount(() => {
     resize();
     initParticles();
-    window.addEventListener('resize', resize, { passive: true });
+    window.addEventListener("resize", resize, { passive: true });
     if (parallax) {
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('touchmove', onPointerMove, { passive: true });
+      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("touchmove", onPointerMove, { passive: true });
     }
     loop();
   });
 
   onDestroy(() => {
     if (rafId) cancelAnimationFrame(rafId);
-    window.removeEventListener('resize', resize);
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('touchmove', onPointerMove);
+    window.removeEventListener("resize", resize);
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("touchmove", onPointerMove);
   });
 </script>
+
+<div class="bubbles-wrapper" aria-hidden="true">
+  <canvas bind:this={canvas} class="bubbles-canvas"></canvas>
+</div>
 
 <style>
   :global(.bubbles-wrapper) {
@@ -136,8 +157,3 @@
     height: 100%;
   }
 </style>
-
-<div class="bubbles-wrapper" aria-hidden="true">
-  <canvas bind:this={canvas} class="bubbles-canvas"></canvas>
-</div>
-

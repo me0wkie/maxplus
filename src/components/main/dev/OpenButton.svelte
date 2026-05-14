@@ -1,13 +1,13 @@
 <script>
-  import { set as sessionSet } from '$lib/stores/session.js';
+  import { set as sessionSet } from "$lib/stores/session.js";
 
   const open = () => {
-    sessionSet('devSettings', true);
-  }
+    sessionSet("devSettings", true);
+  };
 </script>
 
 <div on:click={open} class="open-dev">
-    <a>Настройки отладки</a>
+  <a>Настройки отладки</a>
 </div>
 
 <style>

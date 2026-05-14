@@ -6,10 +6,9 @@
 {#if info?.counters}
   <div class="reactions" data-msg-id={msgId}>
     {#each info.counters as entry}
-      <div class="reaction"
-          class:your={info.yourReaction === entry.reaction}>
-        { entry.reaction }
-        <span class="amount">{ entry.count }</span>
+      <div class="reaction" class:your={info.yourReaction === entry.reaction}>
+        {entry.reaction}
+        <span class="amount">{entry.count}</span>
       </div>
     {/each}
   </div>

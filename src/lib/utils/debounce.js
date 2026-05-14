@@ -1,18 +1,18 @@
-const promises = {}
+const promises = {};
 
 export const debounce = async (name, time) => {
-    if (promises[name]) {
-        promises[name](true)
-    }
+  if (promises[name]) {
+    promises[name](true);
+  }
 
-    return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-            promises[name](false)
-        }, time)
+  return new Promise((resolve) => {
+    const timeout = setTimeout(() => {
+      promises[name](false);
+    }, time);
 
-        promises[name] = cancel => {
-            clearTimeout(timeout)
-            resolve(cancel)
-        };
-    });
-}
+    promises[name] = (cancel) => {
+      clearTimeout(timeout);
+      resolve(cancel);
+    };
+  });
+};

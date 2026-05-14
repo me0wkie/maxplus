@@ -1,35 +1,36 @@
 <script>
-  import { fade } from 'svelte/transition';
-  import Session, { get as sessionGet, set as sessionSet } from '$lib/stores/session'
+  import { fade } from "svelte/transition";
+  import Session, {
+    get as sessionGet,
+    set as sessionSet,
+  } from "$lib/stores/session";
 
-  let visualMarker = sessionGet('visualMarker');
+  let visualMarker = sessionGet("visualMarker");
 
   const swapVisualMarker = () => {
     visualMarker = !visualMarker;
 
-    const classes = ['debug-a', 'debug-b', 'debug-c', 'debug-d', 'debug-e'];
+    const classes = ["debug-a", "debug-b", "debug-c", "debug-d", "debug-e"];
 
-    classes.forEach(cls => {
-        document.querySelectorAll(`.${cls}`).forEach(el => {
-            el.style.display = visualMarker ? 'flex' : 'none';
-        });
+    classes.forEach((cls) => {
+      document.querySelectorAll(`.${cls}`).forEach((el) => {
+        el.style.display = visualMarker ? "flex" : "none";
+      });
     });
-  }
-
+  };
 </script>
 
-<div
-  in:fade={{ duration: 100 }}
-  out:fade={{ duration: 100 }}
-  class="main">
-  <div on:click={() => sessionSet('devSettings', false)} class="close">Закрыть</div>
+<div in:fade={{ duration: 100 }} out:fade={{ duration: 100 }} class="main">
+  <div on:click={() => sessionSet("devSettings", false)} class="close">
+    Закрыть
+  </div>
 
   <a>Настройки отладки</a>
 
   <div class="buttons">
     <div class="group">
       <div on:click={swapVisualMarker} class="button">
-        <a>{ visualMarker ? 'Отключить' : 'Включить' } визуальные маркеры</a>
+        <a>{visualMarker ? "Отключить" : "Включить"} визуальные маркеры</a>
       </div>
     </div>
   </div>
@@ -97,6 +98,4 @@
     align-items: center;
     justify-content: center;
   }
-
-
 </style>

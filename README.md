@@ -4,13 +4,13 @@
 
 <h1>Max+ Client</h1>
 
-**Приложение с добавлением E2E шифрования.**  
+**Приложение с добавлением E2E шифрования.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-red?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![JavaScript](https://img.shields.io/badge/JavaScript-orange?style=for-the-badge&logo=javascript&logoColor=white)](https://developer.mozilla.org/en-US/docs/Web/JavaScript)
-</div>
 
+</div>
 
 <b>Что НЕ реализовано:</b>  
 ➖ Уведомления, звонки, поддержка WebApps, в том числе сферум, поиск, профили (карточки), видео, изображения, стикеры, закрепление, удаление, скачивание чатов, добавление в папку, редактирование папок, аппаратное шифрование
@@ -22,19 +22,22 @@
 ➕ Светлая тема, Telegram Proxy, разные интерфейсы, шифрованные звонки, поддержка кастомного сервера
 
 ## Предосторежения
-> [!WARNING]
-Не призываю никого скачивать данный клиент и заводить аккаунт в Max <b>как альтернативу Telegram</b>. Делайте это только в крайнем случае, когда активны белые списки или хочется поэксперементировать.
 
 > [!WARNING]
-Используйте на свой страх и риск, сервера могут <b>распознать клиент и выдать бан.</b>
+> Не призываю никого скачивать данный клиент и заводить аккаунт в Max <b>как альтернативу Telegram</b>. Делайте это только в крайнем случае, когда активны белые списки или хочется поэксперементировать.
+
+> [!WARNING]
+> Используйте на свой страх и риск, сервера могут <b>распознать клиент и выдать бан.</b>
 
 > [!IMPORTANT]
 > Поддерживаются версии Android 9+ <b>(для Keystore 10+)</b>
 
 ### ✨ Стать тестером Max+ (.apk, .ipa)
+
 [![Download APK](https://img.shields.io/badge/Скачать_Pre--release-APK-blue?style=for-the-badge&logo=android&logoColor=white)](https://github.com/me0wkie/maxplus/releases/latest)
 
 ## Содержание
+
 - [Особенности](#особенности)
 - [Использование](#использование)
 - [Разработка](#разработка)
@@ -43,8 +46,9 @@
 - [Источники](#источники)
 
 ### Особенности
+
 - <b>Открытый исходный код</b>
-- Приложение не требует доступ к файлам устройства, микрофону, камере  
+- Приложение не требует доступ к файлам устройства, микрофону, камере
 - Прозрачность запросов к oneme[.]ru и ok[.]ru, можно просматривать каждый запрос в логах
 - Сквозное E2E шифрование (можно включать для отдельных чатов)
 - В планах: поддержка звонков, многопользовательских чатов
@@ -55,28 +59,33 @@
 > В будущем потребуется доступ к камере для покупки пива в Магните (через QR-код)
 
 ## Использование
+
 Предварительные версии доступны в разделе [Releases](https://github.com/me0wkie/maxplus/releases)
 
 - <b>Что бы приложение запустилось, архитектура процессора должна совпасть</b>.  
-Например: устройство имеет процессор arm64, тогда устанавливаете maxplus-android-aarch64.apk
+  Например: устройство имеет процессор arm64, тогда устанавливаете maxplus-android-aarch64.apk
 
 - <b>Если не удается запустить, попробуйте заменить браузер по умолчанию на устройстве</b>
 
 ### Про обновления
+
 Обновления можно будет проверить, используя кнопку в настройках.  
 В целях безопасности автопроверка обновлений не будет реализована.
 
 ## Разработка
+
 Модификация кода приветствуется - сейчас проект очень сырой!
 
 ### Требования
+
 - <b>[Bun](https://bun.sh)</b> или [NodeJS](https://nodejs.org/)
 - [Rust](https://www.rust-lang.org/) (для Tauri и сборки)
 - [Android Studio](https://developer.android.com/studio) и зависимости для сборки под Android
-- Скачать либу [rumax](https://github.com/me0wkie/rumax) и <u>поместить в одной папке</u> с проектом ```maxplus```
+- Скачать либу [rumax](https://github.com/me0wkie/rumax) и <u>поместить в одной папке</u> с проектом `maxplus`
 - Немного знания Svelte и Rust, либо наличие ChatGPT Pro
 
 ### Установка
+
 ```sh
 $ git clone https://github.com/me0wkie/maxplus
 cd maxplus
@@ -85,6 +94,7 @@ bun run tauri icon static/favicon.png # Важно для запуска
 ```
 
 ### Запуск Development сервера
+
 Чтобы запустить сервер для разработки, выполните команду:
 
 ```sh
@@ -99,35 +109,41 @@ $ bun run tauri android dev
 # Опционально (если ошибки из-за jdk > 17)
 $ JAVA_HOME=/usr/lib/путь_к_jdk_17 bun run tauri android dev
 ```
-Чтобы ускорить запуск на Android, создайте копию ```tauri.conf.json``` - ```tauri.android.conf.json```
-и укажите в ```devUrl``` адрес ПК в локальной сети.
+
+Чтобы ускорить запуск на Android, создайте копию `tauri.conf.json` - `tauri.android.conf.json`
+и укажите в `devUrl` адрес ПК в локальной сети.
 
 - [Установка Android Studio](https://developer.android.com/studio)
 - [Подключение устройства Android](https://developer.android.com/codelabs/basic-android-kotlin-compose-connect-device)
 - На Linux процесс может быть немного сложнее.
 
 ### Отладка на Android
-С запущенным приложением (```bun run tauri android dev```):
 
-Перейти в Chrome на ```chrome://inspect#devices``` -> WebView in org.meowkie.max (tauri.localhost)
+С запущенным приложением (`bun run tauri android dev`):
+
+Перейти в Chrome на `chrome://inspect#devices` -> WebView in org.meowkie.max (tauri.localhost)
 
 ## Сборка проекта
-Для сборки под Windows, Linux, iOS нужна предварительная настройка 
+
+Для сборки под Windows, Linux, iOS нужна предварительная настройка
 ([Windows](https://v2.tauri.app/distribute/windows-installer/), [Debian](https://v2.tauri.app/distribute/debian/), [iOS](https://v2.tauri.app/distribute/app-store/), [macOS](https://v2.tauri.app/distribute/macos-application-bundle/))
 
 ### Сборка под Android в среде Linux
-1. <b>Установите ```Android Studio```, ```Android SDK``` и [Android NDK r21e](https://github.com/android/ndk/wiki/Unsupported-Downloads)</b>  
-Версия r21e нужна для корректной сборки <b>(это велосипед, нужно исправить)</b>
 
-2. <b>Согласно инструкции на сайте Tauri, установите зависимости и настройте переменные среды ```NDK_HOME```, ```ANDROID_HOME```</b>
+1. <b>Установите `Android Studio`, `Android SDK` и [Android NDK r21e](https://github.com/android/ndk/wiki/Unsupported-Downloads)</b>  
+   Версия r21e нужна для корректной сборки <b>(это велосипед, нужно исправить)</b>
+
+2. <b>Согласно инструкции на сайте Tauri, установите зависимости и настройте переменные среды `NDK_HOME`, `ANDROID_HOME`</b>
 
 3. Из-за особенностей сборки, линкуем libunwind -> libgcc <b>(это велосипед, нужно исправить)</b>
+
 ```sh
 cd $NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/lib/gcc/aarch64-linux-android/4.9.x/
 ln -s libgcc.a libunwind.a
 ```
 
 4. <b>Создайте keystore в папке проекта:</b>
+
 ```sh
 keytool -genkeypair -v \
   -keystore src-tauri/gen/android/app/keystore.jks \
@@ -137,7 +153,8 @@ keytool -genkeypair -v \
   -alias secret_123
 ```
 
-5. <b>Настройте ```keystore.properties``` в папке проекта</b>
+5. <b>Настройте `keystore.properties` в папке проекта</b>
+
 ```
 $ cd src-tauri/gen/android
 mv keystore.properties.example keystore.properties
@@ -145,7 +162,7 @@ nano keystore.properties
 ```
 
 5. <b>Сборка</b>  
-Вместо aarch64 можно подставить другую архитектуру (armv7, i686, x86_6). Можно собрать для всех платформ Android сразу (увеличится размер .apk)
+   Вместо aarch64 можно подставить другую архитектуру (armv7, i686, x86_6). Можно собрать для всех платформ Android сразу (увеличится размер .apk)
 
 ```sh
 # Для конкретной архитектуры
@@ -160,15 +177,19 @@ $ cargo tauri android build
 Сборка под iOS возможна только с macOS. Может понадобиться [платная подписка Apple Developer](https://developer.apple.com/support/compare-memberships/)
 
 ## Сброс данных клиента
+
 <b>Для Linux:</b>
+
 ```sh
 $ rm -rf ~/.local/share/org.meowkie.max
 ```
+
 <b>Для Android:</b>
 
 Очистка кеша и данных приложения через настройки (секретные чаты теряются!)
 
 ## В планах
+
 - [ ] Исправить глобальный поиск
 - [ ] Профили пользователей
 - [ ] Шифрование в группах по схеме MLS
@@ -177,5 +198,6 @@ $ rm -rf ~/.local/share/org.meowkie.max
 - [ ] Поддержка WebApps
 
 ## Источники
--  [PyMax](https://github.com/noxzion/PyMax) - работа с Max API (портировано на Rust в репозитории [rumax](https://github.com/me0wkie/rumax))
--  [tauri-keystore-plugin](https://github.com/impierce/tauri-plugin-keystore) - для аппаратного шифрования на мобильных устройствах (TODO сделать форк)
+
+- [PyMax](https://github.com/noxzion/PyMax) - работа с Max API (портировано на Rust в репозитории [rumax](https://github.com/me0wkie/rumax))
+- [tauri-keystore-plugin](https://github.com/impierce/tauri-plugin-keystore) - для аппаратного шифрования на мобильных устройствах (TODO сделать форк)

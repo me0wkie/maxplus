@@ -1,12 +1,12 @@
 <script>
-  import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-  import { tick } from 'svelte';
+  import { invoke, convertFileSrc } from "@tauri-apps/api/core";
+  import { tick } from "svelte";
 
-  import { scrollToBottom } from '$lib/utils/scroll.js';
-  import { sendMessage } from '$components/ChatWindow/actions.js';
-  import VideoPreview from '$components/ChatWindow/VideoPreview.svelte';
-  import Reply from '$components/ChatWindow/input/Reply.svelte';
-  import API from '$lib/stores/api';
+  import { scrollToBottom } from "$lib/utils/scroll.js";
+  import { sendMessage } from "$components/ChatWindow/actions.js";
+  import VideoPreview from "$components/ChatWindow/VideoPreview.svelte";
+  import Reply from "$components/ChatWindow/input/Reply.svelte";
+  import API from "$lib/stores/api";
 
   export let replyTo;
   export let scrollElement;
@@ -14,7 +14,7 @@
   export let chatKeysLoaded;
   export let messages;
 
-  let newMessage = '';
+  let newMessage = "";
   let attaches = [];
   let elements = [];
 
@@ -41,14 +41,21 @@
       if (result) {
         _attaches.push(result);
         attaches.splice(attaches.indexOf(attach), 1);
-      }
-      else alert("Не удалось загрузить!\n" + JSON.stringify(attach));
+      } else alert("Не удалось загрузить!\n" + JSON.stringify(attach));
     }
 
     if (!textToSend && !_attaches.length) return;
 
     try {
-      await sendMessage(chat, chatKeysLoaded, messages, textToSend, _replyTo, _attaches, _elements);
+      await sendMessage(
+        chat,
+        chatKeysLoaded,
+        messages,
+        textToSend,
+        _replyTo,
+        _attaches,
+        _elements,
+      );
     } catch (e) {
       console.error(e);
     }
@@ -61,9 +68,9 @@
   async function selectFile(type) {
     attachesDropout = null;
 
-    const response = await invoke('pick', type !== "FILE" ? { type } : null);
+    const response = await invoke("pick", type !== "FILE" ? { type } : null);
 
-    console.log('Selected', JSON.stringify(response));
+    console.log("Selected", JSON.stringify(response));
 
     if (!response || response === "CANCEL") return;
     const { uri, mime_type: mime } = response;
@@ -71,8 +78,10 @@
     const path = decodeURIComponent(uri);
 
     let scrollAfter =
-      (scrollElement.scrollHeight - scrollElement.scrollTop - scrollElement.clientHeight) === 0
-      && !attaches.length;
+      scrollElement.scrollHeight -
+        scrollElement.scrollTop -
+        scrollElement.clientHeight ===
+        0 && !attaches.length;
 
     attaches.push({
       path,
@@ -91,27 +100,27 @@
 
   function getVideoFrame(fileUrl) {
     return new Promise((resolve) => {
-      const video = document.createElement("video")
+      const video = document.createElement("video");
 
-      video.src = fileUrl
-      video.muted = true
-      video.playsInline = true
+      video.src = fileUrl;
+      video.muted = true;
+      video.playsInline = true;
 
       video.addEventListener("loadeddata", async () => {
-        video.currentTime = 0.1
-      })
+        video.currentTime = 0.1;
+      });
 
       video.addEventListener("seeked", () => {
-        const canvas = document.createElement("canvas")
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
 
-        const ctx = canvas.getContext("2d")
-        ctx.drawImage(video, 0, 0)
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0);
 
-        resolve(canvas.toDataURL("image/jpeg", 0.8))
-      })
-    })
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      });
+    });
   }
 </script>
 
@@ -123,15 +132,13 @@
 
         {#if attach.type === "PHOTO"}
           <img src={convertFileSrc(attach.path)} alt="preview" />
-
         {:else if attach.type === "VIDEO"}
-          <VideoPreview attach={attach}/>
-
+          <VideoPreview {attach} />
         {:else}
           <div class="file-preview">
             <div class="file-icon">📄</div>
             <div class="file-name">
-              {attach.path.split('/').pop()}
+              {attach.path.split("/").pop()}
             </div>
           </div>
         {/if}
@@ -141,17 +148,17 @@
 {/if}
 
 {#if replyTo}
-  <Reply
-    chat={chat}
-    messages={messages}
-    bind:replyTo={replyTo}
-    />
+  <Reply {chat} {messages} bind:replyTo />
 {/if}
 
 <div class="input-area">
   <div class="input-controls">
     <button class="button" on:click={toggleAttachesDropout}>
-      <img src="icons/attachment.png" style="transform: scale(0.6) rotate(70deg)" class="icon"/>
+      <img
+        src="icons/attachment.png"
+        style="transform: scale(0.6) rotate(70deg)"
+        class="icon"
+      />
     </button>
 
     {#if attachesDropout}
@@ -169,7 +176,7 @@
         placeholder="Сообщение"
         bind:value={newMessage}
         on:keydown={async (e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
+          if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             await onSend();
           }
@@ -183,11 +190,13 @@
 
     {#if newMessage.length}
       <button class="button" on:click={onSend}>
-        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        <svg viewBox="0 0 24 24"
+          ><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg
+        >
       </button>
     {:else}
       <button class="button">
-        <img src="icons/voice.svg" style="transform: scale(1.15, 1)"/>
+        <img src="icons/voice.svg" style="transform: scale(1.15, 1)" />
       </button>
     {/if}
   </div>
@@ -274,7 +283,9 @@
     align-items: center;
     justify-content: center;
     opacity: 0.6;
-    transition: opacity 0.2s, transform 0.2s;
+    transition:
+      opacity 0.2s,
+      transform 0.2s;
     flex-shrink: 0;
   }
 
@@ -361,7 +372,7 @@
     position: absolute;
     top: 4px;
     right: 4px;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border: none;
     color: white;
     border-radius: 50%;

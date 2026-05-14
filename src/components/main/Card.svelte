@@ -3,8 +3,10 @@
   export let active = 0;
 </script>
 
-<div class="page-card"
-     style="transform: translateX({(index - active) * 100}vw)">
+<div
+  class="page-card"
+  style="transform: translateX({(index - active) * 100}vw)"
+>
   <slot />
 </div>
 
@@ -22,5 +24,3 @@
     display: flex;
   }
 </style>
-
-

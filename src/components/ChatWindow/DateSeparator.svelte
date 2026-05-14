@@ -8,13 +8,13 @@
     const isCurrentYear = date.getFullYear() === now.getFullYear();
 
     if (isCurrentYear) {
-      return date.toLocaleDateString('ru-RU', {
-        day: 'numeric',
-        month: 'long'
+      return date.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "long",
       });
     } else {
       const day = date.getDate();
-      const month = date.toLocaleString('ru-RU', { month: 'long' });
+      const month = date.toLocaleString("ru-RU", { month: "long" });
       const year = date.getFullYear();
       return `${day} ${month}, ${year}`;
     }

@@ -1,29 +1,44 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import { fly, fade } from 'svelte/transition';
+  import { createEventDispatcher } from "svelte";
+  import { fly, fade } from "svelte/transition";
 
-  import ChatItem from '$components/chats/ChatItem.svelte';
-  import FolderTabs from '$components/chats/FolderTabs.svelte';
-  import AddContactBtn from '$components/main/AddContactBtn.svelte';
-  import Search from '$components/main/Search.svelte';
-  import FolderEditModal from '$components/chats/FolderEditModal.svelte';
-  import { getAttachText } from '$components/main/attachs.js';
-  import { escapeHtml } from '$lib/utils/text.js';
-
-  import API, { currentSessionChats, currentSessionContacts, currentSessionCalls, currentRealChats, currentlySyncing, currentFolders, currentUser, receivedMessage } from '$lib/stores/api.js';
-  import { debounce } from '$lib/utils/debounce.js';
+  import ChatItem from "$components/chats/ChatItem.svelte";
+  import FolderTabs from "$components/chats/FolderTabs.svelte";
+  import AddContactBtn from "$components/main/AddContactBtn.svelte";
+  import Search from "$components/main/Search.svelte";
+  import FolderEditModal from "$components/chats/FolderEditModal.svelte";
+  import { getAttachText } from "$components/main/attachs.js";
+  import { escapeHtml } from "$lib/utils/text.js";
+  import { debounce } from "$lib/utils/debounce.js";
+  import API, {
+    currentSessionChats,
+    currentSessionContacts,
+    currentSessionCalls,
+    currentRealChats,
+    currentlySyncing,
+    currentFolders,
+    currentUser,
+    receivedMessage,
+  } from "$lib/stores/api.js";
 
   const dispatch = createEventDispatcher();
 
   let localFolders = [];
   $: if ($currentFolders) {
-    if (localFolders.length === 0 || localFolders.length !== ($currentFolders.length + 1)) {
-      localFolders = [{ id: 0, title: 'Все', filters: null }, ...($currentFolders || [])];
+    if (
+      localFolders.length === 0 ||
+      localFolders.length !== $currentFolders.length + 1
+    ) {
+      localFolders = [
+        { id: 0, title: "Все", filters: null },
+        ...($currentFolders || []),
+      ];
     }
   }
   let activeFolder = null;
   let activeFolderIndex = 0;
-  $: if (!activeFolder && localFolders.length > 0) activeFolder = localFolders[0];
+  $: if (!activeFolder && localFolders.length > 0)
+    activeFolder = localFolders[0];
   $: shouldRender = (index) => Math.abs(index - activeFolderIndex) <= 1;
 
   let selectedChats = new Set(); // ID выбранных чатов
@@ -35,11 +50,11 @@
   let searchPublic = [];
   let searchMsg = [];
 
-  receivedMessage.subscribe(msg => {
+  receivedMessage.subscribe((msg) => {
     if (!msg || !msg.chatId) return;
 
-    currentSessionChats.update(chats => {
-      const index = chats.findIndex(x => x.id === msg.chatId);
+    currentSessionChats.update((chats) => {
+      const index = chats.findIndex((x) => x.id === msg.chatId);
       if (index === -1) return chats;
 
       const newChats = [...chats];
@@ -47,18 +62,18 @@
 
       const newLastMessage = {
         id: msg.id || Date.now(),
-        text: msg.text || msg.content || '',
+        text: msg.text || msg.content || "",
         time: Date.now(), // Время
         sender: msg.sender || msg.from,
         read: false,
-        file: msg.file || null
+        file: msg.file || null,
       };
 
       const updatedChat = {
         ...oldChat,
         lastMessage: newLastMessage,
         lastEventTime: Date.now(),
-        newMessages: (oldChat.newMessages || 0) + 1
+        newMessages: (oldChat.newMessages || 0) + 1,
       };
 
       newChats.splice(index, 1);
@@ -102,36 +117,55 @@
   }
 
   function addToFolder() {
-    alert('Открыть модальное окно выбора папки для ' + selectedChats.size + ' чатов');
+    alert(
+      "Открыть модальное окно выбора папки для " +
+        selectedChats.size +
+        " чатов",
+    );
     // clearSelection();
   }
 
   function muteNotifications() {
-    alert('Настройки уведомлений для выбранных чатов');
+    alert("Настройки уведомлений для выбранных чатов");
   }
 
   function downloadSelected() {
-    alert('Скачивание истории чатов...');
+    alert("Скачивание истории чатов...");
     clearSelection();
   }
 
   function getChatsForFolder(folder, allChats) {
     if (!allChats) return [];
-    const Chats = $currentRealChats.map(id => allChats.find(x => x.id === id));
-    const filtered = Chats.filter(chat => {
-      if (folder.title === 'Все') return true;
-      if (folder.includedChats && folder.includedChats.includes(chat.id)) return true;
-      if (folder.status === 'HIDDEN') return false;
-      if ((!folder.filters || folder.filters.length === 0) && (!folder.includedChats || folder.includedChats.length === 0)) return false;
+    const Chats = $currentRealChats.map((id) =>
+      allChats.find((x) => x.id === id),
+    );
+    const filtered = Chats.filter((chat) => {
+      if (folder.title === "Все") return true;
+      if (folder.includedChats && folder.includedChats.includes(chat.id))
+        return true;
+      if (folder.status === "HIDDEN") return false;
+      if (
+        (!folder.filters || folder.filters.length === 0) &&
+        (!folder.includedChats || folder.includedChats.length === 0)
+      )
+        return false;
       let matchesFilter = false;
       if (folder.filters) {
-        if (folder.filters.includes('UNREAD') && chat.newMessages) matchesFilter = true;
-        if (folder.filters.includes('GROUPS') && (chat.type === 'group' || chat.type === 'supergroup')) matchesFilter = true;
-        if (folder.filters.includes('CONTACTS') && chat.type === 'private') matchesFilter = true;
+        if (folder.filters.includes("UNREAD") && chat.newMessages)
+          matchesFilter = true;
+        if (
+          folder.filters.includes("GROUPS") &&
+          (chat.type === "group" || chat.type === "supergroup")
+        )
+          matchesFilter = true;
+        if (folder.filters.includes("CONTACTS") && chat.type === "private")
+          matchesFilter = true;
       }
       return matchesFilter;
     });
-    return filtered.sort((a,b) => (b.lastEventTime || 0) - (a.lastEventTime || 0));
+    return filtered.sort(
+      (a, b) => (b.lastEventTime || 0) - (a.lastEventTime || 0),
+    );
   }
 
   let scrollContainer;
@@ -139,15 +173,15 @@
   let scrollTimeout;
 
   function handleScroll(e) {
-      if (isProgrammaticScroll) return;
-      const container = e.target;
-      const width = container.clientWidth;
-      if (width === 0) return;
-      const newIndex = Math.round(container.scrollLeft / width);
-      if (newIndex !== activeFolderIndex && localFolders[newIndex]) {
-          activeFolderIndex = newIndex;
-          activeFolder = localFolders[newIndex];
-      }
+    if (isProgrammaticScroll) return;
+    const container = e.target;
+    const width = container.clientWidth;
+    if (width === 0) return;
+    const newIndex = Math.round(container.scrollLeft / width);
+    if (newIndex !== activeFolderIndex && localFolders[newIndex]) {
+      activeFolderIndex = newIndex;
+      activeFolder = localFolders[newIndex];
+    }
   }
 
   function onFolderTabClick(event) {
@@ -157,15 +191,20 @@
       isProgrammaticScroll = true;
       activeFolder = folder;
       activeFolderIndex = index;
-      scrollContainer.scrollTo({ left: index * scrollContainer.clientWidth, behavior: 'smooth' });
+      scrollContainer.scrollTo({
+        left: index * scrollContainer.clientWidth,
+        behavior: "smooth",
+      });
       clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => { isProgrammaticScroll = false; }, 500);
+      scrollTimeout = setTimeout(() => {
+        isProgrammaticScroll = false;
+      }, 500);
     }
   }
 
   async function handleSearch(search) {
     searchQuery = search;
-    if (!search.length || await debounce("pubsearch", 700)) return;
+    if (!search.length || (await debounce("pubsearch", 700))) return;
     if (!searchQuery.length) {
       searchPublic = [];
       searchMsg = [];
@@ -173,9 +212,9 @@
     }
 
     /* сначала паблики */
-    const { result: publicResult } = await $API.searchPublic(search)
+    const { result: publicResult } = await $API.searchPublic(search);
 
-    if (!publicResult) alert("Ошибка поиска!")
+    if (!publicResult) alert("Ошибка поиска!");
 
     for (const entry of publicResult) {
       /* немного реструктурирования. todo убрать */
@@ -189,8 +228,7 @@
     searchPublic = publicResult;
 
     /* потом сообщения */
-    const { result: msgResult } = await $API.searchMsg(search)
-console.log(msgResult)
+    const { result: msgResult } = await $API.searchMsg(search);
     searchMsg = msgResult;
   }
 
@@ -200,31 +238,100 @@ console.log(msgResult)
 
 <div class="layout">
   <div class="header-container">
-
     {#if isSelectionMode}
-      <div class="action-header" transition:fly="{{ y: -50, duration: 200 }}">
+      <div class="action-header" transition:fly={{ y: -50, duration: 200 }}>
         <div class="action-left">
           <button class="icon-btn" on:click={clearSelection}>
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              ><line x1="18" y1="6" x2="6" y2="18"></line><line
+                x1="6"
+                y1="6"
+                x2="18"
+                y2="18"
+              ></line></svg
+            >
           </button>
           <span class="selection-count">{selectedChats.size}</span>
         </div>
 
         <div class="action-right">
           <button class="icon-btn" on:click={pinSelected} title="Закрепить">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4a2 2 0 0 0-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z"></path></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              ><path
+                d="M21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4a2 2 0 0 0-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42zM5.5 7A1.5 1.5 0 1 1 7 5.5 1.5 1.5 0 0 1 5.5 7z"
+              ></path></svg
+            >
           </button>
-          <button class="icon-btn" on:click={muteNotifications} title="Уведомления">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          <button
+            class="icon-btn"
+            on:click={muteNotifications}
+            title="Уведомления"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              ><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+              ></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg
+            >
           </button>
-            <button class="icon-btn" on:click={addToFolder} title="В папку">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <button class="icon-btn" on:click={addToFolder} title="В папку">
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              ><path
+                d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+              ></path></svg
+            >
           </button>
           <button class="icon-btn" on:click={downloadSelected} title="Скачать">
-              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+              ></path><polyline points="7 10 12 15 17 10"></polyline><line
+                x1="12"
+                y1="15"
+                x2="12"
+                y2="3"
+              ></line></svg
+            >
           </button>
           <button class="icon-btn" on:click={deleteSelected} title="Удалить">
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <svg
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              ><polyline points="3 6 5 6 21 6"></polyline><path
+                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+              ></path></svg
+            >
           </button>
         </div>
       </div>
@@ -233,10 +340,10 @@ console.log(msgResult)
         <div class="row">
           <h3 style="margin-left: 15px;">Чаты</h3>
           <div style="margin-right: 15px;">
-            <AddContactBtn/>
+            <AddContactBtn />
           </div>
         </div>
-        <Search input={handleSearch} placeholder="Поиск"/>
+        <Search input={handleSearch} placeholder="Поиск" />
       </div>
     {/if}
   </div>
@@ -245,8 +352,11 @@ console.log(msgResult)
     folders={localFolders}
     bind:activeFolder
     on:folderChange={onFolderTabClick}
-    on:reorder={(e) => localFolders = e.detail}
-    on:editFolder={(e) => { folderToEdit = e.detail; showFolderModal = true; }}
+    on:reorder={(e) => (localFolders = e.detail)}
+    on:editFolder={(e) => {
+      folderToEdit = e.detail;
+      showFolderModal = true;
+    }}
   />
 
   {#if searchQuery.length}
@@ -269,28 +379,30 @@ console.log(msgResult)
                 }
               }
 
-              dispatch('chat', { chatId })
+              dispatch("chat", { chatId });
             }}
           />
         {/each}
-        <hr/>
+        <hr />
       {/if}
 
       {#if searchMsg.length}
         {#each searchMsg as result (result.count)}
-          {@const chat = $currentSessionChats.find(x => x.id === result.chatId)}
+          {@const chat = $currentSessionChats.find(
+            (x) => x.id === result.chatId,
+          )}
           {#if chat && result.message}
             {@const hl = result.highlights[0]}
             <ChatItem
-              chat={chat}
+              {chat}
               replace={{
                 message: result.message,
                 text: escapeHtml(result.message.text).replace(
-                  new RegExp(hl, 'gi'),
-                  `<b>${hl}</b>`
-                )
+                  new RegExp(hl, "gi"),
+                  `<b>${hl}</b>`,
+                ),
               }}
-              on:open={() => dispatch('chat', { chatId: result.chatId })}
+              on:open={() => dispatch("chat", { chatId: result.chatId })}
             />
           {/if}
         {/each}
@@ -321,7 +433,7 @@ console.log(msgResult)
                     {chat}
                     selectionMode={isSelectionMode}
                     isSelected={selectedChats.has(chat.id)}
-                    on:open={() => dispatch('chat', { chatId: chat.id })}
+                    on:open={() => dispatch("chat", { chatId: chat.id })}
                     on:longpress={handleChatLongPress}
                     on:toggle={handleChatToggle}
                   />
@@ -340,8 +452,13 @@ console.log(msgResult)
     <FolderEditModal
       folder={folderToEdit}
       allChats={$currentSessionChats}
-      on:close={() => { showFolderModal = false; folderToEdit = null; }}
-      on:save={() => {/* Save logic */}}
+      on:close={() => {
+        showFolderModal = false;
+        folderToEdit = null;
+      }}
+      on:save={() => {
+        /* Save logic */
+      }}
     />
   {/if}
 </div>
@@ -371,7 +488,10 @@ console.log(msgResult)
 
   .action-header {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background-color: #252525;
     z-index: 20;
     display: flex;
@@ -412,11 +532,18 @@ console.log(msgResult)
     justify-content: center;
   }
   .icon-btn:hover {
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
-  .row { display: flex; justify-content: space-between; align-items: center; }
-  h3 { margin: 0; color: #eee; }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  h3 {
+    margin: 0;
+    color: #eee;
+  }
 
   .swipe-container {
     flex: 1;
@@ -428,7 +555,9 @@ console.log(msgResult)
     -ms-overflow-style: none;
     cursor: grab;
   }
-  .swipe-container::-webkit-scrollbar { display: none; }
+  .swipe-container::-webkit-scrollbar {
+    display: none;
+  }
 
   .folder-page {
     flex: 0 0 100%;

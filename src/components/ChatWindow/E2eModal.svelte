@@ -1,35 +1,75 @@
 <script>
-  import { handleEnc } from '$components/ChatWindow/e2e.js'
-  
+  import { handleEnc } from "$components/ChatWindow/e2e.js";
+
   export let gotSecretChatRequest;
 </script>
 
 {#if gotSecretChatRequest}
-    <div class="modal-backdrop">
-        <div class="modal-content">
-            <div class="modal-header">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <h2>Секретный чат</h2>
-            </div>
+  <div class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="32"
+          height="32"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          ><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path
+            d="M7 11V7a5 5 0 0 1 10 0v4"
+          ></path></svg
+        >
+        <h2>Секретный чат</h2>
+      </div>
 
-            <div class="modal-body">
-                <p>Собеседник предлагает защитить переписку с помощью шифрования</p>
-                
-                <div class="warning-box">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                    <p><strong>Внимание:</strong> после выхода из аккаунта вы, скорее всего, не сможете прочесть сообщения из этого чата</p>
-                </div>
-            </div>
+      <div class="modal-body">
+        <p>Собеседник предлагает защитить переписку с помощью шифрования</p>
 
-            <div class="modal-actions">
-               <div class="main-actions">
-                    <button on:click={() => handleEnc('agree')} class="btn btn-primary">Согласиться</button>
-                    <button on:click={() => handleEnc('deny')} class="btn btn-secondary">Отказаться</button>
-               </div>
-                <button on:click={() => handleEnc('block')} class="btn btn-link">Не показывать 10 минут</button>
-            </div>
+        <div class="warning-box">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            ><path
+              d="m21.73 18-8-14a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
+            ></path><line x1="12" y1="9" x2="12" y2="13"></line><line
+              x1="12"
+              y1="17"
+              x2="12.01"
+              y2="17"
+            ></line></svg
+          >
+          <p>
+            <strong>Внимание:</strong> после выхода из аккаунта вы, скорее всего,
+            не сможете прочесть сообщения из этого чата
+          </p>
         </div>
+      </div>
+
+      <div class="modal-actions">
+        <div class="main-actions">
+          <button on:click={() => handleEnc("agree")} class="btn btn-primary"
+            >Согласиться</button
+          >
+          <button on:click={() => handleEnc("deny")} class="btn btn-secondary"
+            >Отказаться</button
+          >
+        </div>
+        <button on:click={() => handleEnc("block")} class="btn btn-link"
+          >Не показывать 10 минут</button
+        >
+      </div>
     </div>
+  </div>
 {/if}
 
 <style>
@@ -42,7 +82,7 @@
     align-items: center;
     z-index: 100;
     padding: 15px;
-    
+
     animation: fadeIn 0.3s ease;
   }
 
@@ -162,7 +202,7 @@
     font-size: 14px;
     padding: 4px;
   }
-  
+
   .btn.btn-link:hover {
     color: #34495e;
     text-decoration: underline;
@@ -171,18 +211,22 @@
   }
 
   @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes scaleIn {
-    from { 
-        opacity: 0;
-        transform: scale(0.95);
+    from {
+      opacity: 0;
+      transform: scale(0.95);
     }
-    to { 
-        opacity: 1;
-        transform: scale(1);
+    to {
+      opacity: 1;
+      transform: scale(1);
     }
   }
 </style>

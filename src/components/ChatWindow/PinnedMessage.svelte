@@ -1,6 +1,6 @@
 <script>
-  import { createEventDispatcher } from 'svelte';
-  import MessagePreview from '$components/main/MessagePreview.svelte';
+  import { createEventDispatcher } from "svelte";
+  import MessagePreview from "$components/main/MessagePreview.svelte";
 
   export let msg;
   export let chat;
@@ -9,7 +9,7 @@
 
   function unpin(e) {
     e.stopPropagation();
-    dispatch('unpin', { id: msg.id });
+    dispatch("unpin", { id: msg.id });
   }
 </script>
 
@@ -19,7 +19,7 @@
   <div class="pinned-body">
     <div class="pinned-title">Закреплено</div>
     <div class="pinned-text">
-      <MessagePreview chat={chat} msg={msg}/>
+      <MessagePreview {chat} {msg} />
     </div>
   </div>
 

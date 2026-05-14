@@ -1,5 +1,6 @@
-import { usersDb, chatsDb } from '$lib/stores/api'
+import { usersDb, chatsDb } from "$lib/stores/api";
 
+// prettier-ignore
 export default class API {
     _user = null;
     _userDetails = null;
@@ -97,4 +98,4 @@ export default class API {
     uploadAttachment() { throw "uploadAttachment: Unimplemented" }
 }
 
-const clone = o => JSON.parse(JSON.stringify(o))
+const clone = (o) => JSON.parse(JSON.stringify(o));
