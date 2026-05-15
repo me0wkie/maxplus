@@ -14,6 +14,7 @@ import {
 } from "$lib/crypto/async_encryption.js";
 import { obfuscate, deobfuscate, isObfuscated } from "$lib/crypto/messages.js";
 import { sendMessage } from "$components/ChatWindow/actions.js";
+import { escapeHtml } from "$lib/utils/text.js";
 
 import { writable, get } from "svelte/store";
 
@@ -140,8 +141,8 @@ async function tryDecryptMessage(dmsg) {
   } else if (Number(prefix)) {
     const msg = await decryptMessage(dmsg);
     if (!msg.ok) return "<b>Ошибка!</b> " + msg.error;
-    return msg.plaintext;
-  } else return "<b>Деобфусцировано:</b> " + dmsg;
+    return escapeHtml(msg.plaintext);
+  } else return "<b>Деобфусцировано:</b> " + escapeHtml(dmsg);
 }
 
 /* нажатие в меню запроса */
