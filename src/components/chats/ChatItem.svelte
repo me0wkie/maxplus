@@ -141,6 +141,7 @@
   .chat-item:hover {
     background-color: rgba(255, 255, 255, 0.03);
   }
+
   .chat-item.selected {
     background-color: rgba(59, 130, 246, 0.15);
   }
@@ -162,6 +163,7 @@
     min-width: 0;
     gap: 4px;
   }
+
   .row {
     display: flex;
     justify-content: space-between;
@@ -176,12 +178,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
   .meta {
     display: flex;
     align-items: center;
     gap: 5px;
     flex-shrink: 0;
   }
+
   .time {
     font-size: 12px;
     color: #888;
@@ -191,6 +195,7 @@
     font-size: 12px;
     color: #888;
   }
+
   .status-icon.read {
     color: #4ade80;
   }
@@ -204,9 +209,9 @@
     text-overflow: ellipsis;
     flex: 1;
   }
+
   .you-prefix {
     color: #fff;
-    margin-right: 4px;
   }
 
   .badge {
