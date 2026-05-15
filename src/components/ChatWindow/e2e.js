@@ -11,7 +11,7 @@ import {
   handleIncomingEnvelope,
   bufToBase64Url,
   publicIdentityPack,
-} from "$lib/crypto/async_encryption.js";
+} from "$lib/crypto/asymmetric.js";
 import { obfuscate, deobfuscate, isObfuscated } from "$lib/crypto/messages.js";
 import { sendMessage } from "$components/ChatWindow/actions.js";
 import { escapeHtml } from "$lib/utils/text.js";
