@@ -3,7 +3,6 @@ import { usersDb, chatsDb } from "$lib/stores/api";
 // prettier-ignore
 export default class API {
     _user = null;
-    _userDetails = null;
     _device = null;
     folders = [];
     
@@ -51,20 +50,8 @@ export default class API {
         return this._device;
     }
     
-    setUserDetails(contact) {
-        this._userDetails = contact;
-        if(contact === undefined) usersDb.delete('user-' + this._user);
-        else usersDb.set('user-' + this._user, contact);
-    }
-    
     getUser() { return this._user; }
     getToken() { return this._token; }
-    getUserDetails() { return this._userDetails; }
-    
-    /*getUser() { return this.#user; }
-    getUserDetails() { return clone(this.#userDetails); }
-    setUserDetails(details) { this.#userDetails = details; }
-    setUser(user) { this.#user = user; }*/
     
     connect() { throw "connect: Unimplemented" }
     logout() { throw "logout: Unimplemented" }

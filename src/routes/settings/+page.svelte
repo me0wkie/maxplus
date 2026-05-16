@@ -1,5 +1,5 @@
 <script>
-  import { clearMessages, clearContacts, clearKeys } from "$lib/stores/api";
+  import { clearMessages, clearContacts, clearKeys, currentUserDetails } from "$lib/stores/api";
   import {
     scan,
     Format,
@@ -23,9 +23,10 @@
   let phone;
   let name;
 
-  currentUser.subscribe((userId) => {
-    user = $API.getUserDetails();
-    if (!user) return;
+  currentUserDetails.subscribe(updateSelf);
+
+  function updateSelf(user) {
+    if (!user || !user.names) return;
     phone = user.phone
       ? "+ " +
         user.phone.toString()[0] +
@@ -35,7 +36,7 @@
         user.phone.toString().slice(-2, user.phone.toString().length)
       : "";
     name = user.names[0].firstName + " " + user.names[0].lastName;
-  });
+  }
 
   const buttons = [
     [

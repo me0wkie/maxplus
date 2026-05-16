@@ -15,6 +15,7 @@ const users = new LazyStore("users.bin");
 const chats = new LazyStore("chats.bin");
 
 export const currentUser = writable(undefined);
+export const currentUserDetails = writable(undefined);
 export const currentSessionChats = writable(undefined);
 export const currentSessionContacts = writable(undefined);
 export const currentSessionCalls = writable(undefined);
@@ -81,8 +82,8 @@ currentUser.subscribe(async (user) => {
       currentUser.set(null);
     } else {
       await apiInstance.loadDevice();
-      apiInstance._userDetails = _currentUser;
       apiInstance._user = _currentUserId;
+      updateDetails(undefined, _currentUser);
       updateChats(undefined, _currentUserId);
       updateContacts(undefined, _currentUserId);
       updateFolders(undefined, _currentUserId);
@@ -91,6 +92,12 @@ currentUser.subscribe(async (user) => {
   } else {
     apiInstance.setUser(user); // login err fix
   }
+});
+
+currentUserDetails.subscribe(async (_details) => {
+  const user = get(currentUser);
+  if (user === undefined || user === null) return;
+  await updateDetails(_details, user);
 });
 
 currentSessionChats.subscribe(async (_chats) => {
@@ -110,6 +117,18 @@ currentFolders.subscribe(async (_folders) => {
   if (user === undefined || user === null) return;
   await updateFolders(_folders, user);
 });
+
+const updateDetails = async (_details, user) => {
+  if (!user) return;
+  if (_details === undefined) {
+    const fromDb = await users.get("user-" + user);
+    currentUserDetails.set(fromDb || {});
+  } else if (Object.keys(_details).length) {
+    await chats.set("user-" + user, _details);
+  } else if (_details === null) {
+    await chats.delete("user-" + user); // TODO purge other data as well
+  }
+}
 
 const updateChats = async (_chats, user) => {
   if (!user) return;

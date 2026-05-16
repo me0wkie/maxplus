@@ -6,6 +6,7 @@ import { add as addLog } from "$lib/stores/logs";
 import {
   usersDb,
   currentUser,
+  currentUserDetails,
   currentSessionChats,
   currentRealChats,
   currentRealContacts,
@@ -122,8 +123,8 @@ export default class MobileApi extends BaseAPI {
 
       await usersDb.set("device-" + userId, this._device);
       currentUser.set(userId);
+      currentUserDetails.set(profile.contact);
       this.setUser(userId);
-      this.setUserDetails(profile.contact);
       this.setToken(tokenAttrs.LOGIN.token);
     } else return checkCode;
 
@@ -148,8 +149,8 @@ export default class MobileApi extends BaseAPI {
 
       await usersDb.get("device-" + userId, this._device);
       currentUser.set(userId);
+      currentUserDetails.set(profile.contact);
       this.setUser(userId);
-      this.setUserDetails(profile.contact);
       this.setToken(tokenAttrs.LOGIN.token);
     } else return register;
 
@@ -170,7 +171,7 @@ export default class MobileApi extends BaseAPI {
     await invoke("logout");
     this.setToken(undefined);
     this.setUser(undefined);
-    this.setUserDetails(undefined);
+    currentUserDetails.set(null);
     currentUser.set(null);
     sessionSet("sync", false);
     sessionSet("connected", false);
@@ -192,19 +193,18 @@ export default class MobileApi extends BaseAPI {
 
       const res = await invoke("sync_client");
 
-      const { chats, contacts, config, presence } = res;
+      const { chats, contacts, config } = res;
 
       console.log("Ответ sync", res);
 
       currentFolders.set(config.chatFolders?.FOLDERS || []);
-      currentPresence.set(presence);
+      currentPresence.set(res.presence);
       currentRealChats.set(chats.map((x) => x.id));
+      currentUserDetails.set(res.profile.contact);
       currentRealContacts.set(contacts.map((x) => x.id));
 
       sessionSet("reactions", config.server["reactions-menu"]);
       //const callsEndpoint = config.server['calls-endpoint'];
-
-      // TODO presence
 
       const currentChats = get(currentSessionChats) || [];
       const currentContacts = get(currentSessionContacts) || {};
