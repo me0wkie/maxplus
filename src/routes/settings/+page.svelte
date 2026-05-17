@@ -41,6 +41,11 @@
   const buttons = [
     [
       {
+        icon: "profile.svg",
+        text: "Настроить профиль",
+        action: () => goto("settings/profile?from=/?card=3"),
+      },
+      {
         icon: "crypto.svg",
         text: "Настройки шифрования",
         action: () => goto("setup/tokens?from=/?card=3"),
@@ -53,7 +58,7 @@
         action: () => goto("settings/logs?from=/?card=3"),
       },
       {
-        icon: "settings.svg",
+        icon: "debug.svg",
         text: "Настройки отладки",
         action: () => sessionSet("devSettings", true),
       },

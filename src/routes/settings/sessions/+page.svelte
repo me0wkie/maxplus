@@ -248,7 +248,7 @@
 
   .terminate-btn {
     width: 100%;
-    background: #f22727;
+    background: #f22727aa;
     color: #fff;
     border: none;
     padding: 12px;
@@ -267,7 +267,8 @@
     border: none;
     padding: 10px 40px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.92rem;
     cursor: pointer;
     transition: background 0.2s;
   }

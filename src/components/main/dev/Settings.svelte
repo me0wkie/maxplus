@@ -65,9 +65,9 @@
     color: white;
     border: none;
     padding: 8px 20px;
-    font-size: 16px;
     border-radius: 8px;
-    font-weight: 500;
+    font-size: 0.92rem;
+    font-weight: 600;
     cursor: pointer;
     transition: background 0.2s;
   }

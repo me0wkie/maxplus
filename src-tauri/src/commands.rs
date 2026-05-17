@@ -32,6 +32,7 @@ delegate_cmd!(close_all_sessions() => close_all_sessions());
 delegate_cmd!(get_photo_upload(count: i64, profile: bool) => get_photo_upload(count, profile));
 delegate_cmd!(get_video_upload(count: i64, profile: bool) => get_video_upload(count, profile));
 delegate_cmd!(get_file_upload(count: i64, profile: bool) => get_file_upload(count, profile));
+delegate_cmd!(update_profile(first_name: String, last_name: String, description: Option<String>, avatar_token: Option<String>) => update_profile(first_name, last_name, description, avatar_token));
 delegate_cmd!(get_calls(count: i64, forward: bool) => get_calls(forward, count));
 delegate_cmd!(call(action_id: u16, payload: Value) => call(action_id, payload));
 

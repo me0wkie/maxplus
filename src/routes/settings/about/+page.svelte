@@ -57,12 +57,12 @@
   </div>
 
   <div class="actions-panel">
-    <button class="btn" on:click={checkUpdates}> Проверить обновления </button>
+    <button class="btn" on:click={checkUpdates}>Проверить обновления</button>
     <!--<label class="auto-check">
             <input type="checkbox" bind:checked={autoCheck} on:change={toggleAutoCheck}/>
             Автоматически проверять обновления
         </label>-->
-    <button class="btn" on:click={() => goto(from)}> Вернуться </button>
+    <button class="btn" on:click={() => goto(from)}>Назад</button>
   </div>
 </div>
 

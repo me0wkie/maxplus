@@ -58,7 +58,7 @@
 
   <div class="footer-panel">
     <button class="back-btn" on:click={() => goto(from)}>
-      Вернуться назад
+      Назад
     </button>
   </div>
 </div>
@@ -198,7 +198,8 @@
     border: none;
     padding: 10px 20px;
     border-radius: 8px;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.92rem;
     cursor: pointer;
     transition: background 0.2s;
   }

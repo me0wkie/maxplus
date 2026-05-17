@@ -414,6 +414,19 @@ export default class MobileApi extends BaseAPI {
     return { _type: type, ...data };
   }
 
+  async updateProfile(firstName, lastName, description) {
+    const result = await invoke("update_profile", { firstName, lastName, description });
+    console.log(result);
+    const details = get(currentUserDetails);
+    if (!details) return null;
+    console.log(details)
+    details.names[0].firstName = firstName;
+    details.names[0].lastName = lastName;
+    if (description) details.description = description;
+    currentUserDetails.set(details);
+    return result;
+  }
+
   async getCalls() {
     return await invoke("get_calls", { forward: false, count: 100 });
   }
