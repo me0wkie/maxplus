@@ -12,14 +12,14 @@
   let description = "";
   let updated = "";
 
-  currentUserDetails.subscribe(details => {
+  currentUserDetails.subscribe((details) => {
     if (!details?.names) return;
 
     firstName = details.names[0].firstName;
     lastName = details.names[0].lastName;
     description = details.description;
     updated = "Обновлено " + formatTimeAgo(details.updateTime);
-  })
+  });
 
   $: from = $page.url.searchParams.get("from") || "/auth/login";
 
@@ -42,8 +42,7 @@
     loading = true;
 
     try {
-      const descriptionChanged =
-        description !== original.description;
+      const descriptionChanged = description !== original.description;
 
       if (descriptionChanged) {
         await $API.updateProfile(
@@ -52,10 +51,7 @@
           description.trim(),
         );
       } else {
-        await $API.updateProfile(
-          firstName.trim(),
-          lastName.trim(),
-        );
+        await $API.updateProfile(firstName.trim(), lastName.trim());
       }
 
       original.firstName = firstName;
@@ -74,15 +70,12 @@
   <header>
     <h1>Профиль</h1>
     <span class="badge">
-      { updated }
+      {updated}
     </span>
   </header>
 
   <div class="content">
-    <div
-      class="profile-card"
-      in:fly={{ y: 15, duration: 350, opacity: 0 }}
-    >
+    <div class="profile-card" in:fly={{ y: 15, duration: 350, opacity: 0 }}>
       <div class="field">
         <label>Имя</label>
 
@@ -135,9 +128,7 @@
       {/if}
     </div>
 
-    <button class="back-btn" on:click={() => goto(from)}>
-      Назад
-    </button>
+    <button class="back-btn" on:click={() => goto(from)}> Назад </button>
   </div>
 </div>
 

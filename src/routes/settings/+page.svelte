@@ -1,5 +1,10 @@
 <script>
-  import { clearMessages, clearContacts, clearKeys, currentUserDetails } from "$lib/stores/api";
+  import {
+    clearMessages,
+    clearContacts,
+    clearKeys,
+    currentUserDetails,
+  } from "$lib/stores/api";
   import {
     scan,
     Format,

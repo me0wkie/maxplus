@@ -144,7 +144,7 @@ export default class MobileApi extends BaseAPI {
     if (checkCode.profile) {
       register = checkCode; // already registered
     } else {
-      console.log('Not registered. Sending request...')
+      console.log("Not registered. Sending request...");
       register = await invoke("register", { first_name });
       console.log(register);
     }
@@ -221,7 +221,7 @@ export default class MobileApi extends BaseAPI {
       let updated = false;
 
       chats.forEach((chat) => {
-        if(cacheChat(chat, currentChats) && !updated) updated = true;
+        if (cacheChat(chat, currentChats) && !updated) updated = true;
       });
 
       let requireInfo = new Set();
@@ -236,7 +236,7 @@ export default class MobileApi extends BaseAPI {
 
       syncContacts(contacts, currentContacts, requireInfo);
 
-      console.log(chats, currentChats)
+      console.log(chats, currentChats);
 
       currentSessionChats.set(currentChats);
       currentSessionContacts.set(currentContacts);
@@ -423,14 +423,21 @@ export default class MobileApi extends BaseAPI {
   }
 
   async updateProfile(firstName, lastName, description) {
-    const result = await invoke("update_profile", { firstName, lastName, description });
-    console.log(result);
+    const result = await invoke("update_profile", {
+      firstName,
+      lastName,
+      description,
+    });
+
     const details = get(currentUserDetails);
     if (!details) return null;
-    console.log(details)
+
     details.names[0].firstName = firstName;
     details.names[0].lastName = lastName;
-    if (description) details.description = description;
+    if (description !== undefined) {
+      details.description = description;
+    }
+
     currentUserDetails.set(details);
     return result;
   }

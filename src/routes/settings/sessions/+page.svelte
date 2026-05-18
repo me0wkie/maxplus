@@ -30,7 +30,7 @@
 
   async function handleTerminateAll() {
     const confirmed = await confirm(
-      "Вы уверены, что хотите завершить все остальные сессии?"
+      "Вы уверены, что хотите завершить все остальные сессии?",
     );
 
     if (!confirmed) return;
@@ -115,16 +115,12 @@
   </div>
 
   <div class="actions-panel">
-    <button
-      class="terminate-btn"
-      on:click|stopPropagation={handleTerminateAll}
-    >
+    <button class="terminate-btn" on:click|stopPropagation={handleTerminateAll}>
       Завершить все сессии
     </button>
-    <button
-      class="back-btn"
-      on:click|stopPropagation={() => goto(from)}
-    > Назад </button>
+    <button class="back-btn" on:click|stopPropagation={() => goto(from)}>
+      Назад
+    </button>
   </div>
 </div>
 

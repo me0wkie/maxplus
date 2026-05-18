@@ -57,9 +57,7 @@
   </div>
 
   <div class="footer-panel">
-    <button class="back-btn" on:click={() => goto(from)}>
-      Назад
-    </button>
+    <button class="back-btn" on:click={() => goto(from)}> Назад </button>
   </div>
 </div>
 

@@ -29,8 +29,6 @@ export const cacheChat = (chat, chats = null) => {
     currentSessionChats.set([...list]);
   }
 
-  console.log('changed?', changed)
-
   return changed;
 };
 

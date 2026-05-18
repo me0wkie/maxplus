@@ -35,7 +35,13 @@
       </div>
     </div>
     <div class="group">
-      <div on:click={() => { sessionSet("devSettings", false); goto("/") }} class="button">
+      <div
+        on:click={() => {
+          sessionSet("devSettings", false);
+          goto("/");
+        }}
+        class="button"
+      >
         <a>На главную</a>
       </div>
     </div>

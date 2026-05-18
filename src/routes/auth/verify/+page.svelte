@@ -54,8 +54,7 @@
         if (registeredId) {
           currentUser.set(registeredId);
           goto("/");
-        }
-        else {
+        } else {
           error = "Успешно! Перезапустите приложение и авторизуйтесь";
         }
       }

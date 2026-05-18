@@ -18,7 +18,7 @@
     error = "Ожидайте...";
     console.log("Запрос на регистрацию:", { phone, name });
     const response = await $API.startAuth(phone);
-    console.log(response)
+    console.log(response);
     if (!response.success) {
       error = "Ошибка!";
       alert(response.localizedMessage);

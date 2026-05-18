@@ -128,7 +128,7 @@ const updateDetails = async (_details, user) => {
   } else if (_details === null) {
     await chats.delete("user-" + user); // TODO purge other data as well
   }
-}
+};
 
 const updateChats = async (_chats, user) => {
   if (!user) return;
