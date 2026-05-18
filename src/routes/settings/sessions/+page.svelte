@@ -29,7 +29,7 @@
   };
 
   async function handleTerminateAll() {
-    const confirmed = confirm(
+    const confirmed = await confirm(
       "Вы уверены, что хотите завершить все остальные сессии?"
     );
 

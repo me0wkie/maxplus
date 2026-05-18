@@ -18,11 +18,11 @@
     error = "Ожидайте...";
     console.log("Запрос на регистрацию:", { phone, name });
     const response = await $API.startAuth(phone);
-    if (!response.token) {
+    console.log(response)
+    if (!response.success) {
       error = "Ошибка!";
       alert(response.localizedMessage);
     } else {
-      sessionSet("token", response.token);
       sessionSet("name", name);
       goto("/auth/verify");
     }

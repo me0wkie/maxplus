@@ -14,7 +14,6 @@
     console.log("Запрос на вход:", phone);
     if (!phone.startsWith("+")) phone = "+" + phone;
     const response = await $API.startAuth(phone);
-    console.log(response);
     if (response.success) goto("/auth/verify");
     else error = response.description + ", " + response.title;
   }

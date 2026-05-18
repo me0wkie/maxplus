@@ -11,7 +11,6 @@
   let error = "";
   let code = "";
   const name = sessionGet("name");
-  const token = sessionGet("token");
   const state = !name ? "login" : "register";
 
   const onBack = getContext("onBack");
@@ -44,11 +43,21 @@
     } else {
       /* Регистрация */
       const response = await $API.register(code, name);
+      console.log(response);
       if (response.error) {
         error = response.localizedMessage;
       } else {
         sessionSet("connected", true);
-        error = "Успешно! Перезапустите приложение и авторизуйтесь";
+
+        const registeredId = response.payload?.profile?.contact?.id;
+
+        if (registeredId) {
+          currentUser.set(registeredId);
+          goto("/");
+        }
+        else {
+          error = "Успешно! Перезапустите приложение и авторизуйтесь";
+        }
       }
     }
   }

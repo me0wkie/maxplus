@@ -99,8 +99,10 @@ export default class MobileApi extends BaseAPI {
       deviceId: this.getDevice().id,
       mtInstance: this.getDevice().mt,
     });
+    console.log(response);
 
     const auth = await invoke("start_auth", { phone });
+    console.log(auth);
 
     const success = !!auth.token;
     if (!success) return auth;
@@ -113,7 +115,6 @@ export default class MobileApi extends BaseAPI {
 
   async login(code) {
     const checkCode = await invoke("check_code", { code });
-
     console.log(checkCode);
 
     const success = !!checkCode.profile;
@@ -136,11 +137,17 @@ export default class MobileApi extends BaseAPI {
 
   async register(code, first_name) {
     const checkCode = await invoke("check_code", { code });
+    console.log(checkCode);
 
-    if (!checkCode.token) return checkCode;
-    const register = await invoke("register", { first_name });
+    let register;
 
-    console.log(register);
+    if (checkCode.profile) {
+      register = checkCode; // already registered
+    } else {
+      console.log('Not registered. Sending request...')
+      register = await invoke("register", { first_name });
+      console.log(register);
+    }
 
     const success = !!register.profile;
     if (success) {
@@ -214,10 +221,8 @@ export default class MobileApi extends BaseAPI {
       let updated = false;
 
       chats.forEach((chat) => {
-        updated ||= cacheChat(chat, currentChats);
+        if(cacheChat(chat, currentChats) && !updated) updated = true;
       });
-
-      console.log("updated", updated);
 
       let requireInfo = new Set();
 
@@ -230,6 +235,8 @@ export default class MobileApi extends BaseAPI {
       });
 
       syncContacts(contacts, currentContacts, requireInfo);
+
+      console.log(chats, currentChats)
 
       currentSessionChats.set(currentChats);
       currentSessionContacts.set(currentContacts);
@@ -311,6 +318,7 @@ export default class MobileApi extends BaseAPI {
     currentSessionContacts.update((contacts) => {
       return { ...contacts, [contactId]: contact };
     });
+
     currentRealContacts.update((contacts) => {
       if (!contacts.includes(contactId)) return [...contacts, contactId];
       return contacts;

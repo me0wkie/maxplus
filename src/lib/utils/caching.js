@@ -1,4 +1,5 @@
 import { currentSessionChats } from "$lib/stores/api";
+import { invoke } from "$lib/utils/invoke";
 import { get } from "svelte/store";
 
 export const cacheChat = (chat, chats = null) => {
@@ -27,6 +28,8 @@ export const cacheChat = (chat, chats = null) => {
   if (useStore && changed) {
     currentSessionChats.set([...list]);
   }
+
+  console.log('changed?', changed)
 
   return changed;
 };

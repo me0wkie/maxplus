@@ -1,5 +1,6 @@
 <script>
   import { fade } from "svelte/transition";
+  import { goto } from "$app/navigation";
   import Session, {
     get as sessionGet,
     set as sessionSet,
@@ -31,6 +32,11 @@
     <div class="group">
       <div on:click={swapVisualMarker} class="button">
         <a>{visualMarker ? "Отключить" : "Включить"} визуальные маркеры</a>
+      </div>
+    </div>
+    <div class="group">
+      <div on:click={() => { sessionSet("devSettings", false); goto("/") }} class="button">
+        <a>На главную</a>
       </div>
     </div>
   </div>
