@@ -29,14 +29,20 @@
   };
 
   async function handleTerminateAll() {
-    if (confirm("Вы уверены, что хотите завершить все остальные сессии?")) {
-      try {
-        await $API.closeAllSessions();
-        const res = await $API.getSessions();
-        sessions = res?.sessions || res || [];
-      } catch (e) {
-        alert("Ошибка при завершении сессий.");
-      }
+    const confirmed = confirm(
+      "Вы уверены, что хотите завершить все остальные сессии?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await $API.closeAllSessions();
+
+      const res = await $API.getSessions();
+      sessions = res?.sessions || res || [];
+    } catch (e) {
+      console.error(e);
+      alert("Ошибка при завершении сессий.");
     }
   }
 
@@ -109,10 +115,16 @@
   </div>
 
   <div class="actions-panel">
-    <button class="terminate-btn" on:click={handleTerminateAll}>
+    <button
+      class="terminate-btn"
+      on:click|stopPropagation={handleTerminateAll}
+    >
       Завершить все сессии
     </button>
-    <button class="back-btn" on:click={() => goto(from)}> Назад </button>
+    <button
+      class="back-btn"
+      on:click|stopPropagation={() => goto(from)}
+    > Назад </button>
   </div>
 </div>
 
