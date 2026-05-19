@@ -12,6 +12,7 @@
     requestPermissions,
     openAppSettings,
   } from "@tauri-apps/plugin-barcode-scanner";
+  import Avatar from "$components/main/Avatar.svelte";
   import { set as sessionSet } from "$lib/stores/session";
   import { platform as getPlatform } from "@tauri-apps/plugin-os";
   import { readFile } from "@tauri-apps/plugin-fs";
@@ -24,7 +25,7 @@
 
   let platform;
 
-  let user;
+  let contact;
   let phone;
   let name;
 
@@ -41,6 +42,7 @@
         user.phone.toString().slice(-2, user.phone.toString().length)
       : "";
     name = user.names[0].firstName + " " + user.names[0].lastName;
+    contact = user;
   }
 
   const buttons = [
@@ -174,24 +176,13 @@
   onMount(async () => {
     platform = await getPlatform();
   });
-
-  /*
-  <div class="top">
-    <img src={ "icons/qr.svg" }/>
-    <img src={ "icons/edit.svg" }/>
-  </div>
-  */
 </script>
 
 <div class="settings">
   <img on:click={scanner} src={"icons/qr.svg"} class="scanner-icon icon" />
 
   <div class="info">
-    <img
-      src={user?.baseUrl || "/default-avatar.jpg"}
-      alt="avatar"
-      class="avatar"
-    />
+    <Avatar size={85} contact={contact}/>
     <a class="name">{name}</a>
     <a class="phone">{phone}</a>
   </div>
@@ -240,11 +231,6 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-  }
-
-  .info img {
-    height: 85px;
-    border-radius: 85px;
   }
 
   .info .name {

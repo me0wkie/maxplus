@@ -11,12 +11,16 @@
     const attach = call.message.attaches[0];
     const duration = formatSeconds(attach.duration);
 
+    console.log(call)
+
     if (call.chatType === "CHAT") {
       const chat = $currentSessionChats.find((x) => x.id === call.chatId);
+      let avatar = chat.avatar || chat.baseUrl;
+      if (!avatar && call.message) avatar = $currentSessionContacts[call.message.sender]?.avatar;
       return {
-        avatar: chat.avatar || chat.baseUrl,
         name: chat.title,
         duration,
+        avatar,
       };
     } else if (call.chatType === "DIALOG") {
       const cid = call.chatId ^ $currentUser;
@@ -24,8 +28,8 @@
       const type =
         attach.callType === "AUDIO" ? "Аудиозвонок " : "Видеозвонок ";
       return {
-        avatar: contact.avatar,
         name: type + contact.names[0].firstName,
+        avatar: contact.avatar,
         duration,
       };
     }

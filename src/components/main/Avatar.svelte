@@ -19,7 +19,7 @@
         : chat.title || contact?.names?.[0]?.name || "Без названия";
 
   $: avatarUrl =
-    chat.avatar || (chat.id === 0 ? "saved.webp" : contact?.avatar);
+    chat.avatar || (chat.id === 0 ? "saved.webp" : (contact?.avatar || contact?.baseUrl));
 
   function getAvatarColor(id) {
     const colors = [
@@ -69,7 +69,7 @@
     {:else}
       <div
         class="avatar-placeholder"
-        style="background-color: {getAvatarColor(contact.id || chat.id)}"
+        style="background-color: {getAvatarColor(contact.id || chat.id)}; font-size: {size / 2.5}px;"
       >
         {chat.id === 0 ? "⭐" : getInitials(title)}
       </div>
@@ -106,7 +106,6 @@
     justify-content: center;
     color: white;
     font-weight: 600;
-    font-size: 18px;
   }
 
   .selection-overlay {

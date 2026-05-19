@@ -12,9 +12,7 @@
   const dispatch = createEventDispatcher();
 
   $: peerId =
-    chat.type === "private" || !chat.title
-      ? +Object.keys(chat.participants || {}).find((id) => +id !== $currentUser)
-      : null;
+    chat.type === "DIALOG" ? $currentUser ^ chat.id : null;
 
   $: contact = peerId ? $currentSessionContacts[peerId] : {};
 
