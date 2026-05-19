@@ -11,7 +11,7 @@
 
   if (!size) size = 50;
   if (!contact.id)
-    contact = $currentSessionContacts[$currentUser ^ chat.id] || {};
+    contact = $currentSessionContacts?.[$currentUser ^ chat.id] || {};
   if (!title)
     title =
       chat.id === 0

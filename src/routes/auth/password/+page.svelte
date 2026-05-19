@@ -9,66 +9,43 @@
   import API, { currentUser } from "$lib/stores/api";
 
   let error = "";
-  let code = "";
-  const name = sessionGet("name");
-  const state = !name ? "login" : "register";
+  let password = "";
+  const challenge = sessionGet("challenge");
 
   const onBack = getContext("onBack");
-  onBack["sms"] = () => {
-    goto("/auth/" + state);
+  onBack["auth"] = () => {
+    goto("/auth");
   };
-  onDestroy(() => delete onBack["sms"]);
+  onDestroy(() => delete onBack["auth"]);
+
+  console.log(challenge)
 
   async function handleVerify() {
     error = "Ожидайте...";
-    console.log("Проверяем код:", code);
+    console.log("Проверяем пароль:", password);
 
-    let response;
-
-    if (state === "login") {
-      if (code.length !== 6) {
-        error = "Длина кода - 6 символов!";
-        return;
-      }
-      response = await $API.login(code);
-    }
-    else {
-      response = await $API.register(code, name);;
-    }
-
+    const response = await $API.checkPassword(password, challenge.trackId);
     if (response.error) {
       error = response.localizedMessage;
-      return;
-    }
-
-    if (response.passwordChallenge) {
-      sessionSet("challenge", response.passwordChallenge);
-      goto("/auth/password");
-      return;
-    }
-
-    const id = response.payload?.profile?.contact?.id;
-    if (id) {
-      currentUser.set(registeredId);
-      goto("/");
     } else {
-      error = "Успешно! Перезапустите приложение и авторизуйтесь";
+      sessionSet("connected", true);
+      goto("/");
     }
   }
 </script>
 
 <div class="auth-page">
-  <h1>Подтверждение</h1>
-  <p>Введите код, отправленный на номер телефона</p>
+  <h1>2FA</h1>
+  <p>Ваш аккаунт защищен паролем, помните его?</p>
   <form on:submit|preventDefault={handleVerify}>
     <div class="error">{error}</div>
     <input
       type="text"
-      bind:value={code}
-      placeholder="Код подтверждения"
+      bind:value={password}
+      placeholder={challenge.hint || "Пароль"}
       required
     />
-    <button class="animated-panel" type="submit">Подтвердить</button>
+    <button class="animated-panel" type="submit">Проверить</button>
   </form>
 </div>
 
@@ -89,7 +66,7 @@
 
   .auth-page p {
     margin: 10px 0;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   form {

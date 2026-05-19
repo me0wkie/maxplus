@@ -57,7 +57,9 @@ export default class API {
     logout() { throw "logout: Unimplemented" }
     getSessions() { throw "getSessions: Unimplemented" }
     closeAllSessions() { throw "closeAllSessions: Unimplemented" }
-    
+    checkPassword() { throw "checkPassword: Unimplemented" }
+    setPassword() { throw "setPassword: Unimplemented" }
+
     _telemetry() { throw "_telemetry: Unimplemented" }
     
     startAuth() { throw "startAuth: Unimplemented" }

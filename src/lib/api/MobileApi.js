@@ -185,10 +185,31 @@ export default class MobileApi extends BaseAPI {
     goto("/auth/login");
   }
 
+  async checkPassword(password, trackId) {
+    const response = await invoke("check_password", { password, trackId });
+    console.log(response);
+
+    const { tokenAttrs } = response;
+
+    if (tokenAttrs) {
+      this.setToken(tokenAttrs.LOGIN.token);
+      await this.sync();
+      return {
+        success: true,
+        payload: response
+      }
+    }
+
+    return {
+      success: false,
+      payload: response
+    }
+  }
+
   async sync() {
     try {
       if (!this.getToken()) throw "Ошибка: токен не установлен";
-      if (!this.getUser()) throw "Ошибка: User ID не установлен";
+      //if (!this.getUser()) throw "Ошибка: User ID не установлен";
       if (sessionGet("sync")) {
         console.warn("Уже синхронизовано!");
         return;
@@ -209,6 +230,8 @@ export default class MobileApi extends BaseAPI {
       currentRealChats.set(chats.map((x) => x.id));
       currentUserDetails.set(res.profile.contact);
       currentRealContacts.set(contacts.map((x) => x.id));
+
+      if (!this.getUser()) this.setUser(res.profile.contact.id);
 
       sessionSet("reactions", config.server["reactions-menu"]);
       //const callsEndpoint = config.server['calls-endpoint'];

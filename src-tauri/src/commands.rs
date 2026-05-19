@@ -19,6 +19,7 @@ macro_rules! delegate_cmd {
 
 delegate_cmd!(start_auth(phone: String) => start_auth(phone));
 delegate_cmd!(check_code(code: String) => check_code(code));
+delegate_cmd!(check_password(password: String, track_id: String) => check_password(password, track_id));
 delegate_cmd!(register(first_name: String) => submit_register(first_name, None));
 delegate_cmd!(fetch_contacts(user_ids: Vec<u64>) => fetch_contacts(user_ids));
 delegate_cmd!(get_by_phone(phone: String) => get_by_phone(phone));
