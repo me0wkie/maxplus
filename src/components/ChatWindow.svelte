@@ -48,7 +48,7 @@
 
   let replyTo = null;
 
-  let showSettings = false;
+  let settingsShown = false;
   let dropoutActiveAt;
   let attachesDropout = null;
 
@@ -318,8 +318,8 @@
   }
 
   const openSettings = () => {
-    showSettings = !showSettings;
-    if (showSettings) onBack.chatSettings = () => (showSettings = false);
+    settingsShown = !settingsShown;
+    if (settingsShown) onBack.chatSettings = () => (settingsShown = false);
     else delete onBack["chatSettings"];
   };
 
@@ -394,9 +394,12 @@
     </div>
   </header>
 
-  {#if chat.type !== "CHANNEL"}
-    <Settings {chat} {chatKeysLoaded} {messages} {showSettings} />
-  {/if}
+  <Settings
+    {chat}
+    {chatKeysLoaded}
+    {messages}
+    bind:shown={settingsShown}
+  />
 
   <div
     bind:this={scrollElement}
@@ -447,7 +450,13 @@
   />
 
   {#if chat.type !== "CHANNEL"}
-    <Input bind:replyTo {scrollElement} {chat} {messages} {chatKeysLoaded} />
+    <Input
+      bind:replyTo
+      {scrollElement}
+      {chat}
+      {messages}
+      {chatKeysLoaded}
+    />
   {/if}
 
   {#if showScrollDown}
