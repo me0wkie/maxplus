@@ -49,7 +49,7 @@
 
     const id = response.payload?.profile?.contact?.id;
     if (id) {
-      currentUser.set(registeredId);
+      currentUser.set(id);
       goto("/");
     } else {
       error = "Успешно! Перезапустите приложение и авторизуйтесь";
