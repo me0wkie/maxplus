@@ -21,6 +21,8 @@
       ? "Избранное"
       : chat.title || contact?.names?.[0]?.name || "Без названия";
 
+  $: console.log($currentSessionContacts, Object.keys($currentSessionContacts));
+
   $: shownMessage = replace?.message || chat.lastMessage;
   $: attaches = getAttachText(chat, shownMessage);
 

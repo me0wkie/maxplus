@@ -1,7 +1,6 @@
 <script>
   import { switchEnc } from "$components/ChatWindow/e2e.js";
   import { fade, fly, scale } from "svelte/transition";
-  import { cubicOut } from "svelte/easing";
 
   export let chatKeysLoaded;
   export let chat;
@@ -176,7 +175,7 @@
     inset: 0;
 
     background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(18px);
+    backdrop-filter: blur(1px);
 
     display: flex;
     align-items: flex-end;
@@ -189,7 +188,7 @@
     width: 100%;
     max-width: 520px;
 
-    background: #111214;
+    background: #111;
 
     border-radius: 28px 28px 0 0;
 

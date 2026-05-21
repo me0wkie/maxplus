@@ -239,8 +239,6 @@ export default class MobileApi extends BaseAPI {
       const currentChats = get(currentSessionChats) || [];
       const currentContacts = get(currentSessionContacts) || {};
 
-      // TODO wtf?
-
       let updated = false;
 
       chats.forEach((chat) => {
@@ -254,12 +252,10 @@ export default class MobileApi extends BaseAPI {
           Object.keys(chat.participants).forEach((member) => {
             if (!currentContacts[member]) requireInfo.add(+member);
           });
-        }
+        };
       });
 
-      syncContacts(contacts, currentContacts, requireInfo);
-
-      console.log(chats, currentChats);
+      await syncContacts(contacts, currentContacts, requireInfo);
 
       currentSessionChats.set(currentChats);
       currentSessionContacts.set(currentContacts);
