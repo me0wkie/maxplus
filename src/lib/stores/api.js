@@ -124,9 +124,9 @@ const updateDetails = async (_details, user) => {
     const fromDb = await users.get("user-" + user);
     currentUserDetails.set(fromDb || {});
   } else if (Object.keys(_details).length) {
-    await chats.set("user-" + user, _details);
+    await users.set("user-" + user, _details);
   } else if (_details === null) {
-    await chats.delete("user-" + user); // TODO purge other data as well
+    await users.delete("user-" + user); // TODO purge other data as well
   }
 };
 
