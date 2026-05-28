@@ -2,7 +2,7 @@ import * as fflate from "fflate";
 
 // prettier-ignore
 const ALPHABETS = {
-  ru: 'абвгдежзийклмнопрстуфхцчшщъыьэюяАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ0123456789+/',
+  ru: 'абвгдежзийклмнопрстуфхцчшщъыьэюяАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ',
   en: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/',
   mix: 'абвгдежзийклмнопрстуфхцчшщъыьэюяАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯabcdefghijklmnopqrstuvwxyzQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$%^&*()',
   emoji: [
@@ -109,7 +109,7 @@ function makeMarker(alphabet, count = 5) {
 }
 
 // Проверка скрытого признака
-function isObfuscated(str, language) {
+export function isObfuscated(str, language) { // TODO оптимизировать?
   const alphabet = ALPHABETS[language];
 
   const { map } = makeAlphabetData(alphabet);
@@ -122,33 +122,35 @@ function isObfuscated(str, language) {
   return true;
 }
 
-function obfuscate(text, language, compression = "max") {
+export function deflate(text) {
+  const bytes = fflate.strToU8(text);
+  return fflate.deflateSync(bytes, { level: 9 });
+}
+
+export function inflate(bytes) {
+  const decompressed = fflate.inflateSync(bytes);
+  return fflate.strFromU8(decompressed);
+}
+
+export function obfuscate(bytes, language) {
   const alphabet = ALPHABETS[language];
 
-  const level = compression === "max" ? 9 : 1;
-  const inputBytes = fflate.strToU8(text);
-  const compressedBytes = fflate.deflateSync(inputBytes, { level });
-
-  const payload = encodeBitPacked(compressedBytes, alphabet);
+  const payload = encodeBitPacked(bytes, alphabet);
   const marker = makeMarker(alphabet, 5);
   return marker + payload;
 }
 
-function deobfuscate(compressedString, language) {
+export function deobfuscate(input, language) {
   const alphabet = ALPHABETS[language];
 
   try {
-    const payloadString = isObfuscated(compressedString, language)
-      ? Array.from(compressedString).slice(5).join("")
-      : compressedString;
+    const payloadString = isObfuscated(input, language)
+      ? Array.from(input).slice(5).join("")
+      : input;
 
-    const compressedBytes = decodeBitPacked(payloadString, alphabet);
-    const decompressedBytes = fflate.inflateSync(compressedBytes);
-    return fflate.strFromU8(decompressedBytes);
+    return decodeBitPacked(payloadString, alphabet);
   } catch (error) {
-    console.error("Ошибка декомпрессии:", error);
+    console.error("Ошибка деобфускации:", error);
     return null;
   }
 }
-
-export { obfuscate, deobfuscate, isObfuscated };

@@ -1,14 +1,26 @@
 <script>
-  import { switchEnc } from "$components/ChatWindow/e2e.js";
+  import { switchEnc } from "$components/ChatWindow/e2e";
   import { fade, fly, scale } from "svelte/transition";
+  import { chatPassword } from '$lib/stores/api';
 
   export let chatKeysLoaded;
   export let chat;
   export let messages;
   export let shown;
+  export let password;
 
-  let chatPassword = "";
+  let saveTimeout;
   let showPassword = false;
+
+  function onPasswordInput(event) {
+    password = event.target.value;
+
+    clearTimeout(saveTimeout);
+
+    saveTimeout = setTimeout(() => {
+      chatPassword.set(chat.id, password);
+    }, 500);
+  }
 
   function close() {
     shown = false;
@@ -19,47 +31,24 @@
 <div
   class="settings-overlay"
   on:click={close}
-  in:fly={{
-    y: 40,
-    duration: 260
-  }}
-
-  out:fly={{
-    y: 40,
-    duration: 200
-  }}
+  in:fly={{ y: 40,  duration: 260 }}
+  out:fly={{ y: 40, duration: 200 }}
 >
-  <div
-    class="settings-modal"
-    on:click|stopPropagation
-  >
-
-    <div
-      class="settings-grabber"
-    ></div>
-
+  <div class="settings-modal" on:click|stopPropagation>
+    <div class="settings-grabber"></div>
     <div class="settings-header">
-      <div
-        class="settings-title"
-      >
+      <div class="settings-title">
         Настройки
       </div>
 
-      <button class="close-btn" on:click={close}>
-        ✕
-      </button>
+      <button class="close-btn" on:click={close}>✕</button>
     </div>
 
-    <div
-      class="settings-group"
-      in:fade={{ delay: 120, duration: 220 }}
-    >
+    <div class="settings-group" in:fade={{ delay: 120, duration: 220 }}>
 
       <div class="settings-row">
         <div class="row-left">
-          <div class="row-title">
-            β Шифрование
-          </div>
+          <div class="row-title">β Шифрование</div>
 
           <div class="row-subtitle">
             End-to-end защита сообщений
@@ -89,10 +78,7 @@
 
     </div>
 
-    <div
-      class="settings-footer"
-      in:fade={{ delay: 160, duration: 220 }}
-    >
+    <div class="settings-footer" in:fade={{ delay: 160, duration: 220 }}>
       Когда включено, только вы и собеседник сможете читать сообщения.
       <br />
       <span class="warning">
@@ -100,24 +86,20 @@
       </span>
     </div>
 
-    <div
-      class="settings-group"
-      in:fade={{ delay: 200, duration: 220 }}
-    >
+    <div class="settings-group" in:fade={{ delay: 200, duration: 220 }}>
 
       <div class="settings-row">
-        <div class="row-title">
-          Пароль чата (скоро)
-        </div>
+        <div class="row-title">Общий секрет</div>
       </div>
 
       <div class="settings-row password-row">
 
         <input
           type={showPassword ? "text" : "password"}
-          bind:value={chatPassword}
+          value={password}
+          on:input={onPasswordInput}
           class="settings-input"
-          placeholder="Введите пароль"
+          placeholder="Иначе говоря — пароль чата"
         />
 
         <button
@@ -131,17 +113,11 @@
 
     </div>
 
-    <div
-      class="settings-footer"
-      in:fade={{ delay: 240, duration: 220 }}
-    >
+    <div class="settings-footer" in:fade={{ delay: 240, duration: 220 }}>
       Используется для симметричного шифрования сообщений.
     </div>
 
-    <div
-      class="settings-group"
-      in:fade={{ delay: 280, duration: 220 }}
-    >
+    <div class="settings-group" in:fade={{ delay: 280, duration: 220 }}>
 
       <div class="settings-row">
         <div class="row-title">
@@ -158,9 +134,7 @@
           Сохранить чат
         </div>
 
-        <button class="row-action disabled" disabled>
-          Скоро
-        </button>
+        <button class="row-action disabled" disabled>Скоро</button>
       </div>
 
     </div>

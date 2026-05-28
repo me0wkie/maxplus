@@ -67,10 +67,23 @@ export const chatKeys = {
     if (!meId) throw "No session!";
     return chats.get(`ckeys-${meId}-${chatId}`);
   },
-  set: (chatId, sorted) => {
+  set: (chatId, value) => {
     const meId = get(currentUser);
     if (!meId) throw "No session!";
-    return chats.set(`ckeys-${meId}-${chatId}`, sorted);
+    return chats.set(`ckeys-${meId}-${chatId}`, value);
+  },
+};
+
+export const chatPassword = { // TODO будет перенесено в user-ID/settings.bin
+  get: (chatId) => {
+    const meId = get(currentUser);
+    if (!meId) throw "No session!";
+    return chats.get(`cpass-${meId}-${chatId}`);
+  },
+  set: (chatId, value) => {
+    const meId = get(currentUser);
+    if (!meId) throw "No session!";
+    return chats.set(`cpass-${meId}-${chatId}`, value);
   },
 };
 

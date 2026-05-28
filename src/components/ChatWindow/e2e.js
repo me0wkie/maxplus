@@ -12,7 +12,7 @@ import {
   bufToBase64Url,
   publicIdentityPack,
 } from "$lib/crypto/asymmetric.js";
-import { obfuscate, deobfuscate, isObfuscated } from "$lib/crypto/messages.js";
+import { inflate, deflate, obfuscate, deobfuscate, isObfuscated } from "$lib/crypto/messages.js";
 import { sendMessage } from "$components/ChatWindow/actions.js";
 import { escapeHtml } from "$lib/utils/text.js";
 
@@ -89,31 +89,26 @@ export const checkForEncryptionRequest = async (
   }
 };
 
-async function encryptMessage(chat, text) {
+export async function encryptMessage(chat, chatKeysCached, text) {
   // TODO multiple participants support (MLS)
-  const otherId = +Object.keys(chat.participants).find(
-    (x) => x !== get(currentUser),
-  );
   const keys = chatKeysCached.keys[chatKeysCached.current];
-  const otherIdentityPacked = publicIdentityPack(keys, otherId);
-  const envelope = await getEncrypted(
+  const otherIdentityPacked = publicIdentityPack(keys, chat.id ^ get(currentUser));
+  return await getEncrypted(
     get(currentUser),
     keys,
     [otherIdentityPacked],
     text,
   );
-
-  return obfuscate(envelope, "zh");
 }
 
 function decryptMessage(chatKeysCached, message, deobfuscated) {
   const entry = chatKeysCached.messages?.find(
     (entry) => entry.from <= message.id && entry.to >= message.id,
   );
-  if (!entry) return { error: "Ключи шифрования не найдены!" };
+  if (!entry) return { ok: false, error: "Ключи шифрования не найдены!" };
   return handleIncomingEnvelope(
     deobfuscated,
-    $currentUser,
+    get(currentUser),
     chatKeysCached.keys[entry.key],
   );
 }
@@ -141,8 +136,17 @@ async function tryDecryptMessage(dmsg) {
   } else if (Number(prefix)) {
     const msg = await decryptMessage(dmsg);
     if (!msg.ok) return "<b>Ошибка!</b> " + msg.error;
-    return escapeHtml(msg.plaintext);
-  } else return "<b>Деобфусцировано:</b> " + escapeHtml(dmsg);
+    const text = await inflate(msg.plaintext);
+    return escapeHtml(text);
+  } else {
+    try {
+      const text = await inflate(dmsg);
+      return "<b>Деобфусцировано:</b> " + escapeHtml(text);
+    } catch (e) {
+      console.error(e)
+      return "<b>Деобфусцировано:</b> " + escapeHtml(dmsg);
+    }
+  }
 }
 
 /* нажатие в меню запроса */
@@ -154,7 +158,7 @@ export async function handleEnc(chat, chatKeysCached, messages, action) {
   if (!request) return alert("Ошибка! Код: 0");
 
   if (action === "agree") {
-    const identity = await createIdentity($currentUser);
+    const identity = await createIdentity(get(currentUser));
 
     await sendMyIdentity(chat, chatKeysCached, messages, identity, "idy");
 
@@ -232,6 +236,14 @@ export const sendMyIdentity = async (
     bufToBase64Url(identity.curve25519_pk),
   ].join("|");
 
-  const newMessage = await obfuscate(identityTransfer, "zh"); // TODO выбор алфавита
-  await sendMessage(chat, chatKeysCached, messages, newMessage);
+  await sendMessage(
+    chat,
+    chatKeysCached,
+    messages,
+    identityTransfer,
+    undefined,
+    undefined,
+    undefined,
+    true
+  );
 };

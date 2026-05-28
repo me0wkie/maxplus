@@ -18,15 +18,13 @@
     receivedMessage,
     chatMessages,
     chatKeys,
+    chatPassword,
     currentSessionContacts,
     currentSessionChats,
   } from "$lib/stores/api";
   import Session from "$lib/stores/session";
   import { handleReaction } from "$components/ChatWindow/actions.js";
-  import {
-    checkForEncryptionRequest,
-    deobfuscate_msg,
-  } from "$components/ChatWindow/e2e.js";
+  import { checkForEncryptionRequest } from "$components/ChatWindow/e2e.js";
   import { scrollToBottom } from "$lib/utils/scroll.js";
   import * as Caching from "$lib/utils/caching.js";
   import Settings from "$components/ChatWindow/Settings.svelte";
@@ -45,6 +43,7 @@
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
   let chatKeysLoaded = null;
+  let chatPasswordLoaded = "";
 
   let replyTo = null;
 
@@ -94,6 +93,7 @@
   });
 
   onMount(async () => {
+    chatPasswordLoaded = await chatPassword.get(chat.id);
     chatKeysLoaded = await chatKeys.get(chat.id);
     await loadHistory(true);
   });
@@ -398,6 +398,7 @@
     {chat}
     {chatKeysLoaded}
     {messages}
+    bind:password={chatPasswordLoaded}
     bind:shown={settingsShown}
   />
 
@@ -428,7 +429,6 @@
             {msg}
             {chat}
             {dropoutActiveAt}
-            deobfuscated={deobfuscate_msg(msg)}
             {scrollElement}
             on:openMedia={(e) => openMedia(e.detail.attach)}
             on:openChat={(e) => {

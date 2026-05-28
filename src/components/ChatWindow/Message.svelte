@@ -1,24 +1,31 @@
 <script>
-  import { createEventDispatcher } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import API, { currentUser, currentSessionContacts } from "$lib/stores/api";
-  import { getAttachText } from "$components/main/attachs.js";
+  import { getAttachText } from "$components/main/attachs";
   import MessagePreview from "$components/main/MessagePreview.svelte";
   import { openPath } from "@tauri-apps/plugin-opener";
   import Avatar from "$components/main/Avatar.svelte";
   import Reactions from "./Reactions.svelte";
   import Attachments from "$components/ChatWindow/Attachments.svelte";
+  import { deobfuscate_msg } from "$components/ChatWindow/e2e";
 
   const dispatch = createEventDispatcher();
 
   export let msg;
   export let chat;
   export let dropoutActiveAt;
-  export let deobfuscated;
   export let scrollElement;
 
   const isMe = msg.sender === $currentUser;
   const isSystem = msg.attaches?.[0]?._type === "CONTROL";
+
   $: lines = msg.text?.split("\n");
+
+  let deobfuscated = null;
+  async function deobfuscate() {
+    deobfuscated = await deobfuscate_msg(msg);
+  }
+  deobfuscate();
 
   function handleMediaClick(attach) {
     dispatch("openMedia", { attach });
