@@ -44,6 +44,10 @@ tauri-plugin-fs = "2"
 dirs = "6.0.0"
 mime_guess = "2.0.5"
 base64 = "0.22.1"
+keyring = "3"
+aes-gcm = "0.10"
+rand = "0.8"
+argon2 = "0.5"
 
 [profile.dev]
 incremental = true
@@ -55,6 +59,8 @@ opt-level = "s"
 panic = "abort"
 strip = true
 
+
 [target.'cfg(any(target_os = "android", target_os = "ios"))'.dependencies]
 tauri-plugin-barcode-scanner = "2"
 tauri-plugin-biometric = "2"
+tauri-plugin-keystore = "2.1.0-alpha.1"
