@@ -12,6 +12,9 @@ import {
   bufToBase64Url,
   publicIdentityPack,
 } from "$lib/crypto/asymmetric.js";
+import {
+  xorDecrypt
+} from "$lib/crypto/symmetric.js";
 import { inflate, deflate, obfuscate, deobfuscate, isObfuscated } from "$lib/crypto/messages.js";
 import { sendMessage } from "$components/ChatWindow/actions.js";
 import { escapeHtml } from "$lib/utils/text.js";
@@ -37,13 +40,25 @@ export const checkForEncryptionRequest = async (
    */
 
   newMessages.forEach((msg) => {
-    const dmsg = getDeobfuscatedMessage(msg);
+    const hiddenData = getDeobfuscatedBytes(msg);
+    if (hiddenData) {
+      const sep = hiddenData.indexOf(124);
+
+      console.log('Check Sep', sep);
+
+      if (sep !== -1) {
+
+      }
+    }
+
+
+    /*const dmsg = getDeobfuscatedMessage(msg);
     if (dmsg && dmsg.slice(0, 3) === "idx" && !encryptionRequest) {
       encryptionRequest = { sender: msg.sender, data: dmsg };
     }
     if (dmsg && dmsg.slice(0, 3) === "idy" && !encryptionResponse) {
       encryptionResponse = { sender: msg.sender, data: dmsg };
-    }
+    }*/
   });
 
   if (
@@ -113,40 +128,56 @@ function decryptMessage(chatKeysCached, message, deobfuscated) {
   );
 }
 
-function getDeobfuscatedMessage(msg) {
+function getDeobfuscatedBytes(msg) {
   if (!isObfuscated(msg.text, "zh")) return;
   try {
-    const data = deobfuscate(msg.text, "zh");
+    const data = deobfuscate(msg.text, "zh"); // TODO выбор алфавита
     if (data && data.length) return data;
   } catch (e) {}
 }
 
-export function deobfuscate_msg(msg) {
-  const dmsg = getDeobfuscatedMessage(msg);
-  if (dmsg) return tryDecryptMessage(dmsg);
+export async function deobfuscate_msg(msg, password) {
+  let bytes = getDeobfuscatedBytes(msg);
+  if (bytes) {
+
+    if (password) {
+      bytes = await xorDecrypt(bytes, password);
+      console.log('Using XOR!');
+      console.log(password, bytes)
+    }
+
+    return await tryDecryptMessage(bytes);
+  }
   else return null;
 }
 
-async function tryDecryptMessage(dmsg) {
-  const prefix = dmsg.slice(0, dmsg.indexOf("|"));
+async function tryDecryptMessage(bytes) {
+  let text;
+  try {
+    text = inflate(bytes);
+  } catch (e) {
+    console.error(e);
+    return "<b style=\"color:#f66\">Ошибка!</b> Возможно, не совпадает общий секрет";
+  }
+
+  const sep = text.indexOf("|");
+
+  if (sep === -1) {
+    return "<b>Деобфусцировано: </b>" + escapeHtml(text);
+  }
+
+  const prefix = text.slice(0, sep);
+
   if (prefix === "idx") {
     return "<b>Запрос на включение шифрования</b>";
   } else if (prefix === "idx") {
     return "<b>Запрос на включение шифрования</b>";
   } else if (Number(prefix)) {
     const msg = await decryptMessage(dmsg);
-    if (!msg.ok) return "<b>Ошибка!</b> " + msg.error;
+    if (!msg.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + msg.error;
     const text = await inflate(msg.plaintext);
     return escapeHtml(text);
-  } else {
-    try {
-      const text = await inflate(dmsg);
-      return "<b>Деобфусцировано:</b> " + escapeHtml(text);
-    } catch (e) {
-      console.error(e)
-      return "<b>Деобфусцировано:</b> " + escapeHtml(dmsg);
-    }
-  }
+  } else return "<b style=\"color:#f66\">Ошибка!</b>";
 }
 
 /* нажатие в меню запроса */

@@ -430,6 +430,7 @@
             {chat}
             {dropoutActiveAt}
             {scrollElement}
+            password={chatPasswordLoaded}
             on:openMedia={(e) => openMedia(e.detail.attach)}
             on:openChat={(e) => {
               dispatch("chat", e.detail);

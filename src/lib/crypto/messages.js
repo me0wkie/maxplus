@@ -144,10 +144,7 @@ export function deobfuscate(input, language) {
   const alphabet = ALPHABETS[language];
 
   try {
-    const payloadString = isObfuscated(input, language)
-      ? Array.from(input).slice(5).join("")
-      : input;
-
+    const payloadString = Array.from(input).slice(5).join("");
     return decodeBitPacked(payloadString, alphabet);
   } catch (error) {
     console.error("Ошибка деобфускации:", error);

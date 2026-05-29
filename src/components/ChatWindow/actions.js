@@ -30,9 +30,9 @@ export async function sendMessage(
     if (debug) console.log('Original', text);
     let bytes = deflate(text);
     if (debug) console.log('2', bytes);
-    if (sym) bytes = await xorEncrypt(bytes, sym);
-    if (debug) console.log('3', bytes);
     if (ass) bytes = await encryptAss(chat, chatKeysCached, bytes);
+    if (debug) console.log('3', bytes);
+    if (sym) bytes = await xorEncrypt(bytes, sym);
     if (debug) console.log('4', bytes);
     text = obfuscate(bytes, "zh"); // TODO выбор алфавита
     if (debug) console.log('Final', text);

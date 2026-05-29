@@ -46,17 +46,20 @@ export async function decryptMessage(payload, password) {
     return sodium.to_string(message);
 }
 
-export async function xorEncrypt(text, password) {
+export async function xorDecrypt(encrypted, password) {
     const sodium = await ready();
 
     const key = deriveKey(sodium, password);
 
-    const encrypted = xor(
-        sodium.from_string(text),
-        key
-    );
+    return xor(encrypted, key);
+}
 
-    return encrypted;
+export async function xorEncrypt(data, password) {
+    const sodium = await ready();
+
+    const key = deriveKey(sodium, password);
+
+    return xor(data, key);
 }
 
 function xor(data, key) {

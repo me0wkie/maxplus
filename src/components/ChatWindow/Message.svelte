@@ -15,6 +15,7 @@
   export let chat;
   export let dropoutActiveAt;
   export let scrollElement;
+  export let password; // TODO optimize, don't pass?
 
   const isMe = msg.sender === $currentUser;
   const isSystem = msg.attaches?.[0]?._type === "CONTROL";
@@ -23,7 +24,7 @@
 
   let deobfuscated = null;
   async function deobfuscate() {
-    deobfuscated = await deobfuscate_msg(msg);
+    deobfuscated = await deobfuscate_msg(msg, password.length ? password : undefined);
   }
   deobfuscate();
 
