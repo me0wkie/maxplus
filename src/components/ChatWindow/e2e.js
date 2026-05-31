@@ -124,6 +124,7 @@ function decryptMessage(chatKeysCached, message, deobfuscated) {
   return handleIncomingEnvelope(
     deobfuscated,
     get(currentUser),
+    message.sender, // UPD
     chatKeysCached.keys[entry.key],
   );
 }
@@ -173,9 +174,8 @@ async function tryDecryptMessage(bytes) {
   } else if (prefix === "idx") {
     return "<b>Запрос на включение шифрования</b>";
   } else if (Number(prefix)) {
-    const msg = await decryptMessage(dmsg);
+    const msg = await decryptMessage(text);
     if (!msg.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + msg.error;
-    const text = await inflate(msg.plaintext);
     return escapeHtml(text);
   } else return "<b style=\"color:#f66\">Ошибка!</b>";
 }

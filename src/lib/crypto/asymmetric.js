@@ -114,7 +114,7 @@ function verifySignature(pk, bytes, sig) {
 
 function canonicalizeForSign(obj) {
   const parts = [];
-  parts.push(obj.s || ""); // senderId -> s
+  //parts.push(obj.s || ""); // senderId -> s
   parts.push(obj.e || ""); // ephemeral_pub -> e
   parts.push(obj.n || ""); // content_nonce -> n
   parts.push(obj.c || ""); // ciphertext -> c
@@ -164,7 +164,7 @@ async function getEncrypted(senderId, identity, recipients, plaintext) {
   }
 
   const envelope = {
-    s: senderId, // senderId -> s
+    //s: senderId, // senderId -> s
     e: bufToBase64Url(eph.publicKey), // ephemeral_pub -> e
     n: bufToBase64Url(content_nonce), // content_nonce -> n
     c: bufToBase64Url(ciphertext), // ciphertext -> c
@@ -183,28 +183,28 @@ async function getEncrypted(senderId, identity, recipients, plaintext) {
 /* sussy */
 const envToStr = (e) => {
   const k = Object.values(e);
-  const w = k[4].map((x) => Object.values(x).join(",")).join(";");
-  return `${k.slice(0, 4).join("|")}|${w}|${k.slice(5, 8).join("|")}`;
+  const w = k[3].map((x) => Object.values(x).join(",")).join(";");
+  return `${k.slice(0, 3).join("|")}|${w}|${k.slice(4, 7).join("|")}`;
 };
 
 const strToEnv = (array) => {
   const i = array.split("|");
   return {
-    s: i[0],
-    e: i[1],
-    n: i[2],
-    c: i[3],
-    w: i[4].split(";").map((x) => {
+    //s: i[0],
+    e: i[0],
+    n: i[1],
+    c: i[2],
+    w: i[3].split(";").map((x) => {
       const [i, p, o] = x.split(",");
       return { i: +i, p, o };
     }),
-    t: i[5],
-    g: i[6],
-    k: i[7],
+    t: i[4],
+    g: i[5],
+    k: i[6],
   };
 };
 
-async function handleIncomingEnvelope(_envelope, myId, myIdentity) {
+async function handleIncomingEnvelope(_envelope, myId, senderId, myIdentity) {
   const sodium = await ready();
   try {
     const envelope = strToEnv(_envelope);
@@ -227,7 +227,7 @@ async function handleIncomingEnvelope(_envelope, myId, myIdentity) {
     const rawContentKey = unwrapContentKey(kek, wrapped, wrap_nonce);
 
     // Восстанавливаем AAD из данных конверта
-    const aad = sodium.from_string(`1|${envelope.s}|${envelope.t}`);
+    const aad = sodium.from_string(`1|${senderId}|${envelope.t}`);
 
     const content_nonce = base64UrlToBuf(envelope.n); // content_nonce -> n
     const ciphertext = base64UrlToBuf(envelope.c); // ciphertext -> c
@@ -241,7 +241,7 @@ async function handleIncomingEnvelope(_envelope, myId, myIdentity) {
     return {
       ok: true,
       plaintext: sodium.to_string(plaintext),
-      meta: { senderId: envelope.s, ts: envelope.t },
+      meta: { ts: envelope.t },
     };
   } catch (e) {
     return { ok: false, error: String(e) };
