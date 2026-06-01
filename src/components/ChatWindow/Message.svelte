@@ -210,18 +210,26 @@
           {#if isMe && !isSystem}
             <div class="status-ticks">
               {#if msg.status === 3}
-                <svg class="status-icon is-read" viewBox="0 0 22 13"
+                <svg class="status-icon is-read" viewBox="0 0 23 13"
                   ><path
                     d="M11 12.025L5 6L6.5 4.5L11 9.52502L20.05 0L21.45 1.425L11 12.025ZM4.9999 12.025L0 7L1.5 5.50002L4.9999 9.5L14.375 0.025L15.8 1.425L4.9999 12.025Z"
                   /></svg
                 >
               {:else}
-                <svg class="status-icon" viewBox="0 0 24 13"
+                <svg class="status-icon" viewBox="0 0 17 6"
                   ><path
                     d="M6 12.025L0 6L1.5 4.5L6 9.52502L15.05 0L16.45 1.425L6 12.025Z"
                   /></svg
                 >
               {/if}
+              {#await deobfuscated}
+              {:then text}
+                {#if text}
+                  <svg class="status-icon safe" viewBox="0 0 14 14" fill="currentColor">
+                    <path d="M11 7V5a3 3 0 0 0-6 0v2H4v7h8V7h-1zM6 5a2 2 0 1 1 4 0v2H6V5z"/>
+                  </svg>
+                {/if}
+              {/await}
             </div>
           {/if}
         </div>
@@ -267,7 +275,7 @@
     position: relative;
   }
 
-  .message-bubble.column {
+  .message-bubble.column .text {
     padding-right: 10px;
   }
 
@@ -391,6 +399,8 @@
     display: flex;
     justify-content: space-between;
     gap: 15px;
+    margin-left: auto;
+    margin-right: 4px;
   }
 
   .bottom.cmn {
@@ -399,7 +409,7 @@
 
   .message-status {
     display: flex;
-    gap: 10px;
+    gap: 6px;
     align-items: end;
     white-space: nowrap;
     align-self: flex-end;
@@ -431,14 +441,24 @@
     opacity: 0.5;
   }
 
+  .status-ticks {
+    align-self: end;
+  }
+
   .status-icon {
-    width: 17px;
-    margin-bottom: -2px;
+    width: 10px;
+    height: 10px;
+    margin-bottom: -1px;
     fill: #7f7;
   }
 
   .status-icon.is-read {
     fill: #34b7f1;
+    height: 14px;
+  }
+
+  .status-icon.safe {
+    margin-bottom: -1px;
   }
 
   .line {
