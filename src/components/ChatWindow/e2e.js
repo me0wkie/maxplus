@@ -130,7 +130,7 @@ function decryptMessage(chatKeysCached, message, deobfuscated) {
 }
 
 function getDeobfuscatedBytes(msg) {
-  if (!isObfuscated(msg.text, "zh")) return;
+  if (!isObfuscated(msg.text, "zh")) return null;
   try {
     const data = deobfuscate(msg.text, "zh"); // TODO выбор алфавита
     if (data && data.length) return data;
@@ -139,45 +139,49 @@ function getDeobfuscatedBytes(msg) {
 
 export async function deobfuscate_msg(msg, password) {
   let bytes = getDeobfuscatedBytes(msg);
-  if (bytes) {
-
-    if (password) {
-      bytes = await xorDecrypt(bytes, password);
-      console.log('Using XOR!');
-      console.log(password, bytes)
-    }
-
-    return await tryDecryptMessage(bytes);
-  }
-  else return null;
+  if (!bytes) return null;
+  return tryDecryptMessage(bytes, password);
 }
 
-async function tryDecryptMessage(bytes) {
+async function tryDecryptMessage(bytes, password) {
   let text;
-  try {
-    text = inflate(bytes);
-  } catch (e) {
-    console.error(e);
-    return "<b style=\"color:#f66\">Ошибка!</b> Возможно, не совпадает общий секрет";
+
+  if (password) {
+    const decrypted = await xorDecrypt(bytes, password);
+
+    text = inflateWrap(decrypted);        // 1
+    if (!text) text = inflateWrap(bytes); // 2
   }
+  else text = inflateWrap(bytes);         // 1
+
+  if (!text) return "<b style=\"color:#f66\">Ошибка!</b> Возможно, не совпадает общий секрет";
 
   const sep = text.indexOf("|");
 
-  if (sep === -1) {
-    return "<b>Деобфусцировано: </b>" + escapeHtml(text);
+  if (sep !== -1) {
+    const prefix = text.slice(0, sep);
+
+    if (prefix === "idx") {
+      return "<b>Запрос на включение шифрования</b>";
+    } else if (prefix === "idx") {
+      return "<b>Запрос на включение шифрования</b>";
+    } else if (Number(prefix)) {
+      const msg = await decryptMessage(text);
+      if (!msg.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + msg.error;
+      return escapeHtml(text);
+    }
   }
 
-  const prefix = text.slice(0, sep);
+  return escapeHtml(text);
+}
 
-  if (prefix === "idx") {
-    return "<b>Запрос на включение шифрования</b>";
-  } else if (prefix === "idx") {
-    return "<b>Запрос на включение шифрования</b>";
-  } else if (Number(prefix)) {
-    const msg = await decryptMessage(text);
-    if (!msg.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + msg.error;
-    return escapeHtml(text);
-  } else return "<b style=\"color:#f66\">Ошибка!</b>";
+function inflateWrap(text) {
+  try {
+    const result = inflate(text);
+    return result;
+  } catch (e) {
+    return null;
+  }
 }
 
 /* нажатие в меню запроса */

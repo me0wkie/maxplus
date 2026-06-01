@@ -22,11 +22,7 @@
 
   $: lines = msg.text?.split("\n");
 
-  let deobfuscated = null;
-  async function deobfuscate() {
-    deobfuscated = await deobfuscate_msg(msg, password.length ? password : undefined);
-  }
-  deobfuscate();
+  $: deobfuscated = password.length && deobfuscate_msg(msg, password);
 
   function handleMediaClick(attach) {
     dispatch("openMedia", { attach });
@@ -172,14 +168,17 @@
         {#if isSystem}
           <p class="line system">{displaySystemMessage()}</p>
         {:else}
-          {#if deobfuscated}
-            {#await deobfuscated}
-              <p class="line">Загрузка...</p>
-            {:then text}<p class="line">{@html text}</p>
-            {/await}
-          {:else if lines}
-            {#each lines as line}<p class="line">{line}</p>{/each}
-          {/if}
+          {#await deobfuscated}
+            <p class="line">Загрузка...</p>
+          {:then text}
+            {#if text}
+              <p class="line">{@html text}</p>
+            {:else if lines}
+              {#each lines as line}
+                <p class="line">{line}</p>
+              {/each}
+            {/if}
+          {/await}
 
           {#if msg.attaches?.length}
             <Attachments {getFile} attaches={msg.attaches} {handleMediaClick} />
