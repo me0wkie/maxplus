@@ -22,7 +22,7 @@
 
   $: lines = msg.text?.split("\n");
 
-  $: deobfuscated = password.length && deobfuscate_msg(msg, password);
+  $: deobfuscated = password?.length && deobfuscate_msg(msg, password);
 
   function handleMediaClick(attach) {
     dispatch("openMedia", { attach });
@@ -399,8 +399,8 @@
     display: flex;
     justify-content: space-between;
     gap: 15px;
-    margin-left: auto;
     margin-right: 4px;
+    flex: 1;
   }
 
   .bottom.cmn {
@@ -412,14 +412,13 @@
     gap: 6px;
     align-items: end;
     white-space: nowrap;
-    align-self: flex-end;
     margin-left: auto;
+    margin-right: 0;
     margin-bottom: -3px;
   }
 
   .status-meta {
     display: flex;
-    align-self: flex-end;
     gap: 10px;
   }
 
@@ -428,6 +427,7 @@
     align-items: center;
     gap: 2px;
     font-size: 10px;
+    margin-bottom: -1px;
     opacity: 0.6;
   }
 
