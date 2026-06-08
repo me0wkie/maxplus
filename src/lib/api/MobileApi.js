@@ -67,8 +67,8 @@ export default class MobileApi extends BaseAPI {
     });
   }
 
-  async init() {
-    if (this.latest_init > Date.now() + 5000) {
+  async init(forceSync = false) {
+    if (this.latest_init > Date.now() - 5000) {
       console.error("Had recent reconnection, not trying again");
       return;
     }
@@ -77,9 +77,11 @@ export default class MobileApi extends BaseAPI {
     if (this.unlisten) await this.unlisten();
     this.startListener();
 
-    sessionSet("connected", false);
-    //aessionSet('sync', false);
     this.latest_init = Date.now();
+    sessionSet("connected", false);
+    //sessionSet('sync', false);
+    this.synchronized = new Promise((resolve) => (this.resolve_sync = resolve));
+    sessionSet("sync", false);
 
     const response = await invoke("init", {
       token: this.getToken(),
@@ -88,7 +90,12 @@ export default class MobileApi extends BaseAPI {
       mtInstance: this.getDevice().mt,
     });
 
-    if (response.success) sessionSet("connected", true);
+    console.log('Init response', response);
+
+    if (response.success) {
+      sessionSet("connected", true);
+      if (forceSync) this.sync();
+    }
     else alert(response);
   }
 

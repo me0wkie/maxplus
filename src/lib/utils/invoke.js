@@ -10,17 +10,19 @@ export const invoke = async (command, args) => {
   } catch (e) {
     console.error(command, args);
     console.error(e);
-    error(e.toString());
 
-    if (e.toString().includes("Таймаут запроса")) {
-      alert("Сервер не отвечает\nПереподключение...");
-      await get(API).init();
-      return invoke(command, args);
-    } else if (
-      e.toString().includes("FAIL_LOGIN_TOKEN") ||
-      e.toString().includes("FAIL_LOGOUT_ALL")
-    ) {
-      alert("Выкинуло из аккаунта...");
+    const str = e.toString();
+    error(str);
+
+    if (str.includes("Таймаут запроса"))
+      return restart("Сервер не отвечает!\nПереподключение...", command, args);
+    if (str.includes("proto.state"))
+      return restart("Сломалась сессия!\nПереподключение...", command, args);
+    if (str.includes("TCP Error"))
+      return restart("Откис интернет!\nПереподключение...", command, args);
+
+    if (str.includes("FAIL_LOG")) {
+      alert("Выкинуло из аккаунта!");
       return get(API).logout();
     }
 
@@ -32,3 +34,15 @@ export const invoke = async (command, args) => {
 
   return null;
 };
+
+let recentAlert = 0;
+
+async function restart(text, command, args) {
+  if (recentAlert < Date.now() - 5000) {
+    alert(text);
+  }
+  recentAlert = Date.now();
+  await new Promise(r => setTimeout(r, 3000));
+  await get(API).init(true);
+  return invoke(command, args);
+}
