@@ -3,6 +3,7 @@ import API, {
   currentSessionContacts,
   receivedMessage,
   chatMessages,
+  chatPassword,
   chatKeys,
 } from "$lib/stores/api";
 import {
@@ -15,7 +16,7 @@ import {
 import {
   xorDecrypt
 } from "$lib/crypto/symmetric.js";
-import { inflate, deflate, obfuscate, deobfuscate, isObfuscated } from "$lib/crypto/messages.js";
+import { inflate, deflate, obfuscate, detectObfuscation } from "$lib/crypto/messages.js";
 import { sendMessage } from "$components/ChatWindow/actions.js";
 import { escapeHtml } from "$lib/utils/text.js";
 
@@ -39,10 +40,12 @@ export const checkForEncryptionRequest = async (
    * EncryptionResponse - собеседник принял запрос
    */
 
-  newMessages.forEach((msg) => {
-    const hiddenData = getDeobfuscatedBytes(msg);
+  const password = await chatPassword.get(chat.id);
+
+  for (const msg of newMessages) {
+    const hiddenData = await decode_msg(msg, password);
     if (hiddenData) {
-      const sep = hiddenData.indexOf(124);
+      const sep = hiddenData.text.indexOf(124);
 
       console.log('Check Sep', sep);
 
@@ -51,15 +54,14 @@ export const checkForEncryptionRequest = async (
       }
     }
 
-
     /*const dmsg = getDeobfuscatedMessage(msg);
-    if (dmsg && dmsg.slice(0, 3) === "idx" && !encryptionRequest) {
-      encryptionRequest = { sender: msg.sender, data: dmsg };
+     if (dmsg && dmsg.slice(0, 3) === "idx" && !encryptionRequest) {
+     encryptionRequest = { sender: msg.sender, data: dmsg };
     }
     if (dmsg && dmsg.slice(0, 3) === "idy" && !encryptionResponse) {
       encryptionResponse = { sender: msg.sender, data: dmsg };
     }*/
-  });
+  }
 
   if (
     encryptionRequest &&
@@ -82,17 +84,17 @@ export const checkForEncryptionRequest = async (
     )
       return;
 
-    requests[chat.id] = {
-      userId,
-      edp: ed_public,
-      cvp: cv_public,
-    };
+      requests[chat.id] = {
+        userId,
+        edp: ed_public,
+        cvp: cv_public,
+      };
   } else if (
     encryptionResponse &&
     (isSavedMessagesChat || encryptionResponse.sender !== get(currentUser))
   ) {
     const [_, userId, ed_public, cv_public] =
-      encryptionResponse.data.split("|");
+    encryptionResponse.data.split("|");
 
     if (!chatKeysCached)
       chatKeysCached = { current: null, keys: [], messages: [] };
@@ -129,18 +131,14 @@ function decryptMessage(chatKeysCached, message, deobfuscated) {
   );
 }
 
-function getDeobfuscatedBytes(msg) {
-  if (!isObfuscated(msg.text, "zh")) return null;
-  try {
-    const data = deobfuscate(msg.text, "zh"); // TODO выбор алфавита
-    if (data && data.length) return data;
-  } catch (e) {}
-}
-
-export async function deobfuscate_msg(msg, password) {
-  let bytes = getDeobfuscatedBytes(msg);
-  if (!bytes) return null;
-  return tryDecryptMessage(bytes, password);
+export async function decode_msg(msg, password) {
+  if (msg.text.length < 6) return null;
+  let obfuscator = detectObfuscation(msg.text.slice(0, 5));
+  if (!obfuscator) return null;
+  const bytes = obfuscator.deobfuscate(msg.text);
+  const text = await tryDecryptMessage(bytes, password);
+  if (!text) return null;
+  return { text, obf: obfuscator.name };
 }
 
 async function tryDecryptMessage(bytes, password) {
@@ -148,7 +146,6 @@ async function tryDecryptMessage(bytes, password) {
 
   if (password) {
     const decrypted = await xorDecrypt(bytes, password);
-
     text = inflateWrap(decrypted);        // 1
     if (!text) text = inflateWrap(bytes); // 2
   }
@@ -163,8 +160,8 @@ async function tryDecryptMessage(bytes, password) {
 
     if (prefix === "idx") {
       return "<b>Запрос на включение шифрования</b>";
-    } else if (prefix === "idx") {
-      return "<b>Запрос на включение шифрования</b>";
+    } else if (prefix === "idy") {
+      return "<b>Ответ на включение шифрования</b>";
     } else if (Number(prefix)) {
       const msg = await decryptMessage(text);
       if (!msg.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + msg.error;

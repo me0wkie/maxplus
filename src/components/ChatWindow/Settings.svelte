@@ -1,13 +1,14 @@
 <script>
   import { switchEnc } from "$components/ChatWindow/e2e";
   import { fade, fly, scale } from "svelte/transition";
-  import { chatPassword } from '$lib/stores/api';
+  import { chatPassword, chatObfs } from '$lib/stores/api';
 
   export let chatKeysLoaded;
   export let chat;
   export let messages;
   export let shown;
   export let password;
+  export let obfuscation;
 
   let saveTimeout;
   let showPassword = false;
@@ -15,11 +16,26 @@
   function onPasswordInput(event) {
     password = event.target.value;
 
+    if (password.length) {
+      if (!obfuscation) setObfuscation("zh");
+    } else {
+      if (obfuscation) setObfuscation(null);
+    }
+
     clearTimeout(saveTimeout);
 
     saveTimeout = setTimeout(() => {
       chatPassword.set(chat.id, password);
     }, 500);
+  }
+
+  function startEncryption() {
+    if (!obfuscation) setObfuscation("zh");
+  }
+
+  function setObfuscation(type) {
+    obfuscation = type;
+    chatObfs.set(chat.id, type);
   }
 
   function close() {
@@ -40,61 +56,44 @@
       <div class="settings-title">
         Настройки
       </div>
-
       <button class="close-btn" on:click={close}>✕</button>
     </div>
 
+    <div class="settings-subtitle">
+      Шифрование [beta]
+      <button
+        style="align-self: flex-end;"
+        class="row-action"
+        on:click={() => switchEnc(chat, chatKeysLoaded, messages)}
+      >
+        { !chatKeysLoaded?.current ? "Новая сессия" : "Отключить" }
+      </button>
+    </div>
     <div class="settings-group" in:fade={{ delay: 120, duration: 220 }}>
-
-      <div class="settings-row">
-        <div class="row-left">
-          <div class="row-title">β Шифрование</div>
-
-          <div class="row-subtitle">
-            End-to-end защита сообщений
-          </div>
-        </div>
-
-        <button
-          class="row-action"
-          on:click={() => switchEnc(chat, chatKeysLoaded, messages)}
-        >
-          Новая сессия
-        </button>
-      </div>
-
       <div class="settings-row">
         <div class="row-title">
           Статус
         </div>
-
         <div class="row-value">
-          {
-            chatKeysLoaded?.current ? "Активно"
+          { chatKeysLoaded?.current ? "Активно"
           : chatKeysLoaded?.some(x => x.edp === null) ? "Предложение отправлено"
-          : "Отключено"}
+          : "Отключено" }
         </div>
       </div>
-
     </div>
 
-    <div class="settings-footer" in:fade={{ delay: 160, duration: 220 }}>
+    <div
+    class="settings-footer" in:fade={{ delay: 160, duration: 220 }}>
       Когда включено, только вы и собеседник сможете читать сообщения.
-      { chat.id === 0 ? "Поскольку это чат избранного, здесь можно включить и проверить, работает ли шифрование." : ""}
-      <br />
+
       <span class="warning">
-        Работает только между пользователями Max+.
+        Работает между пользователями Max+
       </span>
     </div>
 
+    <div class="settings-subtitle">Общий секрет</div>
     <div class="settings-group" in:fade={{ delay: 200, duration: 220 }}>
-
-      <div class="settings-row">
-        <div class="row-title">Общий секрет</div>
-      </div>
-
       <div class="settings-row password-row">
-
         <input
           type={showPassword ? "text" : "password"}
           value={password}
@@ -109,37 +108,66 @@
         >
           {showPassword ? "🙈" : "👁"}
         </button>
-
       </div>
-
     </div>
 
     <div class="settings-footer" in:fade={{ delay: 240, duration: 220 }}>
-      Используется для симметричного шифрования сообщений.
+      Использует XOR для симметричного шифрования.
     </div>
 
+    <div class="settings-subtitle">Обфускация</div>
+    <div class="obf-buttons">
+      <button
+        class:active={!obfuscation}
+        class="obf-btn"
+        on:click={() => setObfuscation(null)}
+      >
+        <span class="icon">OFF</span>
+        <span>Без обфускации</span>
+      </button>
+
+      <button
+        class:active={obfuscation === "zh"}
+        class="obf-btn"
+        on:click={() => setObfuscation("zh")}
+      >
+        <span class="icon">Zh</span>
+        <span>Китайский</span>
+      </button>
+
+      <button
+        class:active={obfuscation === "words"}
+        class="obf-btn"
+        on:click={() => setObfuscation("words")}
+      >
+        <span class="icon">Tol</span>
+        <span>Книжные слова</span>
+      </button>
+    </div>
+
+    <div class="settings-footer">
+      {#if obfuscation === "zh"}
+        Текст маскируется китайскими символами.
+      {:else if obfuscation === "words"}
+        Текст превращается в набор литературных слов.
+      {:else}
+        Текст не маскируется.
+      {/if}
+    </div>
+
+    <div class="settings-subtitle">Остальное</div>
     <div class="settings-group" in:fade={{ delay: 280, duration: 220 }}>
-
       <div class="settings-row">
-        <div class="row-title">
-          Выключить нечиталку
-        </div>
-
-        <button class="row-action disabled" disabled>
-          Скоро
-        </button>
+        <div class="row-title">Выключить нечиталку</div>
+        <button class="row-action disabled" disabled>Скоро</button>
       </div>
-
       <div class="settings-row">
         <div class="row-title">
           Сохранить чат
         </div>
-
         <button class="row-action disabled" disabled>Скоро</button>
       </div>
-
     </div>
-
   </div>
 </div>
 {/if}
@@ -148,43 +176,33 @@
   .settings-overlay {
     position: fixed;
     inset: 0;
-
     background: rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(1px);
-
     display: flex;
     align-items: flex-end;
     justify-content: center;
-
     z-index: 100;
   }
 
   .settings-modal {
     width: 100%;
     max-width: 520px;
-
     background: #111;
-
     border-radius: 28px 28px 0 0;
-
     padding:
       10px
       14px
       calc(24px + env(safe-area-inset-bottom));
-
     box-sizing: border-box;
-
-    max-height: 92vh;
+    max-height: min(92vh, 600px);
     overflow-y: auto;
   }
 
   .settings-grabber {
     width: 38px;
     height: 5px;
-
     border-radius: 999px;
     background: #3a3a3c;
-
     margin: 0 auto 18px auto;
   }
 
@@ -192,7 +210,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     margin-bottom: 22px;
     padding: 0 4px;
   }
@@ -204,24 +221,29 @@
     letter-spacing: -0.3px;
   }
 
+  .settings-subtitle {
+    color: #bbb;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 12px 0;
+    margin-left: 2px;
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .close-btn {
     width: 34px;
     height: 34px;
-
     border: none;
     border-radius: 999px;
-
     background: #2c2c2e;
     color: #f2f2f7;
-
     font-size: 16px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     cursor: pointer;
-
     transition:
       transform 0.15s,
       background 0.15s;
@@ -235,20 +257,15 @@
   .settings-group {
     background: #1c1c1e;
     border-radius: 16px;
-
     overflow: hidden;
-    margin-bottom: 26px;
   }
 
   .settings-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-
     min-height: 54px;
-
     padding: 0 16px;
-
     border-bottom: 1px solid #2c2c2e;
   }
 
@@ -280,14 +297,10 @@
   .row-action {
     border: none;
     background: none;
-
     color: #0a84ff;
-
     font-size: 16px;
     font-weight: 500;
-
     cursor: pointer;
-
     transition:
       opacity 0.15s,
       transform 0.12s;
@@ -309,28 +322,20 @@
 
   .settings-input {
     width: 100%;
-
     background: transparent;
     border: none;
-
     color: white;
     font-size: 16px;
-
     outline: none;
   }
 
   .password-toggle {
     border: none;
     background: transparent;
-
     color: #8e8e93;
-
     font-size: 18px;
-
     cursor: pointer;
-
     padding: 0;
-
     transition:
       transform 0.12s,
       opacity 0.15s;
@@ -344,15 +349,44 @@
   .settings-footer {
     color: #8e8e93;
     font-size: 13px;
-    line-height: 1.45;
-
-    padding: 0 6px;
-    margin-top: -14px;
-    margin-bottom: 22px;
+    margin: 9px 0 9px 4px;
   }
 
   .warning {
     color: #ff7b7b;
   }
+
+  .obf-buttons {
+    display: flex;
+    gap: 10px;
+  }
+
+  .obf-btn {
+    flex: 1;
+    height: 56px;
+    border: none;
+    font-size: 12px;
+    border-radius: 12px;
+    background: #2c2c2e;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .15s;
+  }
+
+  .obf-btn .icon {
+    font-size: 18px;
+    font-weight: 1000;
+  }
+
+  .obf-btn.active {
+    background: #0a84ff;
+  }
+
+  .obf-btn:active {
+    transform: scale(.96);
+}
 
 </style>

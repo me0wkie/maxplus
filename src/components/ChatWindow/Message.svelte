@@ -7,7 +7,7 @@
   import Avatar from "$components/main/Avatar.svelte";
   import Reactions from "./Reactions.svelte";
   import Attachments from "$components/ChatWindow/Attachments.svelte";
-  import { deobfuscate_msg } from "$components/ChatWindow/e2e";
+  import { decode_msg } from "$components/ChatWindow/e2e";
 
   const dispatch = createEventDispatcher();
 
@@ -15,14 +15,15 @@
   export let chat;
   export let dropoutActiveAt;
   export let scrollElement;
-  export let password; // TODO optimize, don't pass?
+  export let password;
+  export let obfuscation;
 
   const isMe = msg.sender === $currentUser;
   const isSystem = msg.attaches?.[0]?._type === "CONTROL";
 
   $: lines = msg.text?.split("\n");
 
-  $: deobfuscated = password?.length && deobfuscate_msg(msg, password);
+  $: decoded = decode_msg(msg, password);
 
   function handleMediaClick(attach) {
     dispatch("openMedia", { attach });
@@ -168,11 +169,11 @@
         {#if isSystem}
           <p class="line system">{displaySystemMessage()}</p>
         {:else}
-          {#await deobfuscated}
+          {#await decoded}
             <p class="line">Загрузка...</p>
-          {:then text}
-            {#if text}
-              <p class="line">{@html text}</p>
+          {:then decodeData}
+            {#if decodeData}
+              <p class="line">{@html decodeData.text}</p>
             {:else if lines}
               {#each lines as line}
                 <p class="line">{line}</p>
@@ -222,12 +223,15 @@
                   /></svg
                 >
               {/if}
-              {#await deobfuscated}
-              {:then text}
-                {#if text}
+              {#await decoded}
+              {:then decodeData}
+                {#if decodeData}
+                  <a class="obf-type">{decodeData.obf}</a>
+                  {#if false}
                   <svg class="status-icon safe" viewBox="0 0 14 14" fill="currentColor">
                     <path d="M11 7V5a3 3 0 0 0-6 0v2H4v7h8V7h-1zM6 5a2 2 0 1 1 4 0v2H6V5z"/>
                   </svg>
+                  {/if}
                 {/if}
               {/await}
             </div>
@@ -445,10 +449,14 @@
     align-self: end;
   }
 
+  .status-ticks * {
+    position: relative;
+  }
+
   .status-icon {
     width: 10px;
     height: 10px;
-    margin-bottom: -1px;
+    top: 1px;
     fill: #7f7;
   }
 
@@ -458,7 +466,15 @@
   }
 
   .status-icon.safe {
-    margin-bottom: -1px;
+    top: 1;
+  }
+
+  .obf-type {
+    font-size: 10px;
+    color: #7f7;
+    font-weight: 600;
+    position: relative;
+    top: 1px;
   }
 
   .line {

@@ -1,43 +1,84 @@
 import * as fflate from "fflate";
 
-// prettier-ignore
-const ALPHABETS = {
-  ru: 'абвгдежзийклмнопрстуфхцчшщъыьэюяАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ',
-  en: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/',
-  mix: 'абвгдежзийклмнопрстуфхцчшщъыьэюяАБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯabcdefghijklmnopqrstuvwxyzQWERTYUIOPASDFGHJKLZXCVBNM1234567890!@#$%^&*()',
-  emoji: [
-    '😀', '😂', '😍', '🤔', '😎', '😭', '😡', '😱', '👍', '👎', '🙏', '💪', '🎉', '🎁', '🔥', '💯',
-    '🐶', '🐱', '🐭', '🦊', '🐻', '🐼', '🐨', '🐯', '🍔', '🍕', '🍟', '🍓', '🥑', '🥕', '🌶️', '🍭',
-    '⚽', '🏀', '🏈', '⚾', '🎾', '🎱', '🚀', '🛸', '❤️', '💔', '⭐', '✨', '⚡', '💣', '💎', '💰',
-    '🌍', '🌕', '🌞', '☁️', '🌧️', '🌊', '🏝️', '🌋', '💻', '📱', '⌚', '💡', '🔑', '🔒', '🔔', '✅'
-  ],
-  zh: Array.from({length: 2048}, (_, i) => String.fromCharCode(0x4E00 + i))
-};
+/* не используется */
+class Obfuscator {
+  constructor(name) {
+    this.name = name;
+  }
 
-const CHARMAP = {};
-for (const name in ALPHABETS) {
-  const string = ALPHABETS[name] + "" === ALPHABETS[name];
-  CHARMAP[name] = new Map(
-    (string ? ALPHABETS[name].split("") : ALPHABETS[name]).map((char, i) => [
-      char,
-      i,
-    ]),
-  );
+  detect(marker) {
+    for (const ch of marker) {
+      if (ch.charCodeAt(0) % 2 !== 0) return false; // индекс нечётный -> не наш признак
+    }
+
+    return true;
+  }
+
+  obfuscate(text) {
+    const marker = makeMarker(en, 5);
+    return marker + text;
+  }
+
+  deobfuscate(text) {
+    return text.slice(5);
+  }
 }
 
-console.log("Алфавиты обфускации инициализированы");
+const en = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789+/';
 
-// Helper: build char array and index map for an alphabet (works with emoji/CJK)
-function makeAlphabetData(alphabet) {
-  const chars = Array.from(alphabet);
-  const map = new Map(chars.map((c, i) => [c, i]));
-  return { chars, map };
+const zh = Array.from({ length: 2048 }, (_, i) => String.fromCharCode(0x4E00 + i));
+const zhArray = Array.from(zh);
+const zhMap = new Map(zhArray.map((c, i) => [c, i]));
+
+class Chinese extends Obfuscator {
+  constructor() {
+    super("zh");
+  }
+
+  detect(marker) {
+    for (const ch of marker) {
+      const idx = zhMap.get(ch);
+      if (idx === undefined) return false;
+      if ((idx & 1) !== 0) return false;
+    }
+
+    return true;
+  }
+
+  obfuscate(bytes) {
+    const payload = encodeBitPacked(bytes, zh);
+    return makeMarker(zh, 5) + payload;
+  }
+
+  deobfuscate(text) {
+    const payloadString = Array.from(text).slice(5).join("");
+    return decodeBitPacked(payloadString, zh);
+  }
+}
+
+const obfuscators = {
+  //basic: new Obfuscator(),// just adds marker
+  zh: new Chinese(),        // changes symbols
+  //words: new Object(),    // uses book words
+}
+
+export function detectObfuscation(text) {
+  for (const name in obfuscators) {
+    const obfuscator = obfuscators[name];
+    if (!obfuscator) continue;
+    if (obfuscator.detect(text)) return obfuscator;
+  }
+
+  return null;
+}
+
+export function obfuscate(text, obfuscatorName) {
+  return obfuscators[obfuscatorName].obfuscate(text);
 }
 
 // Bit-packed encoder (uses floor(log2(base)) bits per symbol). Uses BigInt for safety.
-function encodeBitPacked(bytes, alphabet) {
-  const { chars } = makeAlphabetData(alphabet);
-  const base = chars.length;
+function encodeBitPacked(bytes) {
+  const base = zhArray.length;
   const bitsPer = Math.floor(Math.log2(base));
   if (bitsPer <= 0) throw new Error("Alphabet too small");
 
@@ -53,7 +94,7 @@ function encodeBitPacked(bytes, alphabet) {
       const idx = Number(
         (bitBuffer >> BigInt(bitCount)) & ((1n << BigInt(bitsPer)) - 1n),
       );
-      out += chars[idx];
+      out += zhArray[idx];
       // keep remainder in buffer:
       bitBuffer &= (1n << BigInt(bitCount)) - 1n;
     }
@@ -64,15 +105,14 @@ function encodeBitPacked(bytes, alphabet) {
       (bitBuffer << BigInt(bitsPer - bitCount)) &
         ((1n << BigInt(bitsPer)) - 1n),
     );
-    out += chars[idx];
+    out += zhArray[idx];
   }
 
   return out;
 }
 
 function decodeBitPacked(str, alphabet) {
-  const { chars, map } = makeAlphabetData(alphabet);
-  const base = chars.length;
+  const base = zhArray.length;
   const bitsPer = Math.floor(Math.log2(base));
   if (bitsPer <= 0) throw new Error("Alphabet too small");
 
@@ -81,8 +121,8 @@ function decodeBitPacked(str, alphabet) {
   const out = [];
 
   for (const ch of Array.from(str)) {
-    if (!map.has(ch)) continue; // игнор неизвестных символов
-    bitBuffer = (bitBuffer << BigInt(bitsPer)) | BigInt(map.get(ch));
+    if (!zhMap.has(ch)) continue; // игнор неизвестных символов
+    bitBuffer = (bitBuffer << BigInt(bitsPer)) | BigInt(zhMap.get(ch));
     bitCount += bitsPer;
     while (bitCount >= 8) {
       bitCount -= 8;
@@ -108,20 +148,6 @@ function makeMarker(alphabet, count = 5) {
   return marker;
 }
 
-// Проверка скрытого признака
-export function isObfuscated(str, language) { // TODO оптимизировать?
-  const alphabet = ALPHABETS[language];
-
-  const { map } = makeAlphabetData(alphabet);
-  const first = Array.from(str).slice(0, 5);
-  if (first.length < 5) return false;
-  for (const ch of first) {
-    if (!map.has(ch)) return false;
-    if (map.get(ch) % 2 !== 0) return false; // индекс не чётный -> не наш признак
-  }
-  return true;
-}
-
 export function deflate(text) {
   const bytes = fflate.strToU8(text);
   return fflate.deflateSync(bytes, { level: 9 });
@@ -130,24 +156,4 @@ export function deflate(text) {
 export function inflate(bytes) {
   const decompressed = fflate.inflateSync(bytes);
   return fflate.strFromU8(decompressed);
-}
-
-export function obfuscate(bytes, language) {
-  const alphabet = ALPHABETS[language];
-
-  const payload = encodeBitPacked(bytes, alphabet);
-  const marker = makeMarker(alphabet, 5);
-  return marker + payload;
-}
-
-export function deobfuscate(input, language) {
-  const alphabet = ALPHABETS[language];
-
-  try {
-    const payloadString = Array.from(input).slice(5).join("");
-    return decodeBitPacked(payloadString, alphabet);
-  } catch (error) {
-    console.error("Ошибка деобфускации:", error);
-    return null;
-  }
 }

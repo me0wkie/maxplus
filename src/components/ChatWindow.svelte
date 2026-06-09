@@ -18,6 +18,7 @@
     receivedMessage,
     chatMessages,
     chatKeys,
+    chatObfs,
     chatPassword,
     currentSessionContacts,
     currentSessionChats,
@@ -38,12 +39,12 @@
 
   export let chatId;
   const chat = $currentSessionChats.find((c) => c.id === chatId);
-  console.log(chat);
 
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
   let chatKeysLoaded = null;
   let chatPasswordLoaded = "";
+  let chatObfuscationLoaded = "";
 
   let replyTo = null;
 
@@ -94,6 +95,7 @@
 
   onMount(async () => {
     chatPasswordLoaded = await chatPassword.get(chat.id);
+    chatObfuscationLoaded = await chatObfs.get(chat.id);
     chatKeysLoaded = await chatKeys.get(chat.id);
     await loadHistory(true);
   });
@@ -399,6 +401,7 @@
     {chatKeysLoaded}
     {messages}
     bind:password={chatPasswordLoaded}
+    bind:obfuscation={chatObfuscationLoaded}
     bind:shown={settingsShown}
   />
 
@@ -431,6 +434,7 @@
             {dropoutActiveAt}
             {scrollElement}
             password={chatPasswordLoaded}
+            obf={chatObfuscationLoaded}
             on:openMedia={(e) => openMedia(e.detail.attach)}
             on:openChat={(e) => {
               dispatch("chat", e.detail);
@@ -456,6 +460,7 @@
       {scrollElement}
       {chat}
       {messages}
+      {chatObfuscationLoaded}
       {chatKeysLoaded}
     />
   {/if}

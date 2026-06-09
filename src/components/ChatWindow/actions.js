@@ -2,8 +2,8 @@ import API, {
   currentUser,
   receivedMessage,
   chatPassword,
+  chatObfs,
 } from "$lib/stores/api";
-import { encryptMessage as encryptAss } from "$components/ChatWindow/e2e";
 import { xorEncrypt } from "$lib/crypto/symmetric";
 import { deflate, obfuscate } from "$lib/crypto/messages";
 import { get } from "svelte/store";
@@ -23,8 +23,11 @@ export async function sendMessage(
 
   const ass = !!chatKeysCached?.current;
   const sym = await chatPassword.get(chat.id);
+  const obf = await chatObfs.get(chat.id);
 
   const debug = true;
+
+  // TODO Fix [!] Вес сообщения возрастает в 3 раза при ass + sym одновременно
 
   if (forceObfuscation || sym || ass) {
     if (debug) console.log('Original', text);
@@ -34,9 +37,11 @@ export async function sendMessage(
     if (debug) console.log('3', bytes);
     if (sym) bytes = await xorEncrypt(bytes, sym);
     if (debug) console.log('4', bytes);
-    text = obfuscate(bytes, "zh"); // TODO выбор алфавита
-    if (debug) console.log('Final', text);
-  } // TODO Fix [!] Вес сообщения возрастает в 3 раза при ass + sym одновременно
+    text = obfuscate(bytes, obf || "zh");
+  }
+  else if (obf) text = obfuscate(new TextEncoder().encode(text), obf);
+
+  if (debug) console.log('Final', text);
 
   let chatId = chat.id;
 

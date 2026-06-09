@@ -87,6 +87,19 @@ export const chatPassword = { // TODO будет перенесено в user-ID
   },
 };
 
+export const chatObfs = { // TODO будет перенесено в user-ID/settings.bin
+  get: (chatId) => {
+    const meId = get(currentUser);
+    if (!meId) throw "No session!";
+    return chats.get(`cobf-${meId}-${chatId}`);
+  },
+  set: (chatId, value) => {
+    const meId = get(currentUser);
+    if (!meId) throw "No session!";
+    return chats.set(`cobf-${meId}-${chatId}`, value);
+  },
+};
+
 currentUser.subscribe(async (user) => {
   if (user === undefined) {
     const _currentUserId = await users.get("current");
