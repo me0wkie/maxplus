@@ -95,7 +95,7 @@ export async function makeDictionary(text) {
   return JSON.stringify(json, null, 2);
 }
 
-export async function encode(inputBuffer, DICT, useRandomSeed) {
+export async function encode(inputBuffer, DICT) {
   const sodium = await ready();
 
   const punctRanges = [];
@@ -110,13 +110,19 @@ export async function encode(inputBuffer, DICT, useRandomSeed) {
   const out = [];
 
   const len16 = DICT.dict16.length;
-  let seed16 = 0;
+  const len8 = DICT.dict8.length;
 
-  if (useRandomSeed) {
-    seed16 = Math.floor(len16 * Math.random());
-    const first = DICT.dict16[seed16];
-    out.push(first[0].toUpperCase() + first.slice(1));
-  }
+  const seed = Math.floor(16 * Math.random()); // 0-15
+  const dictMiniHash = parseInt(DICT.dict_sha256.slice(0, 1), 16) & 0xF;
+  const prefix = (seed << 4) | dictMiniHash;
+
+  // dict8: меньше слов => меньше ложных срабатываний detect
+  // minihash: доп. проверка в detect (16 вариантов)
+  // seed: рандомный отступ (16 вариантов)
+  // TODO fix [!] ложные срабатывания всё еще очень вероятны
+
+  const first = DICT.dict8[prefix];
+  out.push(first[0].toUpperCase() + first.slice(1));
 
   let sentenceStart = false;
 
@@ -126,11 +132,11 @@ export async function encode(inputBuffer, DICT, useRandomSeed) {
 
     if (i + 1 < inputBuffer.length) {
       idx = (inputBuffer[i] << 8) | inputBuffer[i + 1];
-      word = DICT.dict16[(idx + seed16) % len16];
+      word = DICT.dict16[(idx + seed) % len16];
       i += 2;
     } else {
       idx = inputBuffer[i];
-      word = DICT.dict8[idx];
+      word = DICT.dict8[(idx + seed) % len8];
       i += 1;
     }
 
@@ -163,36 +169,35 @@ export async function encode(inputBuffer, DICT, useRandomSeed) {
   return out.join("");
 }
 
-export function decode(buffer, DICT, useRandomSeed) {
-  const text = new TextDecoder().decode(buffer);
+export function decode(text, DICT, dict8Map, dict16Map) {
   const tokens = text.split(' ');
 
   const len16 = DICT.dict16.length;
-  let seed16 = 0;
+  const len8 = DICT.dict8.length;
 
   const bytes = [];
 
-  if (useRandomSeed) {
-    const firstWord = tokens.shift()
+  const firstWordRaw = tokens.shift();
+  const firstWord = firstWordRaw
     .replace(/[.,?!—:]/g, '')
     .toLowerCase();
 
-    seed16 = DICT.dict16.indexOf(firstWord);
+  const prefixIdx = dict8Map.get(firstWord);
 
-    if (seed16 === -1) {
-      throw new Error("Bad seed word: " + firstWord);
-    }
+  if (prefixIdx === undefined) {
+    throw new Error("Префикс не в словаре (" + firstWord + ")");
   }
+
+  const seed = (prefixIdx >> 4) & 0xF;
 
   for (const item of tokens) {
     const word = item.replace(/[.,?!—:]/g, '').toLowerCase();
-
     if (!word.length) continue;
 
-    const idx16 = DICT.dict16.indexOf(word);
+    const idx16 = dict16Map.get(word);
 
-    if (idx16 !== -1) {
-      const realIdx = (idx16 - seed16 + len16) % len16;
+    if (idx16 !== undefined) {
+      const realIdx = (idx16 - seed + len16) % len16;
 
       const byteA = (realIdx >> 8) & 0xff;
       const byteB = realIdx & 0xff;
@@ -201,13 +206,17 @@ export function decode(buffer, DICT, useRandomSeed) {
       continue;
     }
 
-    const idx8 = DICT.dict8.indexOf(word);
-    if (idx8 !== -1) {
-      bytes.push(idx8);
+    const idx8 = dict8Map.get(word);
+
+    if (idx8 !== undefined) {
+      const seed8 = seed % len8;
+      const realIdx = (idx8 - seed8 + len8) % len8;
+
+      bytes.push(realIdx);
       continue;
     }
 
-    throw new Error("Неизвестное слово: " + word);
+    throw new Error("Unknown word: " + word);
   }
 
   return new Uint8Array(bytes);

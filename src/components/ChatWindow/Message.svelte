@@ -470,9 +470,9 @@
   }
 
   .obf-type {
-    font-size: 10px;
+    font-size: 8px;
     color: #7f7;
-    font-weight: 600;
+    font-weight: 1000;
     position: relative;
     top: 1px;
   }

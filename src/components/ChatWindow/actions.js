@@ -5,7 +5,8 @@ import API, {
   chatObfs,
 } from "$lib/stores/api";
 import { xorEncrypt } from "$lib/crypto/symmetric";
-import { deflate, obfuscate } from "$lib/crypto/messages";
+import { deflate, obfuscate, detectObfuscation } from "$lib/crypto/messages";
+import { buildHeader, parseHeader } from "$components/ChatWindow/e2e";
 import { get } from "svelte/store";
 
 export async function sendMessage(
@@ -31,15 +32,31 @@ export async function sendMessage(
 
   if (forceObfuscation || sym || ass) {
     if (debug) console.log('Original', text);
-    let bytes = deflate(text);
+
+    let bytes = new TextEncoder().encode(text);
     if (debug) console.log('2', bytes);
+
     if (ass) bytes = await encryptAss(chat, chatKeysCached, bytes);
     if (debug) console.log('3', bytes);
+
     if (sym) bytes = await xorEncrypt(bytes, sym);
     if (debug) console.log('4', bytes);
-    text = obfuscate(bytes, obf || "zh");
+
+    const out = new Uint8Array(1 + bytes.length);
+    out[0] = buildHeader(
+      0, !!sym, !!ass, 0
+    );
+    out.set(bytes, 1);
+
+    text = await obfuscate(out, obf || "zh"); // obfuscation should hide header
   }
-  else if (obf) text = obfuscate(new TextEncoder().encode(text), obf);
+  else if (obf) {
+    const bytes = new TextEncoder().encode(text);
+
+    text = await obfuscate(
+      Uint8Array.of(buildHeader(0, 0, 0, 0), ...bytes), obf
+    );
+  }
 
   if (debug) console.log('Final', text);
 

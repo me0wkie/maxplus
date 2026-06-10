@@ -131,45 +131,77 @@ function decryptMessage(chatKeysCached, message, deobfuscated) {
   );
 }
 
+export function buildHeader(version, xor, ass, compressed) {
+  return (
+    ((version & 0x0F) << 4) |
+    ((xor ? 1 : 0) << 3) |
+    ((ass ? 1 : 0) << 2) |
+    ((compressed ? 1 : 0) << 1) |
+    0
+  );
+}
+
+export function parseHeader(byte) {
+  return {
+    version: (byte >> 4) & 0x0F,
+    xor: !!((byte >> 3) & 1),
+    ass: !!((byte >> 2) & 1),
+    compressed: !!((byte >> 1) & 1),
+  };
+}
+
 export async function decode_msg(msg, password) {
-  if (msg.text.length < 6) return null;
-  let obfuscator = detectObfuscation(msg.text.slice(0, 5));
-  if (!obfuscator) return null;
-  const bytes = obfuscator.deobfuscate(msg.text);
-  const text = await tryDecryptMessage(bytes, password);
-  if (!text) return null;
-  return { text, obf: obfuscator.name };
+  try {
+    let obfuscator = await detectObfuscation(msg.text);
+    if (!obfuscator) return null;
+    const bytes = await obfuscator.deobfuscate(msg.text);
+    const text = await tryDecryptMessage(bytes, password);
+    if (!text) return null;
+    return { text, obf: obfuscator.name };
+  } catch (e) {
+    console.error(e)
+    return null;
+  }
 }
 
 async function tryDecryptMessage(bytes, password) {
-  let text;
+  const header = parseHeader(bytes[0]);
 
-  if (password) {
-    const decrypted = await xorDecrypt(bytes, password);
-    text = inflateWrap(decrypted);        // 1
-    if (!text) text = inflateWrap(bytes); // 2
-  }
-  else text = inflateWrap(bytes);         // 1
+  let payload = bytes.slice(1);
 
-  if (!text) return "<b style=\"color:#f66\">Ошибка!</b> Возможно, не совпадает общий секрет";
-
-  const sep = text.indexOf("|");
-
-  if (sep !== -1) {
-    const prefix = text.slice(0, sep);
-
-    if (prefix === "idx") {
-      return "<b>Запрос на включение шифрования</b>";
-    } else if (prefix === "idy") {
-      return "<b>Ответ на включение шифрования</b>";
-    } else if (Number(prefix)) {
-      const msg = await decryptMessage(text);
-      if (!msg.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + msg.error;
-      return escapeHtml(text);
+  if (header.version === 0) {
+    if (header.xor) {
+      if (!password) return "<b style=\"color:#f66\">Ошибка!</b> Не установлен общий секрет";
+      payload = await xorDecrypt(payload, password);
+      // TODO check
     }
+
+    if (header.ass) {
+      payload = await decryptMessage(payload);
+      if (!payload.ok) return "<b style=\"color:#f66\">Ошибка!</b> " + payload.error;
+    }
+
+    if (header.compressed) {}
+
+    const text = new TextDecoder().decode(payload);
+
+    if (!header.ass) {
+      const sep = text.indexOf("|");
+
+      if (sep !== -1) {
+        const prefix = text.slice(0, sep);
+
+        if (prefix === "idx")
+          return "<b>Запрос на включение шифрования</b>";
+        else if (prefix === "idy")
+          return "<b>Ответ на включение шифрования</b>";
+      }
+    }
+
+    return escapeHtml(text);
   }
 
-  return escapeHtml(text);
+  return "<b style=\"color:#f66\">Ошибка!</b> Сообщение не поддерживается текущей версией Max+";
 }
 
 function inflateWrap(text) {

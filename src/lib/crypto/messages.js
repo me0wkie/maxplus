@@ -1,4 +1,5 @@
 import * as fflate from "fflate";
+import { dict, decode, encode } from "$lib/crypto/text-codec";
 
 /* не используется */
 class Obfuscator {
@@ -32,11 +33,13 @@ const zhMap = new Map(zhArray.map((c, i) => [c, i]));
 
 class Chinese extends Obfuscator {
   constructor() {
-    super("zh");
+    super("Zh");
   }
 
-  detect(marker) {
-    for (const ch of marker) {
+  detect(text) {
+    if (text.length < 5) return false;
+
+    for (const ch of text.slice(0, 5)) {
       const idx = zhMap.get(ch);
       if (idx === undefined) return false;
       if ((idx & 1) !== 0) return false;
@@ -56,24 +59,77 @@ class Chinese extends Obfuscator {
   }
 }
 
-const obfuscators = {
-  //basic: new Obfuscator(),// just adds marker
-  zh: new Chinese(),        // changes symbols
-  //words: new Object(),    // uses book words
+class Words extends Obfuscator {
+  constructor() {
+    super("Tol");
+  }
+
+  async getDictionary() {
+    if (this.lock) await this.lock;
+    if (this.cache) return this.cache;
+    this.lock = new Promise(r => this.unlock = r);
+
+    const cache = await dict.getDictionary();
+    this.cache = cache;
+    this.dict16Map = new Map(cache.dict16.map((w, i) => [w, i]));
+    this.dict8Map = new Map(cache.dict8.map((w, i) => [w, i]));// it's so fucking awful
+    this.miniHash = parseInt(cache.dict_sha256.slice(0, 1), 16) & 0xF;
+
+    this.unlock();
+    this.lock = null;
+    return cache;
+  }
+
+  async detect(text) {
+    if (text.indexOf('\n') !== -1) return false;
+    if (text.indexOf(' ') === -1) return false;
+
+    const DICT = await this.getDictionary();
+    if (!DICT) return false;
+
+    const idx = text.indexOf(' '); // fuck me
+    const word = clean(text.slice(0, idx)).toLowerCase();
+
+    const prefixIdx = this.dict8Map.get(word);
+    if (prefixIdx === undefined) return false;
+
+    const hash = prefixIdx & 0xF;
+    return hash === this.miniHash;
+  }
+
+  async obfuscate(bytes) {
+    const DICT = await this.getDictionary();
+    if (!DICT) return;
+    return await encode(bytes, DICT, true);
+  }
+
+  async deobfuscate(text) {
+    const DICT = await this.getDictionary();
+    if (!DICT) return;
+    return await decode(text, DICT, this.dict8Map, this.dict16Map);
+  }
 }
 
-export function detectObfuscation(text) {
+const clean = (s) => s?.replace(/[.,!?:-]/g, "")?.trim();
+
+const obfuscators = {
+  //basic: new Obfuscator(), // just adds marker
+  zh: new Chinese(),         // maps to chinese letters
+  words: new Words(),        // maps to book words
+}
+
+export async function detectObfuscation(text) {
   for (const name in obfuscators) {
     const obfuscator = obfuscators[name];
     if (!obfuscator) continue;
-    if (obfuscator.detect(text)) return obfuscator;
+    if (await obfuscator.detect(text)) return obfuscator;
   }
 
   return null;
 }
 
-export function obfuscate(text, obfuscatorName) {
-  return obfuscators[obfuscatorName].obfuscate(text);
+export async function obfuscate(text, obfuscatorName) {
+  return await obfuscators[obfuscatorName].obfuscate(text);
 }
 
 // Bit-packed encoder (uses floor(log2(base)) bits per symbol). Uses BigInt for safety.
@@ -135,15 +191,14 @@ function decodeBitPacked(str, alphabet) {
   return new Uint8Array(out);
 }
 
-function makeMarker(alphabet, count = 5) {
-  const chars = Array.from(alphabet);
-  const maxEven = Math.floor((chars.length - 1) / 2);
+function makeMarker(alphabet) {
+  const maxEven = Math.floor((zhArray.length - 1) / 2);
   if (maxEven < 0) throw new Error("Alphabet too small for marker");
   let marker = "";
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < 5; i++) {
     const r = Math.floor(Math.random() * (maxEven + 1)); // 0..maxEven
     const idx = r * 2; // чётный индекс
-    marker += chars[idx];
+    marker += zhArray[idx];
   }
   return marker;
 }
