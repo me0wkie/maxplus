@@ -171,9 +171,12 @@ async function tryDecryptMessage(bytes, password) {
 
   if (header.version === 0) {
     if (header.xor) {
-      if (!password) return "<b style=\"color:#f66\">Ошибка!</b> Не установлен общий секрет";
+      if (!password)
+        return "<b style=\"color:#f66\">Ошибка!</b> Не установлен общий секрет";
       payload = await xorDecrypt(payload, password);
-      // TODO check
+      if (payload[0] !== 0xFF)
+        return "<b style=\"color:#f66\">Ошибка!</b> Не совпадает общий секрет";
+      payload = payload.slice(1);
     }
 
     if (header.ass) {

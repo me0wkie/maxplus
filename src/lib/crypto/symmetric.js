@@ -56,10 +56,13 @@ export async function xorDecrypt(encrypted, password) {
 
 export async function xorEncrypt(data, password) {
     const sodium = await ready();
-
     const key = deriveKey(sodium, password);
 
-    return xor(data, key);
+    const withHeader = new Uint8Array(data.length + 1);
+    withHeader[0] = 0xFF;
+    withHeader.set(data, 1);
+
+    return xor(withHeader, key);
 }
 
 function xor(data, key) {
