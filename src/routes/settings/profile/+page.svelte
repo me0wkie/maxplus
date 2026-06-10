@@ -1,4 +1,3 @@
-<!-- ProfileEdit.svelte -->
 <script>
   import { goto } from "$app/navigation";
   import { fade, fly, slide } from "svelte/transition";
@@ -66,7 +65,7 @@
   }
 </script>
 
-<div class="profile-page">
+<div class="page">
   <header>
     <h1>Профиль</h1>
     <span class="badge">
@@ -133,7 +132,7 @@
 </div>
 
 <style>
-  .profile-page {
+  .page {
     display: flex;
     flex-direction: column;
     width: 100%;

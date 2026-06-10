@@ -19,7 +19,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 rumax = { path = "../../rumax" }
-tauri = { version = "2", features = ["protocol-asset"] }
+tauri = { version = "2.11.2", features = ["protocol-asset"] }
 tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -48,6 +48,7 @@ keyring = "3"
 aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
+tauri-plugin-http = "2.5.9"
 
 [profile.dev]
 incremental = true
