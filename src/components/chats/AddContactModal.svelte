@@ -9,7 +9,6 @@
   let phone = "+7";
   let isLoading = false;
 
-  // Объект для хранения ошибок
   let errors = {
     name: "",
     phone: "",

@@ -57,6 +57,11 @@
         text: "Настройки шифрования",
         action: () => goto("setup/tokens?from=/?card=3"),
       }, // card 3 is settings
+      {
+        icon: "book.svg",
+        text: "Словарь шифрования",
+        action: () => goto("settings/e2e/dictionary?from=/?card=3"),
+      },
     ],
     [
       {
