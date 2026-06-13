@@ -1,7 +1,9 @@
 <script>
   import { invoke } from "@tauri-apps/api/core";
   import { goto } from "$app/navigation";
-  import API from "$lib/stores/api";
+  import API, {
+    getAccounts
+  } from "$lib/stores/api";
 
   import "$lib/styles/AnimatedPanel.css";
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
@@ -16,6 +18,10 @@
     const response = await $API.startAuth(phone);
     if (response.success) goto("/auth/verify");
     else error = response.description + ", " + response.title;
+  }
+
+  async function showBackButton() {
+    return !!(await getAccounts()).length;
   }
 </script>
 
@@ -32,6 +38,15 @@
     <button class="animated-panel" type="submit">Получить код</button>
   </form>
   <a href="/auth/register" class="link">Создать аккаунт</a>
+  {#await showBackButton()}
+  {:then backButton}
+    {#if backButton}
+      <div
+        class="back"
+        on:click={_ => goto("/auth/select")}
+      ><a>←</a></div>
+    {/if}
+  {/await}
 </div>
 
 <OpenDevSettingsButton />
@@ -94,5 +109,24 @@
     word-break: break-all;
     white-space: nowrap;
     text-align: center;
+  }
+
+  .back {
+    position: absolute;
+    height: 32px;
+    width: 32px;
+    border-radius: 32px;
+    background-color: #fff3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 50px;
+    left: 10px;
+    font-weight: 1000;
+  }
+
+  .back a {
+    position: relative;
+    bottom: 1px;
   }
 </style>

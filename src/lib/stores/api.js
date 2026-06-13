@@ -100,6 +100,23 @@ export const chatObfs = { // TODO будет перенесено в user-ID/set
   },
 };
 
+export const getAccounts = async () => {
+  return (await users.keys())
+    .filter(x => /^user-\d+$/.test(x))
+    .map(x => x.split('-')[1]);
+}
+
+export const getAccount = async id => {
+  return await users.get("user-" + id);
+}
+
+export const purgeAccount = async id => {
+  const regex = new RegExp("-" + id + "$");
+  for (const key of await users.keys()) {
+    if (regex.test(key)) await users.delete(key);
+  }
+}
+
 currentUser.subscribe(async (user) => {
   if (user === undefined) {
     const _currentUserId = await users.get("current");

@@ -86,7 +86,11 @@
         text: "Активные сессии",
         action: () => goto("settings/sessions?from=/?card=3"),
       },
-      { icon: "logout.svg", text: "Выйти из аккаунта", action: handleLogout },
+      {
+        icon: "logout.svg",
+        text: "Сменить аккаунт",
+        action: () => goto("auth/select")
+      },
     ],
   ];
 
@@ -98,11 +102,6 @@
 
   function clearAllKeys() {
     clearKeys();
-  }
-
-  function handleLogout() {
-    $API.logout();
-    goto("/auth/login");
   }
 
   async function scanner() {

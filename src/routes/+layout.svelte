@@ -1,6 +1,10 @@
 <script>
   import { fade } from "svelte/transition";
-  import API, { currentUser, currentSessionCalls } from "$lib/stores/api.js";
+  import API, {
+    currentUser,
+    currentSessionCalls,
+    getAccounts
+  } from "$lib/stores/api.js";
   import DevSettings from "$components/main/dev/Settings.svelte";
   import ProfileModal from "$components/ProfileModal.svelte";
   import * as Settings from "$lib/stores/settings.js";
@@ -46,9 +50,10 @@
         if (
           user === null &&
           $page.route.id !== "/auth/login" &&
-          $page.route.id !== "/auth/register"
+          $page.route.id !== "/auth/register" &&
+          $page.route.id !== "/auth/select"
         ) {
-          goto("/auth/login");
+          openAuth();
         }
       } else {
         if (sessionGet("sync")) return;
@@ -68,6 +73,14 @@
       if (!loaded) loaded = true;
     }
   });
+
+  async function openAuth() {
+    if (await getAccounts().length) {
+      goto("/auth/select");
+    } else {
+      goto("/auth/login");
+    }
+  }
 </script>
 
 {#if $Session.devSettings}

@@ -181,15 +181,23 @@ export default class MobileApi extends BaseAPI {
     if (loaded) this._token = loaded;
   }
 
-  async logout() {
+  async logout(userId) {
     await invoke("logout");
-    this.setToken(undefined);
-    this.setUser(undefined);
-    currentUserDetails.set(null);
-    currentUser.set(null);
-    sessionSet("sync", false);
-    sessionSet("connected", false);
-    goto("/auth/login");
+
+    if (get(currentUser) === userId) {
+      this.setToken(undefined);
+      this.setUser(undefined);
+
+      currentUserDetails.set(null);
+      currentUser.set(null);
+
+      sessionSet("sync", false);
+      sessionSet("connected", false);
+
+      // TODO purge all data
+
+      goto("/auth/login");
+    }
   }
 
   async checkPassword(password, trackId) {
