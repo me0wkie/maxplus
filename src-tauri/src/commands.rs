@@ -1,6 +1,7 @@
 use crate::state::AppState;
 use serde_json::{json, Value};
 use std::collections::HashMap;
+use rumax::models::{Identity};
 use tauri::State;
 
 fn p(s: String) -> Result<u64, String> {
@@ -54,22 +55,23 @@ delegate_cmd!(send_message(
 #[tauri::command]
 pub async fn init(
     state: State<'_, AppState>,
-    device_id: String,
-    mt_instance: String,
+    identity: Identity,
     user_id: Option<u64>,
     token: Option<String>,
 ) -> Result<Value, String> {
     state.client.disconnect().await;
+
     if let Some(uid) = user_id {
         state.client.set_user_id(uid).await;
     }
+
     if let Some(t) = token {
         state.client.set_token(t).await;
     }
 
     state
         .client
-        .connect(device_id, mt_instance, true)
+        .connect(identity, true)
         .await
         .map(|r| json!({ "success": true, "payload": r.payload }))
         .map_err(|e| format!("Ошибка подключения: {}", e))

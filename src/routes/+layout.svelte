@@ -6,6 +6,7 @@
     getAccounts
   } from "$lib/stores/api.js";
   import DevSettings from "$components/main/dev/Settings.svelte";
+  import DevicesSettings from "$components/main/devices/Settings.svelte";
   import ProfileModal from "$components/ProfileModal.svelte";
   import * as Settings from "$lib/stores/settings.js";
   import Session, { get as sessionGet } from "$lib/stores/session.js";
@@ -85,6 +86,10 @@
 
 {#if $Session.devSettings}
   <DevSettings />
+{/if}
+
+{#if $Session.devicesPage}
+  <DevicesSettings />
 {/if}
 
 {#if $Session.profile}

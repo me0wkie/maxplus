@@ -7,6 +7,7 @@
 
   import "$lib/styles/AnimatedPanel.css";
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
+  import OpenDevicesButton from "$components/main/devices/OpenButton.svelte";
 
   let phone = "";
   let error = "";
@@ -50,6 +51,7 @@
 </div>
 
 <OpenDevSettingsButton />
+<OpenDevicesButton />
 
 <style>
   .auth-page {

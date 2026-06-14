@@ -72,7 +72,7 @@ export default class MobileApi extends BaseAPI {
       console.error("Had recent reconnection, not trying again");
       return;
     }
-    if (!this.getDevice()?.id) throw "No device id";
+    if (!this.getDevice()?.deviceId) throw "No device id";
 
     if (this.unlisten) await this.unlisten();
     this.startListener();
@@ -86,8 +86,7 @@ export default class MobileApi extends BaseAPI {
     const response = await invoke("init", {
       token: this.getToken(),
       userId: this.getUser(),
-      deviceId: this.getDevice().id,
-      mtInstance: this.getDevice().mt,
+      identity: this.getDevice(),
     });
 
     console.log('Init response', response);
@@ -103,8 +102,7 @@ export default class MobileApi extends BaseAPI {
     this._device = this.generateDevice();
 
     const response = await invoke("init", {
-      deviceId: this.getDevice().id,
-      mtInstance: this.getDevice().mt,
+      identity: this.getDevice(),
     });
     console.log(response);
 
