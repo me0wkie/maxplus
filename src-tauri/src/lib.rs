@@ -12,6 +12,7 @@ use stores::setup_custom_stores;
 use tauri::{Emitter, Manager};
 use tokio::sync::RwLock;
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     video::start_video_proxy();
 
