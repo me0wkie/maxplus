@@ -70,10 +70,12 @@ class Words extends Obfuscator {
     this.lock = new Promise(r => this.unlock = r);
 
     const cache = await dict.getDictionary();
-    this.cache = cache;
-    this.dict16Map = new Map(cache.dict16.map((w, i) => [w, i]));
-    this.dict8Map = new Map(cache.dict8.map((w, i) => [w, i]));// it's so fucking awful
-    this.miniHash = parseInt(cache.dict_sha256.slice(0, 1), 16) & 0xF;
+    if (cache) {
+      this.cache = cache;
+      this.dict16Map = new Map(cache.dict16.map((w, i) => [w, i]));
+      this.dict8Map = new Map(cache.dict8.map((w, i) => [w, i]));// it's so fucking awful
+      this.miniHash = parseInt(cache.dict_sha256.slice(0, 1), 16) & 0xF;
+    }
 
     this.unlock();
     this.lock = null;
