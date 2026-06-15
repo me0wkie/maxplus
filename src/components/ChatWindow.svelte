@@ -31,7 +31,7 @@
   import Settings from "$components/ChatWindow/Settings.svelte";
   import E2eModal from "$components/ChatWindow/E2eModal.svelte";
   import Dropout from "$components/ChatWindow/Dropout.svelte";
-  import Signature from "$lib/utils/Signature.svelte";
+  import Signature from "$components/main/Signature.svelte";
   import MediaViewer from "$components/ChatWindow/MediaViewer.svelte";
   import DateSeparator from "$components/ChatWindow/DateSeparator.svelte";
   import Input from "$components/ChatWindow/input/Input.svelte";
@@ -377,13 +377,7 @@
         <Avatar size={36} {chat} style="margin-left: -8px" />
         <div class="info">
           <a class="title">{title}</a>
-          <a class="presence">
-            {#if chat.type === "DIALOG" && chat.id !== 0}
-              <Signature {chat} />
-            {:else if chat.type === "CHANNEL"}
-              {chat.participantsCount} подписчиков
-            {/if}
-          </a>
+          <a class="presence"><Signature {chat} /></a>
         </div>
       </div>
     </div>
@@ -503,9 +497,6 @@
 
   header {
     display: flex;
-    justify-content: space-between;
-    flex-direction: row;
-    align-items: center;
     padding: 11px 0;
     height: 32px;
     cursor: grab;
@@ -526,12 +517,17 @@
   header .info {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
     min-width: 0;
-    width: 100%;
   }
 
   header .info .presence {
     font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    min-width: 0;
   }
 
   header .title {
@@ -542,15 +538,20 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: flex;
-    align-items: center;
   }
 
   header .align-left {
     display: flex;
     flex-direction: row;
     align-items: center;
-    flex: 1;
+    min-width: 0;
+  }
+
+  header .align-right {
+    flex: 0 0 auto;
+    margin-left: auto;
+    display: flex;
+    align-items: center;
   }
 
   .icon-button {
@@ -564,7 +565,6 @@
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
-    outline: none;
   }
 
   .scroll-down-btn {

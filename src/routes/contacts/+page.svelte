@@ -9,11 +9,11 @@
   import { set as sessionSet } from "$lib/stores/session";
   import Search from "$components/main/Search.svelte";
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
+  import Signature from "$components/main/Signature.svelte";
   import Avatar from "$components/main/Avatar.svelte";
 
   import AddContactBtn from "$components/main/AddContactBtn.svelte";
 
-  import Signature from "$lib/utils/Signature.svelte";
   import "$lib/styles/AnimatedPanel.css";
 
   const dispatch = createEventDispatcher();

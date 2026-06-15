@@ -11,7 +11,7 @@
     currentPresence,
   } from "$lib/stores/api";
   import Session from "$lib/stores/session";
-  import Signature from "$lib/utils/Signature.svelte";
+  import Signature from "$components/main/Signature.svelte";
   import { formatMs } from "$lib/utils/time.js";
 
   let { userId, chatId } = $Session.profile;

@@ -21,7 +21,7 @@ export const invoke = async (command, args) => {
     if (str.includes("TCP Error"))
       return restart("Откис интернет!\nПереподключение...", command, args);
 
-    if (str.includes("FAIL_LOG")) {
+    if (str.includes("login.token")) {
       alert("Выкинуло из аккаунта!");
       return get(API).logout();
     }

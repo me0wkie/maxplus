@@ -99,7 +99,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async startAuth(phone) {
-    this._device = this.generateDevice();
+    await this.loadDevice();
 
     const response = await invoke("init", {
       identity: this.getDevice(),
@@ -180,7 +180,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async logout(userId) {
-    await invoke("logout");
+    invoke("logout");
 
     if (get(currentUser) === userId) {
       this.setToken(undefined);
@@ -275,7 +275,8 @@ export default class MobileApi extends BaseAPI {
     } catch (e) {
       alert(e);
       console.error(e);
-      if (e?.includes("login.token")) await this.logout();
+      const text = e.toString();
+      if (text.includes("login.token")) await this.logout();
     } finally {
       this.resolve_sync();
       console.log("Синхронизация завершена!");

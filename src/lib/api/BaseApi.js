@@ -30,7 +30,7 @@ export default class API {
         throw "loadToken: Unimplemented"
     }
     
-    async loadDevice() {
+    async loadDevice() { // TODO merge with getDevice
         let device = await usersDb.get('device-' + this._user);
         if (!device) {
             device = await usersDb.get('device');
@@ -70,7 +70,7 @@ export default class API {
         return this._device;
     }
 
-    async checkDevice() { // TODO merge all
+    async checkDevice() { // TODO merge with loadDevice
         let device = await usersDb.get('device');
         console.log(device)
         if (!device) {
