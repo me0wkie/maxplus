@@ -1,0 +1,60 @@
+name: Build Max+ Linux
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libssl-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            libjavascriptcoregtk-4.1-dev \
+            librsvg2-dev \
+            patchelf
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run tauri icon static/favicon.png
+
+      - run: |
+          echo "WEBKIT_DISABLE_COMPOSITING_MODE=1" >> $GITHUB_ENV
+          echo "GDK_BACKEND=x11" >> $GITHUB_ENV
+          echo "WEBKIT_DISABLE_DMABUF_RENDERER=1" >> $GITHUB_ENV
+
+      - run: bunx tauri build --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maxplus-linux
+          path: src-tauri/target/release/bundle/appimage/*.AppImage

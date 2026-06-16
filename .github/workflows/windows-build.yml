@@ -1,0 +1,44 @@
+name: Build Max+ Windows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run tauri icon static/favicon.png
+
+      - run: bunx tauri build
+
+      - uses: actions/upload-artifact@v4
+        with:
+            name: maxplus-windows
+            path: |
+              src-tauri/target/release/*.exe
+              src-tauri/target/release/bundle/**/*.msi

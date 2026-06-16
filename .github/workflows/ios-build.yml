@@ -3,12 +3,11 @@ name: Build Max+ iOS
 on:
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   build:
     runs-on: macos-14
+    env:
+        FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     timeout-minutes: 20
 
     steps:
