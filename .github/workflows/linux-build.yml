@@ -43,6 +43,13 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - name: Patch Cargo.toml for CI
+        run: |
+          sed -i 's|path = "../../rumax"|git = "https://github.com/me0wkie/rumax.git", branch = "main"|g' src-tauri/Cargo.toml
+
+          echo "Cargo.toml updated:"
+          grep rumax src-tauri/Cargo.toml
+
       - run: bun install --frozen-lockfile
 
       - run: bun run tauri icon static/favicon.png
@@ -52,7 +59,7 @@ jobs:
           echo "GDK_BACKEND=x11" >> $GITHUB_ENV
           echo "WEBKIT_DISABLE_DMABUF_RENDERER=1" >> $GITHUB_ENV
 
-      - run: bunx tauri build --release
+      - run: bunx tauri build
 
       - uses: actions/upload-artifact@v4
         with:

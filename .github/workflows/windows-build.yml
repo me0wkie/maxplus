@@ -30,6 +30,13 @@ jobs:
         with:
           workspaces: src-tauri
 
+      - name: Patch Cargo.toml for CI
+        run: |
+          sed -i 's|path = "../../rumax"|git = "https://github.com/me0wkie/rumax.git", branch = "main"|g' src-tauri/Cargo.toml
+
+          echo "Cargo.toml updated:"
+          grep rumax src-tauri/Cargo.toml
+
       - run: bun install --frozen-lockfile
 
       - run: bun run tauri icon static/favicon.png
