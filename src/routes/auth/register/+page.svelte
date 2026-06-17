@@ -30,7 +30,7 @@
 </script>
 
 <div class="auth-page">
-  <h1>Создание аккаунта</h1>
+  <h1>Регистрация</h1>
   <form on:submit|preventDefault={handleRegister}>
     <div class="error">{error}</div>
     <input type="text" bind:value={name} placeholder="Псевдоним" required />
@@ -57,6 +57,8 @@
     gap: 1rem;
     text-align: center;
     color: #ddd;
+    max-width: min(300px, 90%);
+    margin: 0 auto;
   }
 
   .auth-page h1 {
@@ -68,7 +70,6 @@
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
-    max-width: 300px;
   }
 
   input,

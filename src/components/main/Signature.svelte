@@ -22,7 +22,7 @@
   console.log(contact, chat)
 </script>
 
-{#if chat.type === "DIALOG"}
+{#if chat?.type === "DIALOG"}
   {#if contact}
     {#if $currentPresence[contact.id]?.seen !== undefined}
       {contact.gender === 2 ? "Была" : "Был"}
@@ -46,7 +46,7 @@
   {:else}
     Личный чат
   {/if}
-{:else if chat.type === "CHANNEL"}
+{:else if chat?.type === "CHANNEL"}
   {chat.participantsCount} подписчиков
 {:else}
   Это вообще чё?

@@ -59,7 +59,7 @@
 
 <div class="auth-page">
   <h1>Подтверждение</h1>
-  <p>Введите код, отправленный на номер телефона</p>
+  <p>Введите код, отправленный по указанному номеру телефона</p>
   <form on:submit|preventDefault={handleVerify}>
     <div class="error">{error}</div>
     <input
@@ -70,6 +70,10 @@
     />
     <button class="animated-panel" type="submit">Подтвердить</button>
   </form>
+  <div
+    class="back"
+    on:click={_ => goto("/auth/login")}
+  ><a>←</a></div>
 </div>
 
 <style>
@@ -81,6 +85,8 @@
     height: 100vh;
     text-align: center;
     color: #ddd;
+    max-width: min(300px, 90%);
+    margin: 0 auto;
   }
 
   .auth-page h1 {
@@ -89,7 +95,7 @@
 
   .auth-page p {
     margin: 10px 0;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   form {
@@ -97,7 +103,6 @@
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
-    max-width: 300px;
   }
 
   input,
@@ -122,5 +127,21 @@
     font-size: 0.9rem;
     height: auto;
     word-break: break-all;
+  }
+
+  .back {
+    position: absolute;
+    height: 42px;
+    width: 42px;
+    border-radius: 32px;
+    background-color: #fff3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 10px;
+    left: 10px;
+    font-weight: 1000;
+    font-size: 20px;
+    cursor: pointer;
   }
 </style>

@@ -47,6 +47,10 @@
     />
     <button class="animated-panel" type="submit">Проверить</button>
   </form>
+  <div
+    class="back"
+    on:click={_ => goto("/auth/login")}
+  ><a>←</a></div>
 </div>
 
 <style>
@@ -74,7 +78,7 @@
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
-    max-width: 300px;
+    max-width: min(300px, 90%);
   }
 
   input,
@@ -99,5 +103,21 @@
     font-size: 0.9rem;
     height: auto;
     word-break: break-all;
+  }
+
+  .back {
+    position: absolute;
+    height: 42px;
+    width: 42px;
+    border-radius: 32px;
+    background-color: #fff3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 10px;
+    left: 10px;
+    font-weight: 1000;
+    font-size: 20px;
+    cursor: pointer;
   }
 </style>

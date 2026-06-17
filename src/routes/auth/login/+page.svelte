@@ -18,7 +18,7 @@
     if (!phone.startsWith("+")) phone = "+" + phone;
     const response = await $API.startAuth(phone);
     if (response.success) goto("/auth/verify");
-    else error = response.description + ", " + response.title;
+    else error = response.title || response.message;
   }
 
   async function showBackButton() {
@@ -73,7 +73,7 @@
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
-    max-width: 300px;
+    max-width: min(300px, 90%);
   }
 
   input,
@@ -122,7 +122,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    top: 50px;
+    top: 75px;
     left: 10px;
     font-weight: 1000;
   }

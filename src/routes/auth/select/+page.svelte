@@ -20,11 +20,14 @@
 
   async function select(account) {
     console.log('Selecting', account.id, 'current', $currentUser)
-    if ($currentUser !== account.id) {
-      await $API.setUser(account.id);
+
+    if ($currentUser !== account.id || !$currentUser) {
+      console.log('set user', account.id);
+      await currentUser.set(account.id);
       await $API.loadToken();
       await $API.init(true);
     }
+
     return goto("/")
   }
 
@@ -32,13 +35,18 @@
     e.stopPropagation();
     console.log('Logging out', account.id)
 
-    await $API.logout(account.id);
+    await $API.logout(account.id === $currentUser, false);
     await purgeAccount(account.id);
     await updateAccounts();
 
     if (!accountsPromise.length) {
       goto("/auth/login")
     }
+  }
+
+  async function addNew(e) {
+    await $API.disconnect();
+    goto("/auth/login");
   }
 </script>
 
@@ -56,7 +64,7 @@
         </div>
       {/each}
     {/await}
-    <div on:click={_ => goto("/auth/login")} class="account">
+    <div on:click={addNew} class="account">
       <div class="avatar"><a>+</a></div>
       <a>Новый</a>
     </div>
