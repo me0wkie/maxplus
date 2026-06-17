@@ -7,9 +7,7 @@
   import { readFile, writeFile } from "@tauri-apps/plugin-fs";
   import API from "$lib/stores/api";
 
-  onMount(() => {
-    $API.checkDevice().then(update);
-  });
+  onMount(() => $API.checkDevice().then(update));
 
   function update(device) {
     console.log('Device', device);
@@ -95,8 +93,6 @@
       return alert("JSON-файл содержит ошибки!")
     }
 
-    console.log('DEBUG', json);
-
     if (!json.version || json.type !== "device") return alert("Неверный файл - это не конфиг девайса!");
 
     if (json.version === 1) {
@@ -107,6 +103,12 @@
       return alert("Это конфиг для более новой версии Max+!")
     }
   }
+
+  async function rerollDevice() {
+    const device = $API.generateDevice();
+    await $API.setDevice(device);
+    update(device);
+  }
 </script>
 
 <div class="overlay" in:fade={{ duration: 100 }} out:fade={{ duration: 100 }}>
@@ -115,6 +117,9 @@
       <div class="title">Устройство</div>
 
       <div class="buttons">
+        <button class="reroll" on:click={rerollDevice}>
+          ⟳
+        </button>
         <button class="export" on:click={exportDevice}>
           <img src="/icons/export.svg">
         </button>
@@ -191,11 +196,13 @@
 
     background: transparent;
     color: #aaa;
-    font-size: 16px;
+    font-size: 20px;
 
     display: flex;
     align-items: center;
     justify-content: center;
+
+    transition: color 0.1s;
   }
 
   .buttons img {
@@ -207,7 +214,14 @@
     height: 20px;
   }
 
-  .buttons button:hover * {
+  .buttons .reroll {
+    font-size: 30px;
+    font-weight: 1000;
+    position: relative;
+    bottom: 2px;
+  }
+
+  .buttons *:hover {
     color: white;
     opacity: 1;
   }
