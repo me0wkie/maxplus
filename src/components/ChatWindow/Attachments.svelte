@@ -31,7 +31,7 @@
     downloadingMap = { ...downloadingMap, [attach.fileId]: true };
 
     try {
-      // TODO скачивание стримом
+      // TODO скачивание стримом (для больших файлов)
       console.log(attach);
       const response = await getFile(attach.fileId);
       console.log(response.url);

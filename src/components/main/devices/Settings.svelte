@@ -1,22 +1,26 @@
 <script>
+  import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
   import { fade } from "svelte/transition";
   import { set as sessionSet } from "$lib/stores/session";
+  import { open, save } from "@tauri-apps/plugin-dialog";
+  import { readFile, writeFile } from "@tauri-apps/plugin-fs";
   import API from "$lib/stores/api";
 
   onMount(() => {
-    $API.checkDevice().then(device => {
-      const { deviceId, mtInstance, userAgent } = device;
-      console.log('Device', device);
-      setValue('deviceId', deviceId);
-      setValue('mtInstance', mtInstance);
-      Object.keys(userAgent).forEach(k => setValue(k, userAgent[k]));
-    })
+    $API.checkDevice().then(update);
   });
+
+  function update(device) {
+    console.log('Device', device);
+    const { deviceId, mtInstance, userAgent } = device;
+    setValue('deviceId', deviceId);
+    setValue('mtInstance', mtInstance);
+    Object.keys(userAgent).forEach(k => setValue(k, userAgent[k]));
+  }
 
   const setValue = (key, value) => {
     const element = document.getElementById(key);
-    console.log(element)
     if (element) element.value = value;
   }
 
@@ -37,6 +41,72 @@
     ["deviceId", "deviceId"],
     ["mt_instanceid", "mtInstance"]
   ];
+
+  async function exportDevice() {
+    const device = await $API.checkDevice();
+
+    if (!device.deviceId) return alert("Текущий конфиг сломан!");
+
+    const dataToSave = {
+      version: 1,
+      type: "device",
+      ...device
+    };
+
+    const path = await save({
+      defaultPath: "device.json",
+      filters: [
+        {
+          name: "Конфиг девайса (.json)",
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (!path) return;
+
+    const json = JSON.stringify(dataToSave, null, 2);
+    const bytes = new TextEncoder().encode(json);
+
+    await writeFile(path, new Uint8Array(bytes));
+  }
+
+  async function importDevice() {
+    const path = await open({
+      multiple: false,
+      directory: false,
+      filters: [
+        {
+          name: "Конфиг девайса (.json)",
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (!path) return;
+
+    const data = await readFile(path);
+    const text = new TextDecoder("utf-8").decode(data);
+
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      return alert("JSON-файл содержит ошибки!")
+    }
+
+    console.log('DEBUG', json);
+
+    if (!json.version || json.type !== "device") return alert("Неверный файл - это не конфиг девайса!");
+
+    if (json.version === 1) {
+      const { version, type, ...cut } = json;
+      await $API.setDevice(cut);
+      update(cut);
+    } else {
+      return alert("Это конфиг для более новой версии Max+!")
+    }
+  }
 </script>
 
 <div class="overlay" in:fade={{ duration: 100 }} out:fade={{ duration: 100 }}>
@@ -44,9 +114,17 @@
     <div class="header">
       <div class="title">Устройство</div>
 
-      <button class="close" on:click={() => sessionSet("devicesPage", false)}>
-        ✕
-      </button>
+      <div class="buttons">
+        <button class="export" on:click={exportDevice}>
+          <img src="/icons/export.svg">
+        </button>
+        <button class="import" on:click={importDevice}>
+          <img src="/icons/import.svg">
+        </button>
+        <button class="close" on:click={() => sessionSet("devicesPage", false)}>
+          ✕
+        </button>
+      </div>
     </div>
 
     <div class="list">
@@ -76,7 +154,8 @@
   }
 
   .modal {
-    width: min(900px, 95vw);
+    width: min(420px, 80%);
+    max-width: 95%;
     max-height: 90vh;
     overflow-y: auto;
 
@@ -100,20 +179,37 @@
     font-weight: 600;
   }
 
-  .close {
+  .buttons {
+    display: flex;
+    gap: 5px;
+  }
+
+  .buttons button {
     width: 32px;
     height: 32px;
     border: none;
-    border-radius: 8px;
-    cursor: pointer;
 
     background: transparent;
     color: #aaa;
     font-size: 16px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .close:hover {
+  .buttons img {
+    height: 18px;
+    opacity: 0.7;
+  }
+
+  .buttons .import img {
+    height: 20px;
+  }
+
+  .buttons button:hover * {
     color: white;
+    opacity: 1;
   }
 
   .list {

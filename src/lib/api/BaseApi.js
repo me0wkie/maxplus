@@ -79,6 +79,12 @@ export default class API {
         }
         return device;
     }
+
+    async setDevice(device) {
+        if (!device.deviceId) throw new Error("Wrong device object");
+        this._device = device;
+        await usersDb.set('device', device);
+    }
     
     getUser() { return this._user; }
     getToken() { return this._token; }
