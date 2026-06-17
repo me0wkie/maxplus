@@ -7,19 +7,45 @@
   import { readFile, writeFile } from "@tauri-apps/plugin-fs";
   import API from "$lib/stores/api";
 
-  onMount(() => $API.checkDevice().then(update));
+  onMount(() => $API.checkDevice().then(update, false));
 
-  function update(device) {
+  function update(device, animate = false) {
     console.log('Device', device);
     const { deviceId, mtInstance, userAgent } = device;
-    setValue('deviceId', deviceId);
-    setValue('mtInstance', mtInstance);
-    Object.keys(userAgent).forEach(k => setValue(k, userAgent[k]));
+    setValue('deviceId', deviceId, animate);
+    setValue('mtInstance', mtInstance, animate);
+    Object.keys(userAgent).forEach(k => setValue(k, userAgent[k], animate));
   }
 
-  const setValue = (key, value) => {
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const setValue = async (key, value, animate) => {
     const element = document.getElementById(key);
-    if (element) element.value = value;
+    if (!element) return;
+
+    //if (element.value === value + "") return;
+
+    if (!animate) {
+      element.value = value;
+      return;
+    }
+
+    const target = String(value ?? "");
+    const current = String(element.value ?? "");
+
+    for (let i = current.length; i >= 0; i--) {
+      element.value = current.slice(0, i);
+      await sleep(5);
+    }
+
+    await sleep(40);
+
+    let out = "";
+    for (let i = 0; i < target.length; i++) {
+      out += target[i];
+      element.value = out;
+      await sleep(5);
+    }
   }
 
   const fields = [
@@ -98,7 +124,7 @@
     if (json.version === 1) {
       const { version, type, ...cut } = json;
       await $API.setDevice(cut);
-      update(cut);
+      update(cut, true);
     } else {
       return alert("Это конфиг для более новой версии Max+!")
     }
@@ -107,7 +133,7 @@
   async function rerollDevice() {
     const device = $API.generateDevice();
     await $API.setDevice(device);
-    update(device);
+    update(device, true);
   }
 </script>
 
@@ -193,6 +219,7 @@
     width: 32px;
     height: 32px;
     border: none;
+    padding: 8px;
 
     background: transparent;
     color: #aaa;
@@ -208,10 +235,11 @@
   .buttons img {
     height: 18px;
     opacity: 0.7;
+    padding: 8px;
   }
 
   .buttons .import img {
-    height: 20px;
+    height: 19px;
   }
 
   .buttons .reroll {
@@ -219,6 +247,11 @@
     font-weight: 1000;
     position: relative;
     bottom: 2px;
+  }
+
+  .buttons .close {
+    position: relative;
+    bottom: 1px;
   }
 
   .buttons *:hover {
@@ -242,7 +275,7 @@
   }
 
   .label {
-    font-size: 12px;
+    font-size: 13px;
     color: #9ca3af;
     flex: 1;
   }
@@ -258,6 +291,7 @@
     color: white;
     font-size: 13px;
     padding: 0;
+    transition: color 0.07s;
   }
 
   .value:focus {
