@@ -45,21 +45,23 @@
 
 {#if shown}
 <div
-  class="settings-overlay"
+  class="overlay"
   on:click={close}
   in:fly={{ y: 40,  duration: 260 }}
   out:fly={{ y: 40, duration: 200 }}
 >
-  <div class="settings-modal" on:click|stopPropagation>
-    <div class="settings-grabber"></div>
-    <div class="settings-header">
-      <div class="settings-title">
-        Настройки
+  <div class="modal" on:click|stopPropagation>
+    <div class="header">
+      <div class="grabber"></div>
+      <div class="buttons">
+        <div class="title">
+          Настройки
+        </div>
+        <button class="close-btn" on:click={close}>✕</button>
       </div>
-      <button class="close-btn" on:click={close}>✕</button>
     </div>
 
-    <div class="settings-subtitle">
+    <div class="subtitle">
       Шифрование [beta]
       <button
         style="align-self: flex-end;"
@@ -69,8 +71,8 @@
         { !chatKeysLoaded?.current ? "Новая сессия" : "Отключить" }
       </button>
     </div>
-    <div class="settings-group" in:fade={{ delay: 120, duration: 220 }}>
-      <div class="settings-row">
+    <div class="group" in:fade={{ delay: 120, duration: 220 }}>
+      <div class="row">
         <div class="row-title">
           Статус
         </div>
@@ -83,7 +85,7 @@
     </div>
 
     <div
-    class="settings-footer" in:fade={{ delay: 160, duration: 220 }}>
+    class="footer" in:fade={{ delay: 160, duration: 220 }}>
       Когда включено, только вы и собеседник сможете читать сообщения.
 
       <span class="warning">
@@ -91,14 +93,14 @@
       </span>
     </div>
 
-    <div class="settings-subtitle">Общий секрет</div>
-    <div class="settings-group" in:fade={{ delay: 200, duration: 220 }}>
-      <div class="settings-row password-row">
+    <div class="subtitle">Общий секрет</div>
+    <div class="group" in:fade={{ delay: 200, duration: 220 }}>
+      <div class="row password-row">
         <input
           type={showPassword ? "text" : "password"}
           value={password}
           on:input={onPasswordInput}
-          class="settings-input"
+          class="input"
           placeholder="Иначе говоря — пароль чата"
         />
 
@@ -111,11 +113,11 @@
       </div>
     </div>
 
-    <div class="settings-footer" in:fade={{ delay: 240, duration: 220 }}>
+    <div class="footer" in:fade={{ delay: 240, duration: 220 }}>
       Использует XOR для симметричного шифрования.
     </div>
 
-    <div class="settings-subtitle">Обфускация</div>
+    <div class="subtitle">Обфускация</div>
     <div class="obf-buttons">
       <button
         class:active={!obfuscation}
@@ -145,7 +147,7 @@
       </button>
     </div>
 
-    <div class="settings-footer">
+    <div class="footer">
       {#if obfuscation === "zh"}
         Текст маскируется китайскими символами.
       {:else if obfuscation === "words"}
@@ -155,13 +157,13 @@
       {/if}
     </div>
 
-    <div class="settings-subtitle">Остальное</div>
-    <div class="settings-group" in:fade={{ delay: 280, duration: 220 }}>
-      <div class="settings-row">
+    <div class="subtitle">Остальное</div>
+    <div class="group" in:fade={{ delay: 280, duration: 220 }}>
+      <div class="row">
         <div class="row-title">Выключить нечиталку</div>
         <button class="row-action disabled" disabled>Скоро</button>
       </div>
-      <div class="settings-row">
+      <div class="row">
         <div class="row-title">
           Сохранить чат
         </div>
@@ -173,7 +175,7 @@
 {/if}
 
 <style>
-  .settings-overlay {
+  .overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
@@ -184,13 +186,13 @@
     z-index: 100;
   }
 
-  .settings-modal {
+  .modal {
     width: 100%;
     max-width: 520px;
     background: #111;
     border-radius: 28px 28px 0 0;
     padding:
-      10px
+      0
       14px
       calc(24px + env(safe-area-inset-bottom));
     box-sizing: border-box;
@@ -198,30 +200,39 @@
     overflow-y: auto;
   }
 
-  .settings-grabber {
+  .grabber {
     width: 38px;
     height: 5px;
     border-radius: 999px;
     background: #3a3a3c;
-    margin: 0 auto 18px auto;
+    margin: 0 auto 6px auto;
   }
 
-  .settings-header {
+  .header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 22px;
-    padding: 0 4px;
+    flex-direction: column;
+    padding: 12px 4px;
+    position: sticky;
+    top: 0;
+    background: #111;
   }
 
-  .settings-title {
+  .buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .title {
     color: white;
     font-size: 28px;
     font-weight: 700;
     letter-spacing: -0.3px;
   }
 
-  .settings-subtitle {
+  .subtitle {
     color: #bbb;
     font-size: 16px;
     font-weight: 600;
@@ -254,13 +265,13 @@
     background: #3a3a3c;
   }
 
-  .settings-group {
+  .group {
     background: #1c1c1e;
     border-radius: 16px;
     overflow: hidden;
   }
 
-  .settings-row {
+  .row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -269,7 +280,7 @@
     border-bottom: 1px solid #2c2c2e;
   }
 
-  .settings-row:last-child {
+  .row:last-child {
     border-bottom: none;
   }
 
@@ -320,7 +331,7 @@
     gap: 10px;
   }
 
-  .settings-input {
+  .input {
     width: 100%;
     background: transparent;
     border: none;
@@ -346,7 +357,7 @@
     opacity: 0.7;
   }
 
-  .settings-footer {
+  .footer {
     color: #8e8e93;
     font-size: 13px;
     margin: 9px 0 9px 4px;

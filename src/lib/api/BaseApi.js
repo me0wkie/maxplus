@@ -72,7 +72,6 @@ export default class API {
 
     async checkDevice() { // TODO merge with loadDevice
         let device = await usersDb.get('device');
-        console.log(device)
         if (!device) {
             device = this.generateDevice();
             await usersDb.set('device', device);
@@ -82,7 +81,6 @@ export default class API {
 
     async setDevice(device) {
         if (!device.deviceId) throw new Error("Wrong device object");
-        this._device = device;
         await usersDb.set('device', device);
     }
     

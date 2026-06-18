@@ -32,16 +32,12 @@
 
     try {
       // TODO скачивание стримом (для больших файлов)
-      console.log(attach);
       const response = await getFile(attach.fileId);
-      console.log(response.url);
 
       const filePath = await invoke("download", {
         url: response.url,
         name: attach.name,
       });
-
-      console.log(filePath);
 
       for (const a of attaches) {
         if (a.fileId === attach.fileId) {

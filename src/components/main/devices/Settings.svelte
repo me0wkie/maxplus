@@ -187,14 +187,14 @@
   .modal {
     width: min(420px, 80%);
     max-width: 95%;
-    max-height: 90vh;
+    max-height: 95vh;
     overflow-y: auto;
 
     background: #1f1f23;
     border-radius: 14px 14px 0 0;
 
     margin-top: auto;
-    padding: 18px 20px;
+    padding: 0 20px;
     color: white;
   }
 
@@ -202,7 +202,11 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 14px;
+
+    position: sticky;
+    top: 0;
+    padding: 14px 0;
+    background: #1f1f23;
   }
 
   .title {

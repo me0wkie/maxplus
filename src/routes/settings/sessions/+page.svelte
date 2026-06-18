@@ -29,17 +29,15 @@
   };
 
   async function handleTerminateAll() {
-    const confirmed = await confirm(
+    /*const confirmed = await confirm(
       "Вы уверены, что хотите завершить все остальные сессии?",
     );
 
-    if (!confirmed) return;
+    if (!confirmed) return;*/
 
     try {
       await $API.closeAllSessions();
-
-      const res = await $API.getSessions();
-      sessions = res?.sessions || res || [];
+      await $API.logout();
     } catch (e) {
       console.error(e);
       alert("Ошибка при завершении сессий.");
