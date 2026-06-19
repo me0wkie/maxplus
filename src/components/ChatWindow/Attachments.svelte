@@ -124,6 +124,7 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    aspect-ratio: 1 / 1;
   }
 
   .grid-item img {
@@ -135,6 +136,7 @@
 
   .grid-many .grid-item {
     aspect-ratio: 1 / 1;
+    background: rgba(255,255,255,0.05);
   }
 
   .grid-single .grid-item {
@@ -207,5 +209,9 @@
     margin-top: 5px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     padding-top: 3px;
+  }
+
+  img {
+    transform: translateZ(0);
   }
 </style>

@@ -87,7 +87,7 @@ export async function sendMessage(
     attaches,
     elements,
   };
-
+return;
   const response = await get(API).sendMessage(text, chatId, params);
 
   const message = response?.message || {};

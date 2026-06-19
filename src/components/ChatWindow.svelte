@@ -213,7 +213,7 @@
     messages.update((_messages) => {
       const idx = _messages.findIndex((x) => x.id === message.id);
       if (idx !== -1) _messages[idx] = message;
-      else _messages.push(message);
+      else return [..._messages, message];
       return _messages;
     });
 
@@ -400,16 +400,17 @@
   />
 
   <div
-    bind:this={scrollElement}
     on:scroll={handleScroll}
     on:mousedown={startDrag}
     on:mouseleave={stopDrag}
     on:mouseup={stopDrag}
     on:mousemove={moveDrag}
+    bind:this={scrollElement}
     class="message-list-container grab-scroll"
   >
     <E2eModal {gotSecretChatRequest} />
 
+    <div class="message-list-inner">
     {#if chat.pinnedMessage}
       <PinnedMessage msg={chat.pinnedMessage} {chat} />
     {/if}
@@ -439,6 +440,7 @@
     {/each}
 
     <div style="height: 20px; flex-shrink: 0;"></div>
+    </div>
   </div>
 
   <Dropout
@@ -598,26 +600,40 @@
   }
 
   .message-list-container {
-    flex-grow: 1;
+    flex: 1;
     overflow-y: auto;
-    overflow-x: hidden;
-    display: flex;
+    display: block;
     flex-direction: column;
+    overflow-anchor: auto;
+  }
+
+  .message-list-inner {
+    width: min(500px, 100%);
+    display: flex;
     gap: 8px;
-    overflow-anchor: auto !important;
+    flex-direction: column;
+  }
+
+  @media screen and (min-width: 500px) {
+    .message-list-container {
+      margin-left: 0;
+    }
   }
 
   .message-list-container::-webkit-scrollbar {
     width: 4px;
     display: block;
   }
+
   .message-list-container::-webkit-scrollbar-track {
     background: transparent;
   }
+
   .message-list-container::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
   }
+
   .message-list-container::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.2);
   }

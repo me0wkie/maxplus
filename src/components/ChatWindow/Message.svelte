@@ -1,6 +1,6 @@
 <script>
   import { createEventDispatcher, onMount } from "svelte";
-  import API, { currentUser, currentSessionContacts } from "$lib/stores/api";
+  import API, { currentUser, currentUserDetails, currentSessionContacts } from "$lib/stores/api";
   import { getAttachText } from "$components/main/attachs";
   import MessagePreview from "$components/main/MessagePreview.svelte";
   import { openPath } from "@tauri-apps/plugin-opener";
@@ -23,7 +23,7 @@
 
   $: lines = msg.text?.split("\n");
 
-  $: decoded = decode_msg(msg, password);
+  let innerWidth = 0;
 
   function handleMediaClick(attach) {
     dispatch("openMedia", { attach });
@@ -82,6 +82,7 @@
     }
     return undefined;
   })();
+
   $: linkedType = msg.link ? msg.link.type : "REPLY";
   $: forwardLines = linkedMsg?.text?.split("\n");
   $: linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
@@ -92,8 +93,14 @@
     msg.reactionInfo?.totalCount ||
     msg.link;
 
-  const showAvatar = chat.type !== "CHANNEL" && !isMe && !isSystem;
+  $: showAvatar =
+    chat.type !== "CHANNEL" &&
+    !isMe &&
+    !isSystem ||
+    (!isSystem && innerWidth > 500);
 </script>
+
+<svelte:window bind:innerWidth={innerWidth} />
 
 <div
   class="message-row"
@@ -106,7 +113,7 @@
 >
   <div class="indent">
     {#if showAvatar}
-      <Avatar size={32} {chat} />
+      <Avatar size={32} chat={isMe ? currentUserDetails : chat} />
     {/if}
   </div>
 
@@ -169,17 +176,11 @@
         {#if isSystem}
           <p class="line system">{displaySystemMessage()}</p>
         {:else}
-          {#await decoded}
-            <p class="line">Загрузка...</p>
-          {:then decodeData}
-            {#if decodeData}
-              <p class="line">{@html decodeData.text}</p>
-            {:else if lines}
-              {#each lines as line}
-                <p class="line">{line}</p>
-              {/each}
-            {/if}
-          {/await}
+          {#if lines}
+            {#each lines as line}
+              <p class="line">{line}</p>
+            {/each}
+          {/if}
 
           {#if msg.attaches?.length}
             <Attachments {getFile} attaches={msg.attaches} {handleMediaClick} />
@@ -223,17 +224,14 @@
                   /></svg
                 >
               {/if}
-              {#await decoded}
-              {:then decodeData}
-                {#if decodeData}
-                  <a class="obf-type">{decodeData.obf}</a>
-                  {#if false}
-                  <svg class="status-icon safe" viewBox="0 0 14 14" fill="currentColor">
-                    <path d="M11 7V5a3 3 0 0 0-6 0v2H4v7h8V7h-1zM6 5a2 2 0 1 1 4 0v2H6V5z"/>
-                  </svg>
-                  {/if}
+              {#if obfuscation}
+                <a class="obf-type">{obfuscation}</a>
+                {#if false}
+                <svg class="status-icon safe" viewBox="0 0 14 14" fill="currentColor">
+                  <path d="M11 7V5a3 3 0 0 0-6 0v2H4v7h8V7h-1zM6 5a2 2 0 1 1 4 0v2H6V5z"/>
+                </svg>
                 {/if}
-              {/await}
+              {/if}
             </div>
           {/if}
         </div>
@@ -252,26 +250,24 @@
       background 0.5s;
   }
 
+  .placeholder {
+    height: 80px;
+    width: 100%;
+    opacity: 0;
+  }
+
   .message-row.inactive {
     opacity: 0.5;
   }
 
-  .message-row.is-me {
-    flex-direction: column;
-  }
-
-  .message-row.is-system {
-    align-items: center;
-    flex-direction: column;
-  }
-
   .indent {
-    margin: 0 6px;
+    margin: 0 12px 0 9px;
   }
 
   .message-bubble {
     color: #fff;
     padding: 8px 4px 8px 12px;
+    border-radius: 16px 16px 16px 0;
     margin-right: 10px;
     min-width: 100px;
     max-width: 80%;
@@ -283,46 +279,63 @@
     padding-right: 10px;
   }
 
-  .message-row.is-me .message-bubble {
-    background: #7b4cd6;
-    border-radius: 16px 16px 0px 16px;
+  .message-row .message-bubble::before {
+    content: "";
+    left: -10px;
+    clip-path: path("M10 0 Q5 10 0 10 Q0 10 10 10 Z");
+    width: 10px;
+    height: 10px;
+    position: absolute;
+    bottom: 0;
+    background: inherit;
   }
 
-  .message-row:not(.is-me, .is-system) .message-bubble {
-    background: #3a3c55;
-    border-radius: 16px 16px 16px 0;
+  .message-row.is-system {
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .message-row.is-system .message-bubble::before {
+    left: inherit;
+    right: -10px;
+    clip-path: path("M0 0 Q5 10 10 10 Q10 10 0 10 Z");
   }
 
   .message-row.is-system .message-bubble {
-    background: linear-gradient(
-      90deg,
-      rgba(33, 133, 124, 0.3) 0%,
-      rgba(117, 66, 107, 0.3) 100%
-    );
-    backdrop-filter: blur(2px);
+    border-radius: 16px 16px 0px 16px;
+  }
+
+  @media screen and (max-width: 500px) {
+    .message-row.is-me {
+      flex-direction: column;
+    }
+
+    .message-row.is-me .message-bubble {
+      border-radius: 16px 16px 0px 16px;
+    }
+
+    .message-row.is-me .message-bubble::before {
+      left: inherit;
+      right: -10px;
+      clip-path: path("M0 0 Q5 10 10 10 Q10 10 0 10 Z");
+    }
+  }
+
+  .message-row.is-me .message-bubble {
+      background: #7b4cd6;
+  }
+
+  .message-row:not(.is-me, .is-system) .message-bubble {
+      background: #3a3c55;
+  }
+
+  .message-row.is-system .message-bubble {
+      background: #7773;
+      backdrop-filter: blur(2px);
   }
 
   .message-row.is-deleted .message-bubble {
     background-color: #c99;
-  }
-
-  .message-row:not(.is-system) .message-bubble::before {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    width: 10px;
-    height: 10px;
-    background: inherit;
-  }
-
-  .message-row:not(.is-me, .is-system) .message-bubble::before {
-    left: -10px;
-    clip-path: path("M10 0 Q5 10 0 10 Q0 10 10 10 Z");
-  }
-
-  .message-row.is-me .message-bubble::before {
-    right: -10px;
-    clip-path: path("M0 0 Q5 10 10 10 Q10 10 0 10 Z");
   }
 
   /* динамичная сетка */
@@ -395,6 +408,10 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+  }
+
+  .message-row.is-system .reply-block {
+    border-left: 3px solid #fff7;
   }
 
   /* значки */

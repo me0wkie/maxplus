@@ -2,7 +2,7 @@
   import { invoke, convertFileSrc } from "@tauri-apps/api/core";
   import { tick } from "svelte";
 
-  import { scrollToBottom } from "$lib/utils/scroll.js";
+  //import { scrollToBottom } from "$lib/utils/scroll.js";
   import { sendMessage } from "$components/ChatWindow/actions.js";
   import VideoPreview from "$components/ChatWindow/VideoPreview.svelte";
   import Reply from "$components/ChatWindow/input/Reply.svelte";
@@ -20,7 +20,7 @@
 
   let attachesDropout;
 
-  async function onSend() {
+  async function onSend(event) {
     if (!newMessage.trim() && !attaches.length) return;
     const textToSend = newMessage;
     const tempId = Date.now().toString();
@@ -28,7 +28,7 @@
     newMessage = "";
 
     await tick();
-    scrollToBottom(scrollElement, true);
+    autoResize(event);
 
     const _attaches = [];
     const _elements = [];
@@ -61,6 +61,11 @@
     }
   }
 
+  function autoResize(e) {
+    e.target.style.height = "auto";
+    e.target.style.height = e.target.scrollHeight + "px";
+  }
+
   function toggleAttachesDropout() {
     attachesDropout = attachesDropout ? null : { active: true };
   }
@@ -90,7 +95,7 @@
     });
     attaches = attaches;
 
-    if (scrollAfter) scrollToBottom(scrollElement);
+    //if (scrollAfter) scrollToBottom(scrollElement);
   }
 
   function removeAttach(index) {
@@ -175,10 +180,11 @@
         rows="1"
         placeholder="Сообщение"
         bind:value={newMessage}
+        on:input={autoResize}
         on:keydown={async (e) => {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            await onSend();
+            await onSend(e);
           }
         }}
       ></textarea>
@@ -254,6 +260,7 @@
   }
 
   textarea {
+    box-sizing: border-box;
     flex-grow: 1;
     background-color: transparent;
     color: #ddd;
@@ -263,11 +270,11 @@
     min-height: 42px;
     max-height: 120px;
     font-size: 16px;
-    line-height: 1.4;
-    padding: 10px 12px;
+    line-height: 24px;
+    padding: 8px 12px;
     outline: none;
     font-family: inherit;
-    box-sizing: border-box;
+    width: 0;
   }
 
   textarea::placeholder {

@@ -88,6 +88,8 @@
       margin: 0;
       background-color: #17181c;
       overflow: hidden;
+      padding-top: env(safe-area-inset-top, 10px);
+      padding-bottom: env(safe-area-inset-bottom, 20px);
     }
 
     html,
@@ -95,6 +97,10 @@
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       height: 100%;
+    }
+
+    html {
+      scroll-behavior: auto !important;
     }
 
     * {
@@ -126,11 +132,6 @@
     :root {
       --safe-top: 24px;
       --safe-bottom: 0px;
-    }
-
-    body {
-      padding-top: env(safe-area-inset-top, 10px);
-      padding-bottom: env(safe-area-inset-bottom, 20px);
     }
   </style>
 </html>
