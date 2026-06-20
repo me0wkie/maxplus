@@ -38,7 +38,8 @@
   import Avatar from "$components/main/Avatar.svelte";
 
   export let chatId;
-  const chat = $currentSessionChats.find((c) => c.id === chatId);
+
+  $: chat = $currentSessionChats?.find((c) => c.id === chatId);
 
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
@@ -66,20 +67,23 @@
 
   let clickStartPos = { x: 0, y: 0 };
 
-  $: uiMessages = [...$messages].sort((a, b) => a.time - b.time);
-
-  const dispatch = createEventDispatcher();
-  const messages = writable($API.savedMessages[chat.id] || []);
+  const messages = writable([]);
   let initialized = false;
 
+  $: uiMessages = ($messages ? [...$messages] : []).sort((a, b) => a.time - b.time);
+
+  const dispatch = createEventDispatcher();
+
   messages.subscribe(async (_messages) => {
-    if (_messages.length) await chatMessages.set(chat.id, _messages);
+    if (_messages.length && chat?.id) {
+      await chatMessages.set(chat.id, _messages);
+    }
   });
 
   const BATCH_SIZE = 50;
 
-  const avatarUserId =
-    chat.type === "DIALOG" ? chat.id ^ $currentUser : undefined;
+  $: avatarUserId = chat?.type === "DIALOG" ? (chat.id ^ $currentUser) : undefined;
+
   const onBack = getContext("onBack");
 
   onBack["chat"] = () => {
@@ -93,116 +97,262 @@
     if (onBack.chatSettings) delete onBack["chatSettings"];
   });
 
-  onMount(async () => {
-    chatPasswordLoaded = await chatPassword.get(chat.id);
-    chatObfuscationLoaded = await chatObfs.get(chat.id);
-    chatKeysLoaded = await chatKeys.get(chat.id);
-    await loadHistory(true);
-  });
+  const DEFAULT_HEIGHT = 60;
+  const OVERSCAN = 1500;
 
-  let isDragging = false;
-  let startY;
-  let startScrollTop;
+  const messageHeights = writable({});
+  let cumulativeHeights = [];
+  let innerList;
+  let visibleMessages = [];
+  let scrollAnchor = { messageId: null, offset: 0 };
 
-  function startDrag(e) {
-    clickStartPos = { x: e.clientX, y: e.clientY };
+  let pendingHeightUpdates = {};
 
-    if (e.button !== 0) return;
-
-    isDragging = true;
-    startY = e.pageY;
-    startScrollTop = scrollElement.scrollTop;
-
-    scrollElement.style.cursor = "grabbing";
-    document.body.style.userSelect = "none";
+  let resizeObserver = null;
+  function setupResizeObserver() {
+    if (resizeObserver) return;
+    resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const el = entry.target;
+        const wrapper = el.closest('.message-wrapper');
+        if (!wrapper) continue;
+        const id = wrapper.id?.replace('m-', '');
+        if (!id) continue;
+        const height = entry.contentRect.height;
+        if (height > 0) {
+          pendingHeightUpdates[id] = height;
+        }
+      }
+    });
   }
 
-  function stopDrag() {
-    isDragging = false;
-    if (scrollElement) {
-      scrollElement.style.cursor = "grab";
+  function observeResize(node, id) {
+    if (resizeObserver) resizeObserver.observe(node);
+    return {
+      destroy() {
+        if (resizeObserver) resizeObserver.unobserve(node);
+      }
+    };
+  }
+
+  function applyPendingHeights() {
+    const updates = pendingHeightUpdates;
+    pendingHeightUpdates = {};
+    const keys = Object.keys(updates);
+    if (keys.length === 0) return;
+    messageHeights.update(h => {
+      const newH = { ...h };
+      for (const id of keys) newH[id] = updates[id];
+      return newH;
+    });
+    computeCumulativeHeights();
+  }
+
+  function computeCumulativeHeights() {
+    const heights = [];
+    let sum = 0;
+    for (const msg of uiMessages) {
+      const h = $messageHeights[msg.id] || DEFAULT_HEIGHT;
+      sum += h;
+      heights.push(sum);
     }
-    document.body.style.userSelect = "";
+    cumulativeHeights = heights;
   }
 
-  function moveDrag(e) {
-    if (!isDragging) return;
-    e.preventDefault();
+  function findIndexByOffset(target) {
+    let lo = 0, hi = cumulativeHeights.length;
+    while (lo < hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (cumulativeHeights[mid] < target) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  }
 
-    const y = e.pageY;
-    const walk = (y - startY) * 1;
+  function captureScrollAnchor() {
+    if (!scrollElement || !uiMessages.length) return;
+    const st = scrollElement.scrollTop;
+    for (let i = 0; i < uiMessages.length; i++) {
+      const msg = uiMessages[i];
+      const top = i === 0 ? 0 : cumulativeHeights[i - 1];
+      const bottom = cumulativeHeights[i];
+      if (bottom > st && top < st + scrollElement.clientHeight) {
+        scrollAnchor = { messageId: msg.id, offset: st - top };
+        return;
+      }
+    }
+    scrollAnchor = { messageId: uiMessages[0]?.id, offset: st };
+  }
 
-    scrollElement.scrollTop = startScrollTop - walk;
+  function restoreScrollAnchor() {
+    if (!scrollAnchor.messageId || !scrollElement) return;
+    const idx = uiMessages.findIndex(m => m.id === scrollAnchor.messageId);
+    if (idx === -1) return;
+    const top = idx === 0 ? 0 : cumulativeHeights[idx - 1];
+    scrollElement.scrollTop = top + scrollAnchor.offset;
+  }
+
+  async function updateVisibleMessages(skipAnchor = false) {
+    if (!scrollElement) return;
+
+    applyPendingHeights();
+
+    if (!skipAnchor) {
+      captureScrollAnchor();
+    }
+
+    const { scrollTop, clientHeight } = scrollElement;
+    const totalHeight = cumulativeHeights.length ? cumulativeHeights[cumulativeHeights.length - 1] : 0;
+    if (totalHeight === 0) {
+      visibleMessages = [];
+      return;
+    }
+
+    const isNearBottom = totalHeight - scrollTop - clientHeight < 50;
+    let startIdx, endIdx;
+
+    if (isNearBottom) {
+      const targetOffset = Math.max(0, totalHeight - clientHeight - OVERSCAN);
+      startIdx = findIndexByOffset(targetOffset);
+      endIdx = uiMessages.length - 1;
+    } else {
+      const viewTop = Math.max(0, scrollTop - OVERSCAN);
+      const viewBottom = scrollTop + clientHeight + OVERSCAN;
+      startIdx = findIndexByOffset(viewTop);
+      endIdx = findIndexByOffset(viewBottom);
+      endIdx = Math.min(endIdx, uiMessages.length - 1);
+      if (startIdx > endIdx) endIdx = startIdx;
+    }
+
+    const newVisible = [];
+    for (let i = startIdx; i <= endIdx && i < uiMessages.length; i++) {
+      newVisible.push(uiMessages[i].id);
+    }
+    visibleMessages = newVisible;
+
+    if (!skipAnchor) {
+      await tick();
+      restoreScrollAnchor();
+    } else {
+      await tick();
+    }
+  }
+
+  function measureAllHeights() {
+    if (!innerList) return;
+    const wrappers = innerList.querySelectorAll('.message-wrapper');
+    const updates = {};
+    for (const wrapper of wrappers) {
+      const id = wrapper.id?.replace('m-', '');
+      if (!id) continue;
+      const content = wrapper.querySelector('.message-clickable-area');
+      if (content) {
+        const height = content.getBoundingClientRect().height;
+        if (height > 0) updates[id] = height;
+      }
+    }
+    if (Object.keys(updates).length) {
+      messageHeights.update(h => ({ ...h, ...updates }));
+    }
   }
 
   const loadHistory = async (isInitial = false) => {
     if (loading) return;
     if (all_loaded && !isInitial) return;
+    if (!chat) return;
 
     loading = true;
     const oldScrollHeight = scrollElement ? scrollElement.scrollHeight : 0;
     const oldScrollTop = scrollElement ? scrollElement.scrollTop : 0;
+    let anchorId = null, anchorOffset = 0;
+
+    if (scrollElement && visibleMessages.length > 0 && !isInitial) {
+      const firstVisibleId = visibleMessages[0];
+      const idx = uiMessages.findIndex(m => m.id === firstVisibleId);
+      if (idx !== -1) {
+        anchorId = firstVisibleId;
+        const topOffset = idx > 0 ? cumulativeHeights[idx - 1] : 0;
+        anchorOffset = oldScrollTop - topOffset;
+      }
+    }
 
     try {
       if (!initialized || isInitial) {
-        if (!$messages.length) {
-          const { error, messages: syncedMessages } = await $API.getMessages(
-            chat.id,
-          );
-          if (error) throw new Error(error);
-
-          messages.set(syncedMessages);
-          if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
-          $API.savedMessages[chat.id] = syncedMessages;
-        }
+        const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
+        if (error) throw new Error(error);
+        messages.set(syncedMessages);
+        if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
+        $API.savedMessages[chat.id] = syncedMessages;
         initialized = true;
-        if (isInitial) {
-          await tick();
-          scrollToBottom(scrollElement, false);
-        }
       } else {
         const oldestMsg = uiMessages[0];
         const fromTime = oldestMsg ? oldestMsg.time : Date.now();
-
-        const { error, messages: syncedMessages } = await $API.getMessages(
-          chat.id,
-          fromTime,
-        );
-
+        const { error, messages: syncedMessages } = await $API.getMessages(chat.id, fromTime);
         if (!error && syncedMessages.length > 0) {
           const currentMsgs = get(messages);
-          const existingIds = new Set(currentMsgs.map((m) => m.id));
-          const newUniqueMessages = syncedMessages.filter(
-            (m) => !existingIds.has(m.id),
-          );
+          const existingIds = new Set(currentMsgs.map(m => m.id));
+          const newUnique = syncedMessages.filter(m => !existingIds.has(m.id));
+          if (newUnique.length > 0) {
+            messages.update(msgs => [...msgs, ...newUnique]);
+            if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
 
-          if (newUniqueMessages.length > 0) {
-            messages.update((msgs) => [...msgs, ...newUniqueMessages]);
             await tick();
+            applyPendingHeights();
+            computeCumulativeHeights();
 
             if (scrollElement) {
-              const newScrollHeight = scrollElement.scrollHeight;
-              const diff = newScrollHeight - oldScrollHeight;
-              scrollElement.scrollTop = oldScrollTop + diff;
+              if (anchorId) {
+                const newIdx = uiMessages.findIndex(m => m.id === anchorId);
+                if (newIdx !== -1) {
+                  const newTopOffset = newIdx > 0 ? cumulativeHeights[newIdx - 1] : 0;
+                  scrollElement.scrollTop = newTopOffset + anchorOffset;
+                } else {
+                  const diff = scrollElement.scrollHeight - oldScrollHeight;
+                  scrollElement.scrollTop = oldScrollTop + diff;
+                }
+              } else {
+                const diff = scrollElement.scrollHeight - oldScrollHeight;
+                scrollElement.scrollTop = oldScrollTop + diff;
+              }
             }
           }
         }
-        if (syncedMessages.length < BATCH_SIZE) {
-          all_loaded = true;
-        }
       }
-      console.log($messages);
     } catch (e) {
       console.error(e);
     } finally {
       loading = false;
-      const check = get(messages).slice(0, 5);
-      checkForEncryptionRequest(chat, chatKeysLoaded, check);
     }
   };
 
+  let scrollTimeout = null;
+
+  let updateScheduled = false;
+  function handleScroll(event) {
+    const target = event.currentTarget;
+    const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    showScrollDown = distanceFromBottom > 50;
+
+    if (!updateScheduled) {
+      updateScheduled = true;
+      requestAnimationFrame(async () => {
+        await updateVisibleMessages();
+        updateScheduled = false;
+      });
+    }
+
+    if (target.scrollTop <= 50 && !loading && !all_loaded) {
+      if (scrollLoaderTimeout) return;
+      scrollLoaderTimeout = setTimeout(async () => {
+        await loadHistory();
+        await updateVisibleMessages();
+        scrollLoaderTimeout = null;
+      }, 200);
+    }
+  }
+
   receivedMessage.subscribe(async (message) => {
-    if (!message || message.chatId !== chat.id) return;
+    if (!message || message.chatId !== chat?.id) return;
 
     let wasAtBottom = false;
     if (scrollElement) {
@@ -217,98 +367,104 @@
       return _messages;
     });
 
+    await tick();
+    applyPendingHeights();
+    computeCumulativeHeights();
+
     if (message.sender === $currentUser || wasAtBottom) {
-      await tick();
       scrollToBottom(scrollElement, true);
     }
 
+    await updateVisibleMessages(wasAtBottom);
     checkForEncryptionRequest(chat, chatKeysLoaded, [message]);
   });
 
-  function handleScroll(event) {
-    const target = event.currentTarget;
-
-    const distanceFromBottom =
-      scrollElement.scrollHeight -
-      scrollElement.scrollTop -
-      scrollElement.clientHeight;
-    showScrollDown = distanceFromBottom > 50;
-
-    if (target.scrollTop < 200 && !loading && !all_loaded) {
-      if (scrollLoaderTimeout) return;
-      scrollLoaderTimeout = setTimeout(async () => {
-        await loadHistory();
-        scrollLoaderTimeout = null;
-      }, 200);
+  let title;
+  onMount(async () => {
+    if (chat?.id === 0) {
+      title = "Избранное";
+    } else if (chat) {
+      if (chat.id < 0) title = chat.title;
+      else title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
     }
+
+    chatPasswordLoaded = await chatPassword.get(chat?.id);
+    chatObfuscationLoaded = await chatObfs.get(chat?.id);
+    chatKeysLoaded = await chatKeys.get(chat?.id);
+
+    setupResizeObserver();
+
+    await loadHistory(true);
+    await tick();
+
+    measureAllHeights();
+    computeCumulativeHeights();
+
+    await updateVisibleMessages(true);
+
+    scrollToBottom(scrollElement, false);
+  });
+
+  /*
+   * drag & message select
+   */
+
+  let isDragging = false;
+  let startY, startScrollTop;
+
+  function startDrag(e) {
+    clickStartPos = { x: e.clientX, y: e.clientY };
+    if (e.button !== 0) return;
+    isDragging = true;
+    startY = e.pageY;
+    startScrollTop = scrollElement.scrollTop;
+    scrollElement.style.cursor = "grabbing";
+    document.body.style.userSelect = "none";
   }
 
-  $: allMedia = uiMessages.flatMap((m) =>
-    (m.attaches || [])
-      .filter((a) => a._type === "PHOTO" || a._type === "VIDEO")
-      .map((a) => ({
-        ...a,
-        messageId: m.id,
-        uid: a.videoId || a.photoId || a.url || a.baseUrl,
-      })),
-  );
+  function stopDrag() {
+    isDragging = false;
+    if (scrollElement) scrollElement.style.cursor = "grab";
+    document.body.style.userSelect = "";
+  }
 
-  function openMedia(attach) {
-    const targetUid =
-      attach.videoId || attach.photoId || attach.url || attach.baseUrl;
-    const index = allMedia.findIndex((m) => m.uid === targetUid);
-
-    if (index !== -1) {
-      viewerIndex = index;
-      viewerOpen = true;
-    }
+  function moveDrag(e) {
+    if (!isDragging) return;
+    e.preventDefault();
+    const y = e.pageY;
+    const walk = (y - startY) * 1;
+    scrollElement.scrollTop = startScrollTop - walk;
   }
 
   function handleClick(e) {
-    if (e.target.closest(".reply-block")) return;
-    if (e.target.closest(".forward-block")) return;
+    if (e.target.closest(".reply-block") || e.target.closest(".forward-block")) return;
     if (dropoutActiveAt) {
-      const isOutside = ![".message-actions-dropout"].some((x) =>
-        e.target.closest(x),
-      );
-      if (isOutside) {
+      if (![".message-actions-dropout"].some(x => e.target.closest(x))) {
         dropoutActiveAt = null;
         e.stopPropagation();
         if (onBack.dropout) delete onBack["dropout"];
       }
     }
     if (attachesDropout) {
-      const isOutside =
-        !e.target.closest(".attaches-dropout") &&
-        !e.target.closest(".send-button");
-      if (isOutside) {
+      if (!e.target.closest(".attaches-dropout") && !e.target.closest(".send-button")) {
         attachesDropout = null;
         e.stopPropagation();
       }
     }
-    const reactionClicked = [".reaction"].some((x) => e.target.closest(x));
-    if (reactionClicked) {
+    if (e.target.closest(".reaction")) {
       const reaction = e.target.childNodes[0].nodeValue.trim();
       const msgId = e.target.parentNode.dataset.msgId;
-      handleReaction(
-        chat,
-        $messages.find((x) => x.id === msgId),
-        reaction,
-      );
-      messages.update((x) => x);
+      handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
+      messages.update(x => x);
       e.stopPropagation();
     }
   }
 
   function selectMessage(e, msg) {
-    if (e.target.closest(".grid-item") || e.target.closest(".reply-block"))
-      return;
-
+    if (e.target.closest(".grid-item") || e.target.closest(".reply-block")) return;
     const dx = Math.abs(e.clientX - clickStartPos.x);
     const dy = Math.abs(e.clientY - clickStartPos.y);
-
     if (dx > 5 || dy > 5) return;
-
     dropoutActiveAt = { e, msg };
   }
 
@@ -325,25 +481,21 @@
     else delete onBack["chatSettings"];
   };
 
-  let title;
+  let dateSeparators = {};
 
-  onMount(async () => {
-    if (chat.id === 0) {
-      title = "Избранное";
-    } else {
-      if (!chat.type) {
-        return;
-      }
-
-      if (chat.id < 0) {
-        console.log("CHANNEL");
-
-        title = chat.title;
-      } else {
-        title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
+  $: if (uiMessages.length) {
+    const newSeparators = {};
+    let lastDateStr = null;
+    for (const msg of uiMessages) {
+      const dateStr = new Date(msg.time).toLocaleDateString();
+      if (dateStr !== lastDateStr) {
+        newSeparators[msg.id] = dateStr;
+        lastDateStr = dateStr;
       }
     }
-  });
+    dateSeparators = newSeparators;
+  }
+
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -407,35 +559,43 @@
     on:mousemove={moveDrag}
     bind:this={scrollElement}
     class="message-list-container grab-scroll"
+    id="scroll"
   >
     <E2eModal {gotSecretChatRequest} />
 
-    <div class="message-list-inner">
+    <div
+      class="message-list-inner"
+      bind:this={innerList}
+    >
+
     {#if chat.pinnedMessage}
       <PinnedMessage msg={chat.pinnedMessage} {chat} />
     {/if}
 
     {#each uiMessages as msg (msg.id)}
-      <DateSeparator {msg} bind:lastDate />
-
-      <div class="message-wrapper">
-        <div
-          class="message-clickable-area"
-          on:click|stopPropagation={(e) => selectMessage(e, msg)}
-        >
-          <Message
-            {msg}
-            {chat}
-            {dropoutActiveAt}
-            {scrollElement}
-            password={chatPasswordLoaded}
-            obf={chatObfuscationLoaded}
-            on:openMedia={(e) => openMedia(e.detail.attach)}
-            on:openChat={(e) => {
-              dispatch("chat", e.detail);
-            }}
-          />
-        </div>
+      <div class="message-wrapper" id={"m-" + msg.id}>
+        {#if visibleMessages.includes(msg.id) || !$messageHeights[msg.id]}
+          <div class="message-clickable-area"
+            use:observeResize={msg.id}
+            on:click|stopPropagation={(e) => selectMessage(e, msg)}
+          >
+            {#if dateSeparators[msg.id]}
+              <DateSeparator {msg} />
+            {/if}
+            <Message
+              {msg}
+              {chat}
+              {dropoutActiveAt}
+              {scrollElement}
+              password={chatPasswordLoaded}
+              obf={chatObfuscationLoaded}
+              on:openMedia={(e) => openMedia(e.detail.attach)}
+              on:openChat={(e) => { dispatch("chat", e.detail); }}
+            />
+          </div>
+        {:else}
+          <div class="placeholder" style="width:100%; height:{($messageHeights[msg.id] || DEFAULT_HEIGHT)}px;"></div>
+        {/if}
       </div>
     {/each}
 

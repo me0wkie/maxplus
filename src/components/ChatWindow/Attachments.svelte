@@ -1,6 +1,5 @@
 <script>
-  import { writeFile, BaseDirectory } from "@tauri-apps/plugin-fs";
-  import { invoke } from "@tauri-apps/api/core";
+  import { onDestroy } from 'svelte';
 
   export let getFile;
   export let attaches;
@@ -11,38 +10,135 @@
   $: mediaAttaches = (attaches || []).filter(
     (a) => a._type === "PHOTO" || a._type === "VIDEO" || a._type === "FILE",
   );
+  $: mediaItems = mediaAttaches.filter(a => a._type === "PHOTO" || a._type === "VIDEO");
 
-  function isDownloaded(attach) {
-    return !!attach.filePath;
+  let placeholderUrls = {};
+  function getPlaceholderUrl(previewData) {
+    if (!previewData) return null;
+    if (placeholderUrls[previewData]) return placeholderUrls[previewData];
+    try {
+      const bytes = Uint8Array.from(previewData, c => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: 'image/webp' });
+      const url = URL.createObjectURL(blob);
+      placeholderUrls[previewData] = url;
+      return url;
+    } catch (e) {
+      console.warn('Failed to create placeholder URL', e);
+      return null;
+    }
   }
 
-  function isDownloading(attach) {
-    return downloadingMap[attach.fileId] === true;
+  onDestroy(() => {
+    Object.values(placeholderUrls).forEach(url => URL.revokeObjectURL(url));
+  });
+
+  function lazyLoad(node, src) {
+    let observer;
+    function load() {
+      if (node.src !== src) node.src = src;
+    }
+    if (IntersectionObserver) {
+      observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          load();
+          observer.disconnect();
+        }
+      });
+      observer.observe(node);
+    } else {
+      load();
+    }
+    return {
+      destroy() {
+        if (observer) observer.disconnect();
+      }
+    };
   }
 
-  async function handleFileClick(attach) {
-    if (isDownloaded(attach)) {
-      openFile(attach);
-      return;
+  function computeLayout(items) {
+    const n = items.length;
+    if (n === 0) return { gridTemplateColumns: '', gridTemplateRows: '', items: [] };
+
+    if (n === 1) {
+      const item = items[0];
+      const w = item.width || 1;
+      const h = item.height || 1;
+      const maxWidth = 320;
+      const maxHeight = 450;
+
+      const computedHeight = Math.min((maxWidth / (w / h)), maxHeight);
+      return {
+        gridTemplateColumns: '1fr',
+        gridTemplateRows: 'auto',
+        items: [{ style: `height: ${computedHeight}px;` }]
+      };
     }
 
-    if (isDownloading(attach)) return;
+    if (n === 2) {
+      return {
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: '200px',
+        items: [{}, {}]
+      };
+    }
 
-    downloadingMap = { ...downloadingMap, [attach.fileId]: true };
+    if (n === 3) {
+      return {
+        gridTemplateColumns: '2fr 1fr',
+        gridTemplateRows: '150px 150px',
+        items: [
+          { gridColumn: '1 / 2', gridRow: '1 / 3' },
+          { gridColumn: '2 / 3', gridRow: '1 / 2' },
+          { gridColumn: '2 / 3', gridRow: '2 / 3' }
+        ]
+      };
+    }
 
-    try {
-      // TODO скачивание стримом (для больших файлов)
-      const response = await getFile(attach.fileId);
+    if (n === 4) {
+      return {
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: '150px 150px',
+        items: [
+          { gridColumn: '1 / 2', gridRow: '1 / 2' },
+          { gridColumn: '2 / 3', gridRow: '1 / 2' },
+          { gridColumn: '1 / 2', gridRow: '2 / 3' },
+          { gridColumn: '2 / 3', gridRow: '2 / 3' }
+        ]
+      };
+    }
 
-      const filePath = await invoke("download", {
-        url: response.url,
-        name: attach.name,
+    const cols = 3;
+    const rows = Math.ceil(n / cols);
+    const height = 150;
+    const itemsLayout = [];
+    for (let i = 0; i < n; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      itemsLayout.push({
+        gridColumn: `${col + 1} / ${col + 2}`,
+        gridRow: `${row + 1} / ${row + 2}`
       });
+    }
+    return {
+      gridTemplateColumns: `repeat(${cols}, 1fr)`,
+      gridTemplateRows: `repeat(${rows}, ${height}px)`,
+      items: itemsLayout
+    };
+  }
 
+  $: layout = computeLayout(mediaItems);
+
+  function isDownloaded(attach) { return !!attach.filePath; }
+  function isDownloading(attach) { return downloadingMap[attach.fileId] === true; }
+  async function handleFileClick(attach) {
+    if (isDownloaded(attach)) { openFile(attach); return; }
+    if (isDownloading(attach)) return;
+    downloadingMap = { ...downloadingMap, [attach.fileId]: true };
+    try {
+      const response = await getFile(attach.fileId);
+      const filePath = await invoke("download", { url: response.url, name: attach.name });
       for (const a of attaches) {
-        if (a.fileId === attach.fileId) {
-          a.filePath = filePath;
-        }
+        if (a.fileId === attach.fileId) a.filePath = filePath;
       }
     } catch (err) {
       console.error("Ошибка при загрузке файла:", err);
@@ -50,57 +146,68 @@
       downloadingMap = { ...downloadingMap, [attach.fileId]: false };
     }
   }
-
   function openFile(attach) {
     if (!attach.filePath) return;
-    openFile(attach.filePath);
+    // openFile(attach.filePath);
   }
 </script>
 
 <div
   class="media-grid"
-  class:grid-single={mediaAttaches.length === 1}
-  class:grid-many={mediaAttaches.length > 1}
-  style="--cols: {mediaAttaches.length >= 2 ? 2 : 1}"
+  style="grid-template-columns: {layout.gridTemplateColumns}; grid-template-rows: {layout.gridTemplateRows};"
 >
-  {#each mediaAttaches as attach}
+  {#each mediaItems as attach, i}
     <div
       class="grid-item"
+      style="grid-column: {layout.items[i]?.gridColumn || 'auto'}; grid-row: {layout.items[i]?.gridRow || 'auto'}; {layout.items[i]?.style || ''}"
       on:click|stopPropagation={() => handleMediaClick(attach)}
     >
       {#if attach._type === "PHOTO"}
-        <img src={attach.baseUrl} alt="photo" loading="lazy" />
+        <img
+          use:lazyLoad={attach.baseUrl}
+          src={getPlaceholderUrl(attach.previewData) || ''}
+          alt="photo"
+          loading="lazy"
+          decoding="async"
+          width={attach.width}
+          height={attach.height}
+        />
       {:else if attach._type === "VIDEO"}
         <div class="video-preview">
-          <img src={attach.thumbnail} />
+          <img
+            use:lazyLoad={attach.thumbnail || attach.baseUrl}
+            src={getPlaceholderUrl(attach.previewData) || ''}
+            alt="video"
+            loading="lazy"
+            decoding="async"
+            width={attach.width}
+            height={attach.height}
+          />
           <div class="play-icon">▶</div>
-        </div>
-      {:else if attach._type === "FILE"}
-        <div
-          class="file-attach"
-          on:click|stopPropagation={() => handleFileClick(attach)}
-        >
-          <div class="file-icon">
-            {#if isDownloading(attach)}
-              <div class="spinner"></div>
-            {:else if isDownloaded(attach)}
-              📄
-            {:else}
-              ⬇️
-            {/if}
-          </div>
-
-          <div class="file-info">
-            <div class="file-name">{attach.name}</div>
-            <div class="file-size">{(attach.size / 1024).toFixed(1)} KB</div>
-          </div>
         </div>
       {/if}
     </div>
   {/each}
 </div>
 
-{#each attaches.filter((a) => a._type !== "PHOTO" && a._type !== "VIDEO" && a._type !== "FILE" && a._type !== "CONTROL") as attach}
+{#each mediaAttaches.filter(a => a._type === "FILE") as attach}
+  <div class="file-attach" on:click|stopPropagation={() => handleFileClick(attach)}>
+    <div class="file-icon">
+      {#if isDownloading(attach)}<div class="spinner"></div>
+      {:else if isDownloaded(attach)}📄{:else}⬇️{/if}
+    </div>
+    <div class="file-info">
+      <div class="file-name">{attach.name}</div>
+      <div class="file-size">{(attach.size / 1024).toFixed(1)} KB</div>
+    </div>
+  </div>
+{/each}
+
+{#each attaches.filter(a =>
+  a._type !== "PHOTO" &&
+  a._type !== "VIDEO" &&
+  a._type !== "FILE" &&
+  a._type !== "CONTROL") as attach}
   <div class="unsupported-attach">{attach._type} не поддерживается</div>
 {/each}
 
@@ -116,15 +223,11 @@
     max-width: 320px;
   }
 
-  .grid-many {
-    grid-template-columns: repeat(var(--cols), 1fr);
-  }
-
   .grid-item {
     cursor: pointer;
     position: relative;
     overflow: hidden;
-    aspect-ratio: 1 / 1;
+    background: rgba(255,255,255,0.05);
   }
 
   .grid-item img {
@@ -134,25 +237,19 @@
     display: block;
   }
 
-  .grid-many .grid-item {
-    aspect-ratio: 1 / 1;
-    background: rgba(255,255,255,0.05);
-  }
-
-  .grid-single .grid-item {
-    max-height: 450px;
-    border-radius: 8px;
+  .video-preview {
+    position: relative;
+    width: 100%;
+    height: 100%;
   }
 
   .video-preview .play-icon {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(0,0,0,0.6);
     color: white;
-    width: 40px;
-    height: 40px;
+    width: 40px; height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -171,6 +268,7 @@
     background-color: #0002;
     min-width: 130px;
     margin-right: 10px;
+    margin-top: 4px;
   }
 
   .file-icon {

@@ -91,7 +91,7 @@
     msg.text?.length > 20 ||
     msg.attaches.length ||
     msg.reactionInfo?.totalCount ||
-    msg.link;
+    msg.link?.messageId;
 
   $: showAvatar =
     chat.type !== "CHANNEL" &&
@@ -104,7 +104,6 @@
 
 <div
   class="message-row"
-  id={"m-" + msg.id}
   class:is-me={isMe}
   class:is-system={isSystem}
   class:is-deleted={msg.deleted}

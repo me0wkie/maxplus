@@ -1,6 +1,5 @@
 <script>
   export let msg;
-  export let lastDate;
 
   function formatMessageDate(unixTime) {
     const date = new Date(unixTime);
@@ -19,27 +18,16 @@
       return `${day} ${month}, ${year}`;
     }
   }
-
-  function isNewDay(unixTime) {
-    const date = new Date(unixTime);
-    if (!lastDate || lastDate.toDateString() !== date.toDateString()) {
-      lastDate = date;
-      return true;
-    }
-    return false;
-  }
 </script>
 
-{#if isNewDay(msg.time)}
-  <div class="date-separator">
-    <a>{formatMessageDate(msg.time)}</a>
-  </div>
-{/if}
+<div class="date-separator">
+  <a>{formatMessageDate(msg.time)}</a>
+</div>
 
 <style>
   .date-separator {
     text-align: center;
-    margin: 8px 0 8px 0;
+    margin: 8px 0 16px 0;
     color: #aaa;
     position: relative;
   }
