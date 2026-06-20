@@ -572,6 +572,8 @@
       <PinnedMessage msg={chat.pinnedMessage} {chat} />
     {/if}
 
+    <div style={"flex-shrink: 0; height: " + (chat.pinnedMessage ? "60px" : "10px")}></div>
+
     {#each uiMessages as msg (msg.id)}
       <div class="message-wrapper" id={"m-" + msg.id}>
         {#if visibleMessages.includes(msg.id) || !$messageHeights[msg.id]}
