@@ -549,6 +549,28 @@
     }
   }
 
+  /* media stuff */
+  $: allMedia = uiMessages.flatMap((m) =>
+    (m.attaches || [])
+      .filter((a) => a._type === "PHOTO" || a._type === "VIDEO")
+      .map((a) => ({
+        ...a,
+        messageId: m.id,
+        uid: a.videoId || a.photoId || a.url || a.baseUrl,
+      })),
+  );
+
+  function openMedia(attach) {
+    const targetUid =
+      attach.videoId || attach.photoId || attach.url || attach.baseUrl;
+    const index = allMedia.findIndex((m) => m.uid === targetUid);
+
+    if (index !== -1) {
+      viewerIndex = index;
+      viewerOpen = true;
+    }
+  }
+
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
