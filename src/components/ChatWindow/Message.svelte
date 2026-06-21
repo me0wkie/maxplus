@@ -7,7 +7,6 @@
   import Avatar from "$components/main/Avatar.svelte";
   import Reactions from "./Reactions.svelte";
   import Attachments from "$components/ChatWindow/Attachments.svelte";
-  import { decode_msg } from "$components/ChatWindow/e2e";
 
   const dispatch = createEventDispatcher();
 
@@ -15,13 +14,12 @@
   export let chat;
   export let dropoutActiveAt;
   export let scrollElement;
-  export let password;
-  export let obfuscation;
+  export let decoded;
 
   const isMe = msg.sender === $currentUser;
   const isSystem = msg.attaches?.[0]?._type === "CONTROL";
 
-  $: lines = msg.text?.split("\n");
+  $: lines = (decoded?.text || msg.text)?.split("\n");
 
   let innerWidth = 0;
 
@@ -177,7 +175,13 @@
         {:else}
           {#if lines}
             {#each lines as line}
-              <p class="line">{line}</p>
+              <p class="line">
+              {#if decoded}
+                {@html line}
+              {:else}
+                {line}
+              {/if}
+              </p>
             {/each}
           {/if}
 
@@ -223,8 +227,8 @@
                   /></svg
                 >
               {/if}
-              {#if obfuscation}
-                <a class="obf-type">{obfuscation}</a>
+              {#if decoded}
+                <a class="obf-type">{decoded.obf}</a>
                 {#if false}
                 <svg class="status-icon safe" viewBox="0 0 14 14" fill="currentColor">
                   <path d="M11 7V5a3 3 0 0 0-6 0v2H4v7h8V7h-1zM6 5a2 2 0 1 1 4 0v2H6V5z"/>

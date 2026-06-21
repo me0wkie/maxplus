@@ -25,7 +25,10 @@
   } from "$lib/stores/api";
   import Session from "$lib/stores/session";
   import { handleReaction } from "$components/ChatWindow/actions.js";
-  import { checkForEncryptionRequest } from "$components/ChatWindow/e2e.js";
+  import {
+    checkForEncryptionRequest,
+    decode_msg,
+  } from "$components/ChatWindow/e2e.js";
   import { scrollToBottom } from "$lib/utils/scroll.js";
   import * as Caching from "$lib/utils/caching.js";
   import Settings from "$components/ChatWindow/Settings.svelte";
@@ -256,6 +259,8 @@
     }
   }
 
+  const decodedMessages = writable({});
+
   const loadHistory = async (isInitial = false) => {
     if (loading) return;
     if (all_loaded && !isInitial) return;
@@ -281,6 +286,14 @@
         const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
         if (error) throw new Error(error);
         messages.set(syncedMessages);
+
+        const decoded = {};
+        await Promise.all(syncedMessages.map(async (msg) => {
+          const res = await decode_msg(msg);
+          if (res) decoded[msg.id] = res;
+        }));
+        decodedMessages.set(decoded);
+
         if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
         $API.savedMessages[chat.id] = syncedMessages;
         initialized = true;
@@ -294,6 +307,14 @@
           const newUnique = syncedMessages.filter(m => !existingIds.has(m.id));
           if (newUnique.length > 0) {
             messages.update(msgs => [...msgs, ...newUnique]);
+
+            const newDecoded = {};
+            await Promise.all(newUnique.map(async (msg) => {
+              const res = await decode_msg(msg);
+              if (res) newDecoded[msg.id] = res;
+            }));
+            decodedMessages.update(d => ({ ...d, ...newDecoded }));
+
             if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
 
             await tick();
@@ -366,6 +387,9 @@
       else return [..._messages, message];
       return _messages;
     });
+
+    const decoded = await decode_msg(message);
+    if (decoded) decodedMessages.update(d => ({ ...d, [message.id]: decoded }));
 
     await tick();
     applyPendingHeights();
@@ -589,8 +613,7 @@
               {chat}
               {dropoutActiveAt}
               {scrollElement}
-              password={chatPasswordLoaded}
-              obf={chatObfuscationLoaded}
+              decoded={$decodedMessages[msg.id]}
               on:openMedia={(e) => openMedia(e.detail.attach)}
               on:openChat={(e) => { dispatch("chat", e.detail); }}
             />
@@ -766,7 +789,7 @@
     overflow-y: auto;
     display: block;
     flex-direction: column;
-    overflow-anchor: auto;
+    overflow-anchor: none;
   }
 
   .message-list-inner {
