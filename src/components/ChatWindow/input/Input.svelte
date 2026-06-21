@@ -2,7 +2,7 @@
   import { invoke, convertFileSrc } from "@tauri-apps/api/core";
   import { tick } from "svelte";
 
-  //import { scrollToBottom } from "$lib/utils/scroll.js";
+  import { scrollToBottom } from "$lib/utils/scroll.js";
   import { sendMessage } from "$components/ChatWindow/actions.js";
   import VideoPreview from "$components/ChatWindow/VideoPreview.svelte";
   import Reply from "$components/ChatWindow/input/Reply.svelte";
@@ -26,7 +26,6 @@
     const tempId = Date.now().toString();
 
     newMessage = "";
-
     await tick();
     autoResize(event);
 
@@ -58,12 +57,21 @@
       );
     } catch (e) {
       console.error(e);
+    } finally {
+      await tick();
+      scrollToBottom(scrollElement, false);
     }
   }
 
-  function autoResize(e) {
+  async function autoResize(e) {
     e.target.style.height = "auto";
     e.target.style.height = e.target.scrollHeight + "px";
+    const maxScrollTop =
+      scrollElement.scrollHeight - scrollElement.clientHeight - scrollElement.scrollTop;
+    if (maxScrollTop < 80) {
+      await tick();
+      scrollToBottom(scrollElement, false);
+    }
   }
 
   function toggleAttachesDropout() {

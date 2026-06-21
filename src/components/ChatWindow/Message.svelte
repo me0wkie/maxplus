@@ -2,6 +2,7 @@
   import { createEventDispatcher, onMount } from "svelte";
   import API, { currentUser, currentUserDetails, currentSessionContacts } from "$lib/stores/api";
   import { getAttachText } from "$components/main/attachs";
+  import { scrollTo } from '$lib/utils/scroll.js';
   import MessagePreview from "$components/main/MessagePreview.svelte";
   import { openPath } from "@tauri-apps/plugin-opener";
   import Avatar from "$components/main/Avatar.svelte";
@@ -15,6 +16,7 @@
   export let dropoutActiveAt;
   export let scrollElement;
   export let decoded;
+  export let makeVisible;
 
   const isMe = msg.sender === $currentUser;
   const isSystem = msg.attaches?.[0]?._type === "CONTROL";
@@ -52,25 +54,23 @@
     return $API.getFileById(chat.id, msg.id, fileId);
   }
 
-  function openReply() {
+  async function openReply(e) {
+    await makeVisible(linkedMsg.id);
+
     const target = document.getElementById("m-" + linkedMsg.id);
     if (!target || !scrollElement) return;
 
-    const containerRect = scrollElement.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
+    const highlight = target.querySelector("#clickable-area");
+    highlight.style.background = "rgba(255,255,255,0.05)";
 
-    const offset = targetRect.top - containerRect.top;
-
-    scrollElement.scrollTo({
-      top: scrollElement.scrollTop + offset,
-      behavior: "smooth",
+    scrollTo(scrollElement, target, {
+      smooth: true,
+      onComplete: () => {
+        setTimeout(() => {
+          highlight.style.background = null;
+        }, 1000);
+      }
     });
-
-    target.style.background = "rgba(255,255,255,0.05)";
-
-    setTimeout(() => {
-      target.style.background = null;
-    }, 1000);
   }
 
   $: linkedMsg = (() => {

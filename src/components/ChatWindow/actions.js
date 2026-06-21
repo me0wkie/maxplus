@@ -43,9 +43,7 @@ export async function sendMessage(
     if (debug) console.log('4', bytes);
 
     const out = new Uint8Array(1 + bytes.length);
-    out[0] = buildHeader(
-      0, !!sym, !!ass, 0
-    );
+    out[0] = buildHeader(0, !!sym, !!ass, 0);
     out.set(bytes, 1);
 
     text = await obfuscate(out, obf || "zh"); // obfuscation should hide header
@@ -87,7 +85,7 @@ export async function sendMessage(
     attaches,
     elements,
   };
-return;
+
   const response = await get(API).sendMessage(text, chatId, params);
 
   const message = response?.message || {};

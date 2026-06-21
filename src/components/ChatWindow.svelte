@@ -98,6 +98,8 @@
     delete onBack["chat"];
     if (onBack.dropout) delete onBack["dropout"];
     if (onBack.chatSettings) delete onBack["chatSettings"];
+    scrollResizeObserver?.disconnect();
+    if (resizeObserver) resizeObserver.disconnect();
   });
 
   const DEFAULT_HEIGHT = 60;
@@ -347,8 +349,8 @@
   };
 
   let scrollTimeout = null;
-
   let updateScheduled = false;
+
   function handleScroll(event) {
     const target = event.currentTarget;
     const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
@@ -367,7 +369,7 @@
       scrollLoaderTimeout = setTimeout(async () => {
         await loadHistory();
         await updateVisibleMessages();
-        scrollLoaderTimeout = null;
+        setTimeout(() => scrollLoaderTimeout = null, 500);
       }, 200);
     }
   }
@@ -416,7 +418,10 @@
     chatObfuscationLoaded = await chatObfs.get(chat?.id);
     chatKeysLoaded = await chatKeys.get(chat?.id);
 
+
+
     setupResizeObserver();
+    startAutoScrollIfAtBottom();
 
     await loadHistory(true);
     await tick();
@@ -520,6 +525,30 @@
     dateSeparators = newSeparators;
   }
 
+  let scrollResizeObserver;
+
+  function startAutoScrollIfAtBottom() {
+    if (!scrollElement) return;
+
+    scrollResizeObserver = new ResizeObserver(() => {
+      if (!scrollElement) return;
+      const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+      const atBottom = scrollHeight - scrollTop - clientHeight < 50;
+      if (atBottom) {
+        scrollToBottom(scrollElement, false);
+      }
+    });
+
+    scrollResizeObserver.observe(scrollElement);
+  }
+
+  async function makeVisible(id) {
+    if (!visibleMessages.includes(id)) {
+      visibleMessages = [...visibleMessages, id];
+      await tick();
+    }
+  }
+
 </script>
 
 <div class="chat-window" on:click|capture={handleClick}>
@@ -587,23 +616,27 @@
   >
     <E2eModal {gotSecretChatRequest} />
 
+    {#if chat.pinnedMessage}
+      <PinnedMessage msg={chat.pinnedMessage} {chat} />
+    {/if}
+
     <div
       class="message-list-inner"
       bind:this={innerList}
     >
-
-    {#if chat.pinnedMessage}
-      <PinnedMessage msg={chat.pinnedMessage} {chat} />
-    {/if}
 
     <div style={"flex-shrink: 0; height: " + (chat.pinnedMessage ? "60px" : "10px")}></div>
 
     {#each uiMessages as msg (msg.id)}
       <div class="message-wrapper" id={"m-" + msg.id}>
         {#if visibleMessages.includes(msg.id) || !$messageHeights[msg.id]}
-          <div class="message-clickable-area"
-            use:observeResize={msg.id}
+          <div
+            id="clickable-area"
             on:click|stopPropagation={(e) => selectMessage(e, msg)}
+          ></div>
+          <div
+            class="observer-area"
+            use:observeResize={msg.id}
           >
             {#if dateSeparators[msg.id]}
               <DateSeparator {msg} />
@@ -613,6 +646,7 @@
               {chat}
               {dropoutActiveAt}
               {scrollElement}
+              makeVisible={makeVisible}
               decoded={$decodedMessages[msg.id]}
               on:openMedia={(e) => openMedia(e.detail.attach)}
               on:openChat={(e) => { dispatch("chat", e.detail); }}
@@ -790,6 +824,7 @@
     display: block;
     flex-direction: column;
     overflow-anchor: none;
+    overflow-x: clip
   }
 
   .message-list-inner {
@@ -833,10 +868,17 @@
   .message-wrapper {
     position: relative;
     width: 100%;
+    transition: background 0.3s;
   }
 
-  .message-clickable-area {
+  #clickable-area {
+    position: absolute;
+    width: 100vw;
+    height: 100%;
+    transition: background 1s;
+  }
+
+  .observable-area {
     position: relative;
-    overflow: visible;
   }
 </style>
