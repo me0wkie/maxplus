@@ -86,7 +86,7 @@ export default class API {
     
     getUser() { return this._user; }
     getToken() { return this._token; }
-    
+
     connect() { throw "connect: Unimplemented" }
     logout() { throw "logout: Unimplemented" }
     getSessions() { throw "getSessions: Unimplemented" }
@@ -115,6 +115,8 @@ export default class API {
     readMessage() { throw "readMessage: Unimplemented" }
     getCalls() { throw "getCalls: Unimplemented" }
     updateProfile() { throw "updateProfile: Unimplemented" }
+    createGroup() { throw "createGroup: Unimplemented" }
+    deleteChat() { throw "deleteChat: Unimplemented" }
     
     onCall() { throw "onCall: Unimplemented" }
     onMessage() { throw "onMessage: Unimplemented" }

@@ -478,6 +478,28 @@ export default class MobileApi extends BaseAPI {
     return result;
   }
 
+  async createGroup(title) {
+    const result = await invoke("create_group", {
+      title,
+      participantIds: [],
+    });
+
+    const payload = result.payload;
+
+    console.log(result);
+
+    if (!payload) return null;
+
+    currentSessionChats.update(chats => {
+      chats.push(payload.chat);
+      return chats;
+    });
+
+    currentRealChats.update(x => [...x, payload.chatId]);
+
+    return payload.chat;
+  }
+
   async getCalls() {
     return await invoke("get_calls", { forward: false, count: 100 });
   }

@@ -1,5 +1,5 @@
 <script>
-  import { fade, scale } from "svelte/transition";
+  import { fade, scale, fly } from "svelte/transition";
   import { createEventDispatcher } from "svelte";
   import API from "$lib/stores/api.js";
 
@@ -8,6 +8,8 @@
   let name = "";
   let phone = "+7";
   let isLoading = false;
+  let groupName = "";
+  let mode = "contact";
 
   let errors = {
     name: "",
@@ -33,22 +35,34 @@
   };
 
   const submitHandler = async () => {
-    if (!validate() || isLoading) return;
+    if (isLoading) return;
 
     isLoading = true;
 
-    const response = await $API.addContact(name, "+" + phone);
+    let response;
+
+    if (mode === "contact") {
+      if (!validate()) {
+        isLoading = false;
+        return;
+      }
+
+      response = await $API.addContact(name, "+" + phone);
+    }
+
+    if (mode === "group") {
+      if (!groupName.trim()) {
+        isLoading = false;
+        return;
+      }
+
+      response = await $API.createGroup(groupName);
+    }
 
     isLoading = false;
 
-    if (!response.success) {
-      if (response.error === "not-found") {
-        errors.phone = "Номер не зарегистрирован в системе";
-      } else if (response.error === "denied") {
-        errors.phone = "Невозможно добавить этого пользователя";
-      } else {
-        errors.phone = "Произошла неизвестная ошибка";
-      }
+    if (!response?.success) {
+      errors.phone = response?.error || "Ошибка";
       return;
     }
 
@@ -83,6 +97,19 @@
   on:click={close}
 >
   <div
+    transition:fly={{ duration: 300, y: 50 }}
+    on:click|stopPropagation
+    class="tabs"
+  >
+    <button class:active={mode === "contact"} on:click={() => (mode = "contact")}>
+      Контакт
+    </button>
+    <button class:active={mode === "group"} on:click={() => (mode = "group")}>
+      Группа
+    </button>
+  </div>
+
+  <div
     class="modal"
     transition:scale={{ duration: 200, start: 0.95 }}
     on:click|stopPropagation
@@ -93,35 +120,48 @@
     </div>
 
     <div class="content">
-      <div class="input-group">
-        <label>Имя</label>
-        <div class="input-wrapper" class:has-error={errors.name}>
-          <input
-            type="text"
-            bind:value={name}
-            placeholder="Иван Иванов"
-            on:input={() => (errors.name = "")}
-          />
+      {#if mode === "contact"}
+        <div class="input-group">
+          <label>Имя</label>
+          <div class="input-wrapper" class:has-error={errors.name}>
+            <input
+              type="text"
+              bind:value={name}
+              placeholder="Иван Иванов"
+              on:input={() => (errors.name = "")}
+            />
+          </div>
+          {#if errors.name}
+            <span class="error-msg" transition:fade>{errors.name}</span>
+          {/if}
         </div>
-        {#if errors.name}<span class="error-msg" transition:fade
-            >{errors.name}</span
-          >{/if}
-      </div>
 
-      <div class="input-group">
-        <label>Номер телефона</label>
-        <div class="input-wrapper" class:has-error={errors.phone}>
-          <input
-            type="tel"
-            value={formatPhone(phone)}
-            placeholder="+7 999 000-00-00"
-            on:input={handleInput}
-          />
+        <div class="input-group">
+          <label>Номер телефона</label>
+          <div class="input-wrapper" class:has-error={errors.phone}>
+            <input
+              type="tel"
+              value={formatPhone(phone)}
+              placeholder="+7 999 000-00-00"
+              on:input={handleInput}
+            />
+          </div>
+          {#if errors.phone}
+            <span class="error-msg" transition:fade>{errors.phone}</span>
+          {/if}
         </div>
-        {#if errors.phone}<span class="error-msg" transition:fade
-            >{errors.phone}</span
-          >{/if}
-      </div>
+      {:else}
+        <div class="input-group">
+          <label>Название группы</label>
+          <div class="input-wrapper">
+            <input
+              type="text"
+              bind:value={groupName}
+              placeholder="Друзья / Работа / Семья"
+            />
+          </div>
+        </div>
+      {/if}
     </div>
 
     <div class="footer">
@@ -130,7 +170,7 @@
         {#if isLoading}
           ...
         {:else}
-          Добавить
+          {mode === "contact" ? "Добавить контакт" : "Создать группу"}
         {/if}
       </button>
     </div>
@@ -150,6 +190,8 @@
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(2px);
+    flex-direction: column;
+    gap: 10px;
   }
 
   .modal {
@@ -164,6 +206,30 @@
     border: 1px solid #333;
   }
 
+  .tabs {
+    display: flex;
+    gap: 8px;
+    width: 90%;
+    max-width: 350px;
+    display: flex;
+  }
+
+  .tabs button {
+    flex: 1;
+    background: #1a1a1a;
+    border: none;
+    color: #aaa;
+    padding: 8px 6px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+
+  .tabs button.active {
+    background: #007afd;
+    color: white;
+    border-color: #007afd;
+  }
+
   .header {
     padding: 15px 20px;
     border-bottom: 1px solid #333;
@@ -171,11 +237,13 @@
     justify-content: space-between;
     align-items: center;
   }
+
   .header h3 {
     margin: 0;
     font-size: 17px;
     font-weight: 600;
   }
+
   .close-btn {
     background: none;
     border: none;
@@ -185,6 +253,7 @@
     padding: 0;
     line-height: 1;
   }
+
   .close-btn:hover {
     color: #fff;
   }

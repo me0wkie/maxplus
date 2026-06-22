@@ -21,7 +21,7 @@
   $: avatarUrl =
     chat.avatar || (chat.id === 0 ? "saved.webp" : (contact?.avatar || contact?.baseUrl));
 
-  function getAvatarColor(id) {
+  function getAvatarPlaceholder(id) {
     const colors = [
       "#e17076",
       "#7bc862",
@@ -30,7 +30,14 @@
       "#ee7aae",
       "#6ec9cb",
     ];
-    return colors[(id || 0) % colors.length];
+
+    if (chat?.type === "CHAT") {
+      const x = -id % colors.length;
+      const y = -Math.floor(id + id / 2) % colors.length;
+      return `linear-gradient(135deg, ${colors[x]}, ${colors[y]})`;
+    }
+
+    return colors[Math.abs(id) % colors.length];
   }
 
   function getInitials(name) {
@@ -69,9 +76,9 @@
     {:else}
       <div
         class="avatar-placeholder"
-        style="background-color: {getAvatarColor(contact.id || chat.id)}; font-size: {size / 2.5}px;"
+        style="background: {getAvatarPlaceholder(contact.id || chat.id)}; font-size: {size / 2.5}px;"
       >
-        {chat.id === 0 ? "⭐" : getInitials(title)}
+        {getInitials(title)}
       </div>
     {/if}
 

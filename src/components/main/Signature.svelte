@@ -48,6 +48,8 @@
   {/if}
 {:else if chat?.type === "CHANNEL"}
   {chat.participantsCount} подписчиков
+{:else if chat?.type === "CHAT"}
+  Групповой чат
 {:else}
   Это вообще чё?
 {/if}

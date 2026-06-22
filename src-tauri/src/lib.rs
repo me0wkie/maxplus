@@ -94,6 +94,7 @@ pub fn run() {
             commands::get_video_upload,
             commands::get_file_upload,
             commands::update_profile,
+            commands::create_group,
             commands::get_calls,
             commands::call,
             files::download,
