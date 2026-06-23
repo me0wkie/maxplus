@@ -1,9 +1,9 @@
-use argon2::{Argon2, Params};
+use aes_gcm::aead::Aead;
 use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
-use aes_gcm::aead::{Aead};
-use rand::RngCore;
+use argon2::{Argon2, Params};
+use base64::{engine::general_purpose, Engine as _};
 use keyring::Entry;
-use base64::{Engine as _, engine::general_purpose};
+use rand::RngCore;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize, Debug)]
 pub enum EncType {
@@ -26,9 +26,7 @@ fn encrypt_aes(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
 
     let nonce = Nonce::from_slice(&nonce_bytes);
 
-    let ciphertext = cipher
-        .encrypt(nonce, data)
-        .map_err(|e| e.to_string())?;
+    let ciphertext = cipher.encrypt(nonce, data).map_err(|e| e.to_string())?;
 
     let mut out = nonce_bytes.to_vec();
     out.extend(ciphertext);
@@ -53,11 +51,7 @@ fn decrypt_aes(key: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
 fn derive_pin_key(pin: &str, salt: &[u8]) -> Vec<u8> {
     let params = Params::new(65536, 3, 1, None).unwrap();
 
-    let argon2 = Argon2::new(
-        argon2::Algorithm::Argon2id,
-        argon2::Version::V0x13,
-        params,
-    );
+    let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
 
     let mut out = vec![0u8; 32];
 
@@ -73,8 +67,8 @@ fn get_or_create_keystore_key(user: &str) -> Vec<u8> {
 
     if let Ok(key) = entry.get_password() {
         return general_purpose::STANDARD
-        .decode(key)
-        .unwrap_or_else(|_| vec![0u8; 32]);
+            .decode(key)
+            .unwrap_or_else(|_| vec![0u8; 32]);
     }
 
     let mut key = vec![0u8; 32];

@@ -2,6 +2,7 @@
   import { switchEnc } from "$components/ChatWindow/e2e";
   import { fade, fly, scale } from "svelte/transition";
   import { chatPassword, chatObfs } from '$lib/stores/api';
+  import { dict } from '$lib/crypto/text-codec';
 
   export let chatKeysLoaded;
   export let chat;
@@ -12,6 +13,7 @@
 
   let saveTimeout;
   let showPassword = false;
+  let hasDictionary = (async() => !!(await dict.getDictionary()))();
 
   function onPasswordInput(event) {
     password = event.target.value;
@@ -33,7 +35,10 @@
     if (!obfuscation) setObfuscation("zh");
   }
 
-  function setObfuscation(type) {
+  async function setObfuscation(type) {
+    if (type === "words") {
+      hasDictionary = !!(await dict.getDictionary());
+    }
     obfuscation = type;
     chatObfs.set(chat.id, type);
   }
@@ -151,7 +156,14 @@
       {#if obfuscation === "zh"}
         Текст маскируется китайскими символами.
       {:else if obfuscation === "words"}
-        Текст превращается в набор литературных слов.
+        {#await hasDictionary}
+        {:then has}
+          {#if has}
+            Текст превращается в набор литературных слов.
+          {:else}
+            <a style="color:red;">Загрузите список слов в настройках, раздел "Словарь шифрования"</a>
+          {/if}
+        {/await}
       {:else}
         Текст не маскируется.
       {/if}

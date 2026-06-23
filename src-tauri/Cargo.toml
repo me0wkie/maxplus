@@ -49,6 +49,7 @@ aes-gcm = "0.10"
 rand = "0.8"
 argon2 = "0.5"
 tauri-plugin-http = "2.5.9"
+tauri-plugin-upload = "2"
 
 [profile.dev]
 incremental = true

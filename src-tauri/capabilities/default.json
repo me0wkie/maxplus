@@ -8,6 +8,8 @@
     "opener:default",
     "store:default",
     "dialog:default",
+    "upload:default",
+    "upload:allow-download",
     "fs:default",
     "fs:allow-download-write",
     {
@@ -17,6 +19,20 @@
     {
       "identifier": "fs:allow-read",
       "allow": [{ "path": "**/*" }]
+    },
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        { "path": "**/*" },
+        { "path": "$APPCACHE/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-remove",
+      "allow": [
+        { "path": "**/*" },
+        { "path": "$APPCACHE/**" }
+      ]
     }
   ]
 }

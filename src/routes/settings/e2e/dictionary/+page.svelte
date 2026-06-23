@@ -1,5 +1,7 @@
 <script>
-  import { fetch } from "@tauri-apps/plugin-http";
+  import { download as getFile } from '@tauri-apps/plugin-upload';
+  import { remove, readTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
+  import { appCacheDir, join } from '@tauri-apps/api/path';
   import { goto } from "$app/navigation";
   import { fade, fly, slide } from "svelte/transition";
   import { page } from "$app/stores";
@@ -8,45 +10,59 @@
 
   const basicUrl = "https://github.com/me0wkie/text-codec/raw/refs/heads/main/in.txt";
   let downloading = false;
+  let status = { total: 0, perc: 0 }
 
   $: from = $page.url.searchParams.get("from") || "/auth/login";
+
   $: url = (async() => {
     const entry = await dict.get("url");
     if (!entry) return basicUrl;
     return entry;
   })();
-  $: downloaded = dict.get("url");
 
-  $: dictionary = dict.getDictionary();
+  $: downloaded = dict.get("url");
+  let dictionary = dict.getDictionary();
 
   async function download() {
     downloading = true;
+    status.total = 0;
+    status.perc = 0;
 
     const entry = await url;
 
+    const cacheDir = await appCacheDir();
+    const filePath = await join(cacheDir, 'raw.txt');
+
     try {
-      const response = await fetch(entry, {
-        method: 'GET',
-      });
+      const result = await getFile(
+        entry,
+        filePath,
+        ({ progress, total }) => {
+          status.total += progress;
+          status.perc = Math.round(status.total / total * 100);
+        }, { 'Content-Type': 'text/plain' }
+      );
 
-      const text = await response.text();
+      const text = await readTextFile('raw.txt', { baseDir: BaseDirectory.AppCache });
 
-      dictionary = await makeDictionary(text);
+      await makeDictionary(text);
+      dictionary = dict.getDictionary();
 
       downloaded = entry;
       await dict.set("url", entry);
-
-      console.log(dictionary);
     } catch (e) {
       alert(e)
     } finally {
       downloading = false;
+      status.total = 0;
+      status.perc = 0;
+      await remove("raw.txt", { baseDir: BaseDirectory.AppCache });
     }
   }
 
-  async function handleInput(event) {
+  /*async function handleInput(event) {
     const rawValue = event.target.value;
-  }
+  }*/
 </script>
 
 <div class="page">
@@ -61,7 +77,7 @@
     {:then data}
       <div class="info">
         <div class="icon">{ !downloading ? "🖹" : "⟳" }</div>
-        <div class="text">Слов: <b>{ data ? (data.dict8.length + data.dict16.length) : 0 }</b></div>
+        <div class="text">Слов: <b>{ data ? (data.dict8?.length + data.dict16?.length) : 0 }</b></div>
       </div>
     {/await}
   </div>
@@ -71,7 +87,6 @@
   <div>
     <input
       value={loaded}
-      on:input={handleInput}
       placeholder="Ссылка"
     >
   </div>
@@ -81,12 +96,21 @@
     <div class="save-wrap">
       {#if url !== downloaded}
         <button
-          class="save-btn"
-          on:click={download}
-          transition:slide={{ duration: 180 }}
-        >
+            class="save-btn"
+            on:click={download}
+            style="
+              background:
+                linear-gradient(
+                  90deg,
+                  #2f8f58 0%,
+                  #2f8f58 {status.perc}%,
+                  #3cb371 {status.perc}%,
+                  #3cb371 100%
+                );
+            "
+          >
           {#if downloading}
-            Скачивание...
+            Скачивание {status.perc}%
           {:else}
             Скачать текущий
           {/if}

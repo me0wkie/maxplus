@@ -17,6 +17,7 @@ pub fn run() {
     video::start_video_proxy();
 
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_upload::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())

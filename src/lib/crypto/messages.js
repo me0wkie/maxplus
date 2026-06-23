@@ -66,7 +66,7 @@ class Words extends Obfuscator {
 
   async getDictionary() {
     if (this.lock) await this.lock;
-    if (this.cache) return this.cache;
+    if (this.cache !== undefined) return this.cache;
     this.lock = new Promise(r => this.unlock = r);
 
     const cache = await dict.getDictionary();
@@ -75,11 +75,23 @@ class Words extends Obfuscator {
       this.dict16Map = new Map(cache.dict16.map((w, i) => [w, i]));
       this.dict8Map = new Map(cache.dict8.map((w, i) => [w, i]));// it's so fucking awful
       this.miniHash = parseInt(cache.dict_sha256.slice(0, 1), 16) & 0xF;
+    } else {
+      this.cache = null;
     }
 
     this.unlock();
     this.lock = null;
     return cache;
+  }
+
+  async updateDictionary() {
+    const cache = await dict.getDictionary();
+    if (cache) {
+      this.cache = cache;
+      this.dict16Map = new Map(cache.dict16.map((w, i) => [w, i]));
+      this.dict8Map = new Map(cache.dict8.map((w, i) => [w, i]));
+      this.miniHash = parseInt(cache.dict_sha256.slice(0, 1), 16) & 0xF;
+    }
   }
 
   async detect(text) {
@@ -101,7 +113,10 @@ class Words extends Obfuscator {
 
   async obfuscate(bytes) {
     const DICT = await this.getDictionary();
-    if (!DICT) return;
+    if (!DICT) {
+      alert("Словарь не загружен!\nПожалуйста, загрузите в настройках.");
+      return null;
+    }
     return await encode(bytes, DICT, true);
   }
 
