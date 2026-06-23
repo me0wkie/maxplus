@@ -1,13 +1,12 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { fly, fade } from "svelte/transition";
+  import { fly } from "svelte/transition";
 
   import ChatItem from "$components/chats/ChatItem.svelte";
   import FolderTabs from "$components/chats/FolderTabs.svelte";
   import AddContactBtn from "$components/main/AddContactBtn.svelte";
   import Search from "$components/main/Search.svelte";
   import FolderEditModal from "$components/chats/FolderEditModal.svelte";
-  import { getAttachText } from "$components/main/attachs.js";
   import { escapeHtml } from "$lib/utils/text.js";
   import { debounce } from "$lib/utils/debounce.js";
   import API, {

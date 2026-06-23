@@ -1,5 +1,5 @@
 <script>
-  import { getAttachText } from "$components/main/attachs.js";
+  import { getAttachText } from "$lib/utils/attachs.js";
   import { currentSessionContacts } from "$lib/stores/api";
 
   export let replyTo;

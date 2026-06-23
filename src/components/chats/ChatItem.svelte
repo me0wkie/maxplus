@@ -1,7 +1,7 @@
 <script>
   import { createEventDispatcher } from "svelte";
   import { currentUser, currentSessionContacts } from "$lib/stores/api";
-  import { getAttachText } from "$components/main/attachs.js";
+  import { getAttachText, getSystemText } from "$lib/utils/attachs.js";
   import Avatar from "$components/main/Avatar.svelte";
 
   export let chat;
@@ -20,8 +20,6 @@
     chat.id === 0
       ? "Избранное"
       : chat.title || contact?.names?.[0]?.name || "Без названия";
-
-  $: console.log($currentSessionContacts, Object.keys($currentSessionContacts));
 
   $: shownMessage = replace?.message || chat.lastMessage;
   $: attaches = getAttachText(chat, shownMessage);
@@ -77,6 +75,8 @@
       dispatch("open", chat);
     }
   }
+
+  $: console.log(shownMessage)
 </script>
 
 <div
@@ -115,7 +115,7 @@
         {#if replace}
           {@html replace.text}
         {:else}
-          {shownMessage?.text}
+          {shownMessage?.text || getSystemText(shownMessage)}
         {/if}
       </p>
       {#if chat.newMessages > 0}

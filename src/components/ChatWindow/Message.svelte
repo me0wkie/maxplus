@@ -1,7 +1,7 @@
 <script>
   import { createEventDispatcher, onMount } from "svelte";
   import API, { currentUser, currentUserDetails, currentSessionContacts } from "$lib/stores/api";
-  import { getAttachText } from "$components/main/attachs";
+  import { getAttachText, getSystemText } from "$lib/utils/attachs";
   import { scrollTo } from '$lib/utils/scroll.js';
   import MessagePreview from "$components/main/MessagePreview.svelte";
   import { openPath } from "@tauri-apps/plugin-opener";
@@ -27,18 +27,6 @@
 
   function handleMediaClick(attach) {
     dispatch("openMedia", { attach });
-  }
-
-  function displaySystemMessage() {
-    const event = msg.attaches?.[0]?.event;
-    if (event === "botStarted") return "Вы запустили бота!";
-    const first = msg.attaches?.[0];
-    if (event === "new") return "Чат " + first.title + " создан!";
-    if (event === "icon") return "Фото чата изменено";
-    if (event === "joinByLink") return "Вы вступили по ссылке!";
-    if (event === "system") return first.message;
-    if (msg.text) return msg.text;
-    return event;
   }
 
   function handleForwardHeaderClick() {
@@ -171,7 +159,7 @@
         {/if}
 
         {#if isSystem}
-          <p class="line system">{displaySystemMessage()}</p>
+          <p class="line system">{getSystemText(msg)}</p>
         {:else}
           {#if lines}
             {#each lines as line}

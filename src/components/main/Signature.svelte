@@ -19,7 +19,6 @@
       ];
 
   if (!chat) chat = $currentSessionChats.find(x => x.id === ($currentUser ^ contact.id));
-  console.log(contact, chat)
 </script>
 
 {#if chat?.type === "DIALOG"}
