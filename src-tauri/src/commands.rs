@@ -49,7 +49,8 @@ delegate_cmd!(create_group(title: String, participant_ids: Option<Vec<i64>>, not
 delegate_cmd!(delete_chat(chat_id: i64, last_event_time: Option<i64>, for_all: Option<bool>) => delete_chat(chat_id, last_event_time, for_all));
 delegate_cmd!(resolve_channel_by_name(link: String) => resolve_channel_by_name(link));
 delegate_cmd!(join_channel(link: String) => join_channel(link));
-delegate_cmd!(quit_channel(channel_id: i64) => quit_channel(channel_id));
+delegate_cmd!(leave_channel(channel_id: i64) => leave_channel(channel_id));
+delegate_cmd!(leave_group(chat_id: i64) => leave_group(chat_id));
 
 delegate_cmd!(send_message(
     chat_id: i64,

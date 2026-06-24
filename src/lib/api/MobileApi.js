@@ -499,11 +499,49 @@ export default class MobileApi extends BaseAPI {
   }
 
   async joinChannel(link) {
-    return await invoke("join_channel", { link });
+    const response = await invoke("join_channel", { link });
+    const { chat } = response;
+
+    currentRealChats.update(chats => [ ...chats, chat.id ]);
+    Caching.cacheChat(chat); // updates entries
   }
 
-  async quitChannel(channelId) {
-    return await invoke("quit_channel", { channelId });
+  async leaveChannel(chat) {
+    const channelId = chat.id;
+
+    await invoke("quit_channel", { channelId });
+
+    currentRealChats.update(chats => {
+      const idx = chats.indexOf(chat.id);
+      if (idx !== -1) chats.splice(idx, 1);
+      return chats;
+    });
+
+    chat.participants[get(currentUser)] = 0;
+  }
+
+  async leaveChat(chat) {
+    const chatId = chat.id;
+
+    await invoke("leave_group", { chatId });
+
+    currentRealChats.update(chats => {
+      const idx = chats.indexOf(chat.id);
+      if (idx !== -1) chats.splice(idx, 1);
+      return chats;
+    });
+  }
+
+  async deleteChatForAll(chat) {
+    const chatId = chat.id;
+
+    await invoke("leave_group", { chatId, forAll: true });
+
+    currentRealChats.update(chats => {
+      const idx = chats.indexOf(chat.id);
+      if (idx !== -1) chats.splice(idx, 1);
+      return chats;
+    });
   }
 
   async getCalls() {

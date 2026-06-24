@@ -4,17 +4,19 @@
   import { createEventDispatcher } from "svelte";
   import { goto } from "$app/navigation";
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
+  import Signature from "$components/main/Signature.svelte";
+  import Avatar from "$components/main/Avatar.svelte";
   import * as Caching from "$lib/utils/caching";
+  import { formatMs } from "$lib/utils/time";
+  import Session from "$lib/stores/session";
   import API, {
     currentUser,
+    currentUserDetails,
     currentSessionContacts,
     currentSessionChats,
     currentPresence,
     currentRealChats,
   } from "$lib/stores/api";
-  import Session from "$lib/stores/session";
-  import Signature from "$components/main/Signature.svelte";
-  import { formatMs } from "$lib/utils/time.js";
 
   let { userId, chatId } = $Session.profile;
 
@@ -24,12 +26,8 @@
   const peer = userId ? $currentSessionContacts[userId] || {} : {};
   const chat = $currentSessionChats.find((x) => x.id === chatId);
 
-  const dispatch = createEventDispatcher();
-
   let showMenu = false;
-  let showBlockConfirm = false;
-
-  //let participants = Object.keys(chat.participants).filter(x => x !== $currentUser);
+  let showDeleteConfirm = false;
 
   $: title = (() => {
     if (peer.id) return peer?.names?.[0]?.firstName;
@@ -38,65 +36,38 @@
   $: avatar = peer.avatar || chat.avatar;
 
   $: infoFields = [
-    chat.link && {
-      icon: "info",
-      label: "Тэг",
-      value: chat.link.replace("https://max.ru/", ""),
-    },
-    chat.description && {
-      icon: "info",
-      label: "Описание",
-      value: chat.description,
-    },
-    peer.description && {
-      icon: "info",
-      label: "Описание",
-      value: peer.description,
-    },
-    chat.phone && { icon: "phone", label: "Мобильный", value: chat.phone },
-    chat.created > 1 && {
-      icon: "info",
-      label: "Дата создания",
-      value: formatMs(chat.created),
-    },
-    peer.registrationTime && {
-      icon: "info",
-      label: "Дата регистрации",
-      value: formatMs(peer.registrationTime),
-    },
+    info(chat.link, "about", "Тэг", chat.link?.replace("https://max.ru/", "")),
+    info(chat.description, "about", "Описание", chat.description),
+    info(chat.phone, "about", "Мобильный", chat.phone),
+    info(chat.created > 1, "about", "Дата создания", formatMs(chat.created)),
+    info(chat.registrationTime, "about", "Дата регистрации", formatMs(peer.registrationTime)),
   ].filter(Boolean);
 
-  function toggleMenu() {
-    showMenu = !showMenu;
-  }
+  const info = (k, icon, label, value) => k && { icon, label, value };
+
+  const toggleMenu = () => showMenu = !showMenu;
 
   function handleAction(action) {
     showMenu = false;
-    if (action === "block") showBlockConfirm = true;
-    else if (action === "delete") dispatch("delete", peer.id);
+    if (action === "quit") leaveChat();
+    else if (action === "delete") showDeleteConfirm = true;
   }
 
-  function confirmBlock() {
-    showBlockConfirm = false;
-    dispatch("block", peer.id);
-    dispatch("close");
+  function closeModal() {
+    $Session.profile = null;
+  }
+
+  function closeChat() {
+    const idx = $Session.openedChats.indexOf(chat.id);
+    console.log(idx)
+    if (idx !== -1) $Session.openedChats.splice(idx, 1);
   }
 
   function handleWindowClick(e) {
     if (showMenu && !e.target.closest(".menu-container")) showMenu = false;
   }
 
-  function getGradient(id) {
-    const colors = [
-      ["#f093fb", "#f5576c"],
-      ["#5ee7df", "#b490ca"],
-      ["#667eea", "#764ba2"],
-    ];
-    const c = colors[(id || 0) % colors.length] || [];
-    return `linear-gradient(135deg, ${c[0]} 0%, ${c[1]} 100%)`;
-  }
-
-  function openChat() {
+  function openChat() { // TODO перенести отсюда
     goto("/?card=2");
     $Session.profile = null;
 
@@ -117,6 +88,7 @@
         chat = {
           id: _chatId,
           participants,
+          // TODO добавить type?
         };
       }
       $Session.openedChats = [...$Session.openedChats, { ...chat }];
@@ -128,24 +100,26 @@
   }
 
   async function joinChannel() {
-    const result = await $API.joinChannel(chat.link);
-    console.log(result);
-    currentRealChats.update(chats => [ ...chats, chat.id ]);
-    Caching.cacheChat(chat);
-    Object.keys(result.chat).forEach(key => chat[key] = result.chat[key]);
+    await $API.joinChannel(chat.link);
+
+    Object.keys(response.chat)
+      .forEach(key => chat[key] = response.chat[key]);
   }
 
   async function quitChannel() {
-    const result = await $API.quitChannel(chat.id);
-    console.log(result);
-    currentRealChats.update(chats => {
-      const idx = chats.indexOf(chat.id);
-      if (idx !== -1) chats.splice(idx, 1);
-      console.log(idx, chats)
-      return chats;
-    });
-    chat.participants[$currentUser] = 0;
-    //Caching.removeChat(chat);
+    await $API.quitChannel(chat.id);
+  }
+
+  async function deleteChat() {
+    closeChat();
+    closeModal();
+    $API.deleteChatForAll(chat);
+  }
+
+  async function leaveChat() {
+    closeChat();
+    closeModal();
+    $API.leaveChat(chat);
   }
 </script>
 
@@ -154,7 +128,7 @@
 <div
   class="profile-backdrop"
   transition:fade={{ duration: 300 }}
-  on:click|self={() => dispatch("close")}
+  on:click|self={closeModal}
 >
   <div
     class="profile-panel"
@@ -165,7 +139,7 @@
     </div>
 
     <div class="header-controls">
-      <button class="icon-btn" on:click={() => dispatch("close")}>
+      <button class="icon-btn" on:click={closeModal}>
         <svg
           width="24"
           height="24"
@@ -180,46 +154,40 @@
       </button>
 
       <div class="menu-container">
-        <button class="icon-btn" on:click|stopPropagation={toggleMenu}>
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            ><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"
-            ></circle><circle cx="12" cy="19" r="1"></circle></svg
-          >
-        </button>
+        {#if chat && chat.type === "CHAT"}
+          <button class="icon-btn" on:click|stopPropagation={toggleMenu}>
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              ><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"
+              ></circle><circle cx="12" cy="19" r="1"></circle></svg
+            >
+          </button>
+        {/if}
 
         {#if showMenu}
           <div
             class="dropdown"
             transition:scale={{ duration: 150, start: 0.9 }}
           >
-            <div class="menu-item" on:click={() => handleAction("edit")}>
-              Изменить
-            </div>
-            {#if peer}
-              <div
-                class="menu-item danger"
-                on:click={() => handleAction("block")}
-              >
-                Заблокировать
-              </div>
+            {#if chat?.type === "CHAT"}
+              {#if chat.owner === $currentUser}
               <div
                 class="menu-item danger"
                 on:click={() => handleAction("delete")}
               >
-                Удалить контакт
+                Удалить для всех
               </div>
-            {:else}
+              {/if}
               <div
                 class="menu-item danger"
-                on:click={() => handleAction("leave")}
+                on:click={() => handleAction("quit")}
               >
-                Покинуть
+                Выйти из чата
               </div>
             {/if}
           </div>
@@ -228,42 +196,22 @@
     </div>
 
     <div class="hero">
-      <div class="avatar-large">
-        {#if avatar}
-          <img src={avatar} alt={title} />
-        {:else}
-          <div
-            class="avatar-placeholder"
-            style="background: {getGradient(peer.id || chat.id)}"
-          >
-            {title.charAt(0).toUpperCase()}
-          </div>
-        {/if}
-      </div>
+      <Avatar
+        chat={chat}
+        size={100}
+        style="margin-bottom: 10px;"/>
       <div class="hero-info">
         <h2>{title}</h2>
         <a
           class:online={$currentPresence[peer?.id]?.on === "ON"}
           class="status"
         >
-          {#if chat.type === "CHANNEL"}
-            {chat.participantsCount} участников
-          {:else if peer !== undefined}
-            <Signature contact={peer} />
-          {/if}
+        <Signature contact={peer} chat={chat} />
         </a>
       </div>
     </div>
 
     <div class="info-list">
-      <!--<div class="info-item hoverable">
-        <div class="icon-wrap">🔔</div> <div class="info-content">
-          <span class="label">Уведомления</span>
-          <span class="value">Включены</span>
-        </div>
-        <div class="toggle-switch checked"><div class="knob"></div></div>
-      </div>
-      <div class="divider"></div>-->
       {#if chat.type === "CHANNEL"}
         <div class="info-item hoverable" on:click={openChat}>
           <div class="icon-wrap">✨</div>
@@ -287,18 +235,27 @@
             </div>
           </div>
         {/if}
-      {:else}
+      {:else if chat.type === "CHAT"}
         <div class="info-item hoverable" on:click={openChat}>
           <div class="icon-wrap">💭</div>
           <div class="button">
-            <span class="label">Открыть чат</span>
+            <span class="label">Открыть группу</span>
+          </div>
+        </div>
+      {:else}
+        <div class="info-item hoverable" on:click={openChat}>
+          <div class="icon-wrap">✨</div>
+          <div class="button">
+            <span class="label">Перейти в чат</span>
           </div>
         </div>
       {/if}
+
       <hr />
+
       {#each infoFields as field}
         <div class="info-item">
-          <div class="icon-wrap">ℹ️</div>
+          <img src={"icons/" + field.icon + ".svg"} class="icon-wrap">
           <div class="info-content">
             <span class="value selectable">{field.value}</span>
             <span class="label">{field.label}</span>
@@ -309,13 +266,13 @@
   </div>
 </div>
 
-{#if showBlockConfirm}
+{#if showDeleteConfirm}
   <ConfirmModal
-    title="Заблокировать?"
+    title="Удалить чат?"
     message="Вы уверены?"
-    confirmText="Блок"
-    on:confirm={confirmBlock}
-    on:cancel={() => (showBlockConfirm = false)}
+    confirmText="Выйти"
+    on:confirm={deleteChat}
+    on:cancel={() => (showDeleteConfirm = false)}
   />
 {/if}
 
@@ -372,38 +329,22 @@
     background: linear-gradient(to bottom, #2a2a2a, #1c1c1c);
     border-bottom: 1px solid #333;
   }
-  .avatar-large {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 20px;
-    border-radius: 50%;
-    overflow: hidden;
-  }
-  .avatar-large img,
-  .avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .avatar-placeholder {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 48px;
-    color: #fff;
-  }
+
   .hero-info {
     text-align: center;
   }
+
   .hero-info h2 {
     margin: 0;
     color: #fff;
     font-size: 22px;
   }
+
   .status {
     color: #666;
     font-size: 14px;
   }
+
   .status.online {
     color: #4ade80;
   }
@@ -412,6 +353,7 @@
     background: #1c1c1c;
     padding: 10px 0;
   }
+
   .info-item {
     display: flex;
     padding: 15px 20px;
@@ -419,18 +361,22 @@
     word-break: break-word;
     white-space: pre-line;
   }
+
   .info-content {
     flex: 1;
     display: flex;
     flex-direction: column;
   }
+
   .info-content .value {
     color: #eee;
   }
+
   .info-content .label {
     color: #777;
     font-size: 13px;
   }
+
   .info-item .button {
     color: white;
   }
@@ -442,6 +388,7 @@
   .menu-container {
     position: relative;
   }
+
   .dropdown {
     position: absolute;
     top: 40px;
@@ -464,12 +411,15 @@
     cursor: pointer;
     border-radius: 6px;
   }
+
   .menu-item:hover {
     background: #333;
   }
+
   .menu-item.danger {
     color: #ff4b4b;
   }
+
   .header-controls {
     position: absolute;
     top: 0;
@@ -481,6 +431,7 @@
     z-index: 10;
     box-sizing: border-box;
   }
+
   .icon-btn {
     background: rgba(0, 0, 0, 0.2);
     border: none;
