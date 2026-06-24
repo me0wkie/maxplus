@@ -4,11 +4,13 @@
   import { createEventDispatcher } from "svelte";
   import { goto } from "$app/navigation";
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
+  import * as Caching from "$lib/utils/caching";
   import API, {
     currentUser,
     currentSessionContacts,
     currentSessionChats,
     currentPresence,
+    currentRealChats,
   } from "$lib/stores/api";
   import Session from "$lib/stores/session";
   import Signature from "$components/main/Signature.svelte";
@@ -123,6 +125,27 @@
 
   function formatId(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  }
+
+  async function joinChannel() {
+    const result = await $API.joinChannel(chat.link);
+    console.log(result);
+    currentRealChats.update(chats => [ ...chats, chat.id ]);
+    Caching.cacheChat(chat);
+    Object.keys(result.chat).forEach(key => chat[key] = result.chat[key]);
+  }
+
+  async function quitChannel() {
+    const result = await $API.quitChannel(chat.id);
+    console.log(result);
+    currentRealChats.update(chats => {
+      const idx = chats.indexOf(chat.id);
+      if (idx !== -1) chats.splice(idx, 1);
+      console.log(idx, chats)
+      return chats;
+    });
+    chat.participants[$currentUser] = 0;
+    //Caching.removeChat(chat);
   }
 </script>
 
@@ -241,14 +264,37 @@
         <div class="toggle-switch checked"><div class="knob"></div></div>
       </div>
       <div class="divider"></div>-->
-      <div class="info-item hoverable" on:click={() => openChat()}>
-        <div class="icon-wrap">💭</div>
-        <div class="button">
-          <span class="label"
-            >{chat.type === "CHANNEL" ? "Перейти в канал" : "Открыть чат"}</span
-          >
+      {#if chat.type === "CHANNEL"}
+        <div class="info-item hoverable" on:click={openChat}>
+          <div class="icon-wrap">✨</div>
+          <div class="button">
+            <span class="label">Перейти в канал</span>
+          </div>
         </div>
-      </div>
+
+        {#if chat.participants[$currentUser]}
+          <div class="info-item hoverable" on:click={quitChannel}>
+            <div class="icon-wrap">❌</div>
+            <div class="button">
+              <span class="label">Отписаться</span>
+            </div>
+          </div>
+        {:else}
+          <div class="info-item hoverable" on:click={joinChannel}>
+            <div class="icon-wrap">✅</div>
+            <div class="button">
+              <span class="label">Подписаться</span>
+            </div>
+          </div>
+        {/if}
+      {:else}
+        <div class="info-item hoverable" on:click={openChat}>
+          <div class="icon-wrap">💭</div>
+          <div class="button">
+            <span class="label">Открыть чат</span>
+          </div>
+        </div>
+      {/if}
       <hr />
       {#each infoFields as field}
         <div class="info-item">

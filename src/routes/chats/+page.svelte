@@ -49,7 +49,7 @@
   let searchPublic = [];
   let searchMsg = [];
 
-  receivedMessage.subscribe((msg) => {
+  receivedMessage.subscribe((msg) => {//TODO перенести в layout
     if (!msg || !msg.chatId) return;
 
     currentSessionChats.update((chats) => {
@@ -133,9 +133,9 @@
     clearSelection();
   }
 
-  function getChatsForFolder(folder, allChats) {
+  function getChatsForFolder(folder, allChats, realChats) {
     if (!allChats) return [];
-    const Chats = $currentRealChats.map((id) =>
+    const Chats = realChats.map((id) =>
       allChats.find((x) => x.id === id),
     );
     const filtered = Chats.filter((chat) => {
@@ -422,7 +422,7 @@
             {#if $currentlySyncing && i === activeFolderIndex && (!$currentSessionChats || $currentSessionChats.length === 0)}
               <div class="state">Загрузка...</div>
             {:else}
-              {@const chats = getChatsForFolder(folder, $currentSessionChats)}
+              {@const chats = getChatsForFolder(folder, $currentSessionChats, $currentRealChats)}
 
               {#if chats.length === 0}
                 <div class="state">Нет чатов</div>

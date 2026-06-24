@@ -486,8 +486,6 @@ export default class MobileApi extends BaseAPI {
 
     const payload = result.payload;
 
-    console.log(result);
-
     if (!payload) return null;
 
     currentSessionChats.update(chats => {
@@ -498,6 +496,14 @@ export default class MobileApi extends BaseAPI {
     currentRealChats.update(x => [...x, payload.chatId]);
 
     return payload.chat;
+  }
+
+  async joinChannel(link) {
+    return await invoke("join_channel", { link });
+  }
+
+  async quitChannel(channelId) {
+    return await invoke("quit_channel", { channelId });
   }
 
   async getCalls() {

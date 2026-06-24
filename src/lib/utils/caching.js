@@ -32,6 +32,24 @@ export const cacheChat = (chat, chats = null) => {
   return changed;
 };
 
+export const removeChat = (chat, chats = null) => {
+  const useStore = chats === null;
+  const list = useStore ? get(currentSessionChats) : chats;
+
+  const id = chat?.id;
+  const index = list.findIndex((c) => c.id === id);
+
+  if (index === -1) return false;
+
+  list.splice(index, 1);
+
+  if (useStore) {
+    currentSessionChats.set([...list]);
+  }
+
+  return true;
+};
+
 const isEqual = (a, b) => {
   for (const key in b) {
     if (a[key] !== b[key]) return false;

@@ -7,6 +7,7 @@
   import Card from "$components/main/Card.svelte";
   import ChatWindow from "$components/ChatWindow.svelte";
 
+  import * as Caching from "$lib/utils/caching";
   import Session from "$lib/stores/session";
   import { page } from "$app/stores";
   import API, {
