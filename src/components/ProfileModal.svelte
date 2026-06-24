@@ -4,9 +4,9 @@
   import { createEventDispatcher } from "svelte";
   import { goto } from "$app/navigation";
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
+  import InputModal from "$components/main/InputModal.svelte";
   import Signature from "$components/main/Signature.svelte";
   import Avatar from "$components/main/Avatar.svelte";
-  import * as Caching from "$lib/utils/caching";
   import { formatMs } from "$lib/utils/time";
   import Session from "$lib/stores/session";
   import API, {
@@ -28,6 +28,7 @@
 
   let showMenu = false;
   let showDeleteConfirm = false;
+  let showInputs = false;
 
   $: title = (() => {
     if (peer.id) return peer?.names?.[0]?.firstName;
@@ -53,9 +54,7 @@
     else if (action === "delete") showDeleteConfirm = true;
   }
 
-  function closeModal() {
-    $Session.profile = null;
-  }
+  const closeModal = () => $Session.profile = null;
 
   function closeChat() {
     const idx = $Session.openedChats.indexOf(chat.id);
@@ -100,14 +99,14 @@
   }
 
   async function joinChannel() {
-    await $API.joinChannel(chat.link);
+    const response = await $API.joinChannel(chat.link);
 
-    Object.keys(response.chat)
-      .forEach(key => chat[key] = response.chat[key]);
+    Object.keys(response)
+      .forEach(key => chat[key] = response[key]);
   }
 
   async function quitChannel() {
-    await $API.quitChannel(chat.id);
+    await $API.leaveChannel(chat);
   }
 
   async function deleteChat() {
@@ -120,6 +119,16 @@
     closeChat();
     closeModal();
     $API.leaveChat(chat);
+  }
+
+  async function updateChatProfile({ detail }) {
+    showInputs = false;
+    const { title, description } = detail;
+
+    chat.title = title;
+    chat.description = description.length ? description : undefined;
+
+    await $API.updateChatProfile(chat);
   }
 </script>
 
@@ -175,6 +184,11 @@
             transition:scale={{ duration: 150, start: 0.9 }}
           >
             {#if chat?.type === "CHAT"}
+              {#if chat.admins.includes($currentUser)}
+                <div class="menu-item" on:click={() => showInputs = true}>
+                  Изменить название
+                </div>
+              {/if}
               {#if chat.owner === $currentUser}
               <div
                 class="menu-item danger"
@@ -220,7 +234,7 @@
           </div>
         </div>
 
-        {#if chat.participants[$currentUser]}
+        {#if $currentRealChats.includes(chat.id)}
           <div class="info-item hoverable" on:click={quitChannel}>
             <div class="icon-wrap">❌</div>
             <div class="button">
@@ -273,6 +287,28 @@
     confirmText="Выйти"
     on:confirm={deleteChat}
     on:cancel={() => (showDeleteConfirm = false)}
+  />
+{/if}
+
+{#if showInputs}
+  <InputModal
+    title="Настройки чата"
+    fields={[
+      {
+        key: "title",
+        label: "Название",
+        placeholder: "Введите название",
+        value: chat.title
+      }, {
+        key: "description",
+        label: "Описание",
+        placeholder: "Введите описание",
+        value: chat.description || "",
+        multiline: true
+      },
+    ]}
+    on:submit={updateChatProfile}
+    on:cancel={() => showInputs = false}
   />
 {/if}
 

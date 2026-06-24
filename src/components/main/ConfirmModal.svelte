@@ -76,12 +76,14 @@
     padding: 24px 20px;
     text-align: center;
   }
+
   .content h3 {
     margin: 0 0 10px 0;
     font-size: 18px;
     font-weight: 600;
     color: #fff;
   }
+
   .content p {
     margin: 0;
     font-size: 14px;
@@ -94,6 +96,7 @@
     border-top: 1px solid #333;
     height: 50px;
   }
+
   .btn {
     flex: 1;
     background: transparent;
@@ -102,17 +105,21 @@
     cursor: pointer;
     transition: 0.2s;
   }
+
   .btn:active {
     background: #333;
   }
+
   .btn.cancel {
     color: #007afd;
     border-right: 1px solid #333;
   }
+
   .btn.confirm {
     color: #007afd;
     font-weight: 600;
   }
+
   .btn.confirm.danger {
     color: #ff4b4b;
   }

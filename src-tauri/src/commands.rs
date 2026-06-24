@@ -34,9 +34,17 @@ delegate_cmd!(close_all_sessions() => close_all_sessions());
 delegate_cmd!(get_photo_upload(count: i64, profile: bool) => get_photo_upload(count, profile));
 delegate_cmd!(get_video_upload(count: i64, profile: bool) => get_video_upload(count, profile));
 delegate_cmd!(get_file_upload(count: i64, profile: bool) => get_file_upload(count, profile));
-delegate_cmd!(update_profile(first_name: String, last_name: String, description: Option<String>, avatar_token: Option<String>) => update_profile(first_name, last_name, description, avatar_token));
+delegate_cmd!(update_profile(first_name: String, last_name: String, description: Option<String>, avatar_token: Option<String>) =>
+    update_profile(first_name, last_name, description, avatar_token));
 delegate_cmd!(get_calls(count: i64, forward: bool) => get_calls(forward, count));
 delegate_cmd!(call(action_id: u16, payload: Value) => call(action_id, payload));
+delegate_cmd!(create_group(title: String, participant_ids: Option<Vec<i64>>, notify: Option<bool>) => create_group(title, participant_ids, notify));
+delegate_cmd!(delete_chat(chat_id: i64, last_event_time: Option<i64>, for_all: Option<bool>) => delete_chat(chat_id, last_event_time, for_all));
+delegate_cmd!(resolve_channel_by_name(link: String) => resolve_channel_by_name(link));
+delegate_cmd!(join_channel(link: String) => join_channel(link));
+delegate_cmd!(leave_channel(channel_id: i64) => leave_channel(channel_id));
+delegate_cmd!(leave_group(chat_id: i64) => leave_group(chat_id));
+delegate_cmd!(change_group_profile(chat_id: i64, title: Option<String>, description: Option<String>) => change_group_profile(chat_id, title, description));
 
 delegate_cmd!(add_reaction(chat_id: i64, message_id: String, reaction: String) => add_reaction(chat_id, p(message_id)?, reaction));
 delegate_cmd!(remove_reaction(chat_id: i64, message_id: String) => remove_reaction(chat_id, p(message_id)?));
@@ -45,12 +53,6 @@ delegate_cmd!(pin_message(chat_id: i64, message_id: String, notify: bool) => pin
 delegate_cmd!(delete_message(chat_id: i64, message_id: String, for_me: bool) => delete_message(chat_id, p(message_id)?, for_me));
 delegate_cmd!(get_video_by_id(chat_id: i64, message_id: String, video_id: i64) => get_video_by_id(chat_id, p(message_id)?, video_id));
 delegate_cmd!(get_file_by_id(chat_id: i64, message_id: String, file_id: i64) => get_file_by_id(chat_id, p(message_id)?, file_id));
-delegate_cmd!(create_group(title: String, participant_ids: Option<Vec<i64>>, notify: Option<bool>) => create_group(title, participant_ids, notify));
-delegate_cmd!(delete_chat(chat_id: i64, last_event_time: Option<i64>, for_all: Option<bool>) => delete_chat(chat_id, last_event_time, for_all));
-delegate_cmd!(resolve_channel_by_name(link: String) => resolve_channel_by_name(link));
-delegate_cmd!(join_channel(link: String) => join_channel(link));
-delegate_cmd!(leave_channel(channel_id: i64) => leave_channel(channel_id));
-delegate_cmd!(leave_group(chat_id: i64) => leave_group(chat_id));
 
 delegate_cmd!(send_message(
     chat_id: i64,

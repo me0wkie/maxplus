@@ -159,7 +159,9 @@
         {/if}
 
         {#if isSystem}
-          <p class="line system">{getSystemText(msg)}</p>
+          {#each getSystemText(msg).split("\n") as line}
+            <p class="line system">{@html line}</p>
+          {/each}
         {:else}
           {#if lines}
             {#each lines as line}
@@ -490,6 +492,10 @@
     line-height: 1.4;
     word-break: break-word;
     pointer-events: auto;
+  }
+
+  .line.system {
+    text-align: center;
   }
 
   /*.spinner {

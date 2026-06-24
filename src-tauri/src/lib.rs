@@ -100,6 +100,7 @@ pub fn run() {
             commands::join_channel,
             commands::leave_channel,
             commands::leave_group,
+            commands::change_group_profile,
             commands::get_calls,
             commands::call,
             files::download,

@@ -503,13 +503,15 @@ export default class MobileApi extends BaseAPI {
     const { chat } = response;
 
     currentRealChats.update(chats => [ ...chats, chat.id ]);
-    Caching.cacheChat(chat); // updates entries
+    cacheChat(chat); // updates entries
+
+    return chat;
   }
 
   async leaveChannel(chat) {
     const channelId = chat.id;
 
-    await invoke("quit_channel", { channelId });
+    await invoke("leave_channel", { channelId });
 
     currentRealChats.update(chats => {
       const idx = chats.indexOf(chat.id);
@@ -517,7 +519,7 @@ export default class MobileApi extends BaseAPI {
       return chats;
     });
 
-    chat.participants[get(currentUser)] = 0;
+    if (chat.participants) chat.participants[get(currentUser)] = 0;
   }
 
   async leaveChat(chat) {
@@ -542,6 +544,17 @@ export default class MobileApi extends BaseAPI {
       if (idx !== -1) chats.splice(idx, 1);
       return chats;
     });
+  }
+
+  async updateChatProfile(chat) {
+    const response = await invoke("change_group_profile", {
+      chatId: chat.id,
+      title: chat.title,
+      description: chat.description
+    });
+
+    cacheChat(response.chat);
+    return response.chat;
   }
 
   async getCalls() {

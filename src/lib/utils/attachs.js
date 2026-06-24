@@ -1,3 +1,5 @@
+import { escapeHtml } from "$lib/utils/text.js";
+
 // prettier-ignore
 export function getAttachText(chat, msg) {
   return has(msg, "PHOTO") ? "Изображение" :
@@ -19,10 +21,12 @@ export function getSystemText(msg) {
   if (!event) return null;
   if (event === "botStarted") return "Вы запустили бота!";
   const first = msg.attaches?.[0];
-  if (event === "new") return "Чат " + first.title + " создан!";
+  if (event === "new") return "Чат <b>" + escapeHtml(first.title) + "</b> создан!";
   if (event === "icon") return "Фото чата изменено";
   if (event === "joinByLink") return "Вы вступили по ссылке!";
-  if (event === "system") return first.message;
-  if (msg.text) return msg.text;
-  return event;
+  if (event === "system") return escapeHtml(first.message);
+  if (event === "title")
+    return `Настройки чата изменены!\n<b>${escapeHtml(first.title) || "Без названия"}</b>`;
+  if (msg.text) return escapeHtml(msg.text);
+  return escapeHtml(event);
 }

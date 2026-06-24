@@ -75,8 +75,6 @@
       dispatch("open", chat);
     }
   }
-
-  $: console.log(shownMessage)
 </script>
 
 <div
