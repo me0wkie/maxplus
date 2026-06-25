@@ -235,7 +235,15 @@ export default class MobileApi extends BaseAPI {
 
       sessionSet("sync", true);
 
+      const t0 = Date.now();
       const res = await invoke("sync_client");
+      const t1 = Date.now();
+
+      const rtt = t1 - t0;
+      const offset = Math.ceil(res.time - (t0 + rtt / 2));
+
+      sessionSet("drift", offset); // ошибка времени (для FetchHistory)
+      console.log("Сдвиг времени", offset)
 
       const { chats, contacts, config } = res;
 
@@ -291,7 +299,7 @@ export default class MobileApi extends BaseAPI {
     return invoke("fetch_contacts", { userIds });
   }
 
-  async getMessages(chatId, from_time) {
+  async getMessages(chatId, from_time = Date.now() + sessionGet("drift")) {
     await this.synchronized;
 
     const payload = {
