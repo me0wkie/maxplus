@@ -1,7 +1,7 @@
 use crate::state::AppState;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use rumax::models::{Identity};
+use rumax::models::{Identity, FetchHistoryOptions};
 use tauri::State;
 
 fn p(s: String) -> Result<u64, String> {
@@ -45,6 +45,7 @@ delegate_cmd!(join_channel(link: String) => join_channel(link));
 delegate_cmd!(leave_channel(channel_id: i64) => leave_channel(channel_id));
 delegate_cmd!(leave_group(chat_id: i64) => leave_group(chat_id));
 delegate_cmd!(change_group_profile(chat_id: i64, title: Option<String>, description: Option<String>) => change_group_profile(chat_id, title, description));
+delegate_cmd!(fetch_history(chat_id: i64, options: Option<FetchHistoryOptions>) => fetch_history(chat_id, options));
 
 delegate_cmd!(add_reaction(chat_id: i64, message_id: String, reaction: String) => add_reaction(chat_id, p(message_id)?, reaction));
 delegate_cmd!(remove_reaction(chat_id: i64, message_id: String) => remove_reaction(chat_id, p(message_id)?));
@@ -97,21 +98,7 @@ pub async fn sync_client(state: State<'_, AppState>) -> Result<Value, String> {
         state.client.set_user_id(id).await;
         state.client.spawn_telemetry_task().await;
     }
-    serde_json::to_value(r.payload).map_err(|e| e.to_string())
-}
 
-#[tauri::command]
-pub async fn fetch_history(
-    state: State<'_, AppState>,
-    chat_id: i64,
-    from_time: Option<u64>,
-    amount: Option<u32>,
-) -> Result<Value, String> {
-    let r = state
-        .client
-        .fetch_history(chat_id, from_time, 0, amount.unwrap_or(200))
-        .await
-        .map_err(|e| e.to_string())?;
     serde_json::to_value(r.payload).map_err(|e| e.to_string())
 }
 

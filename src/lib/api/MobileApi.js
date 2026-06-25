@@ -291,9 +291,18 @@ export default class MobileApi extends BaseAPI {
     return invoke("fetch_contacts", { userIds });
   }
 
-  async getMessages(chatId, fromTime) {
+  async getMessages(chatId, from_time) {
     await this.synchronized;
-    return await invoke("fetch_history", { chatId, fromTime, amount: 200 });
+
+    const payload = {
+      chatId,
+      options: {
+        from_time,
+        backward: 40
+      }
+    }
+
+    return await invoke("fetch_history", payload);
   }
 
   async sendMessage(message, chatId, params) {
@@ -403,15 +412,17 @@ export default class MobileApi extends BaseAPI {
   }
 
   async getSessions() {
-    // wait for sync not required?
+    await this.synchronized;
     return await invoke("get_sessions");
   }
 
   async closeAllSessions() {
+    await this.synchronized;
     return await invoke("close_all_sessions");
   }
 
   async uploadAttachment(attach) {
+    await this.synchronized;
     const { type, path, mime } = attach;
 
     const response = await invoke("get_" + type.toLowerCase() + "_upload", {
@@ -459,6 +470,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async updateProfile(firstName, lastName, description) {
+    await this.synchronized;
     const result = await invoke("update_profile", {
       firstName,
       lastName,
@@ -479,6 +491,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async createGroup(title) {
+    await this.synchronized;
     const result = await invoke("create_group", {
       title,
       participantIds: [],
@@ -499,6 +512,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async joinChannel(link) {
+    await this.synchronized;
     const response = await invoke("join_channel", { link });
     const { chat } = response;
 
@@ -509,6 +523,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async leaveChannel(chat) {
+    await this.synchronized;
     const channelId = chat.id;
 
     await invoke("leave_channel", { channelId });
@@ -523,6 +538,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async leaveChat(chat) {
+    await this.synchronized;
     const chatId = chat.id;
 
     await invoke("leave_group", { chatId });
@@ -535,6 +551,7 @@ export default class MobileApi extends BaseAPI {
   }
 
   async deleteChatForAll(chat) {
+    await this.synchronized;
     const chatId = chat.id;
 
     await invoke("leave_group", { chatId, forAll: true });
@@ -547,6 +564,8 @@ export default class MobileApi extends BaseAPI {
   }
 
   async updateChatProfile(chat) {
+    await this.synchronized;
+
     const response = await invoke("change_group_profile", {
       chatId: chat.id,
       title: chat.title,
@@ -558,10 +577,12 @@ export default class MobileApi extends BaseAPI {
   }
 
   async getCalls() {
+    await this.synchronized;
     return await invoke("get_calls", { forward: false, count: 100 });
   }
 
   async call(actionId, payload) {
+    await this.synchronized;
     return await invoke("call", { actionId, payload });
   }
 }

@@ -73,8 +73,6 @@
   const messages = writable([]);
   let initialized = false;
 
-  $: uiMessages = ($messages ? [...$messages] : []).sort((a, b) => a.time - b.time);
-
   const dispatch = createEventDispatcher();
 
   messages.subscribe(async (_messages) => {
@@ -83,7 +81,7 @@
     }
   });
 
-  const BATCH_SIZE = 50;
+  const BATCH_SIZE = 40;
 
   $: avatarUserId = chat?.type === "DIALOG" ? (chat.id ^ $currentUser) : undefined;
 
@@ -156,7 +154,7 @@
   function computeCumulativeHeights() {
     const heights = [];
     let sum = 0;
-    for (const msg of uiMessages) {
+    for (const msg of $messages) {
       const h = $messageHeights[msg.id] || DEFAULT_HEIGHT;
       sum += h;
       heights.push(sum);
@@ -175,10 +173,10 @@
   }
 
   function captureScrollAnchor() {
-    if (!scrollElement || !uiMessages.length) return;
+    if (!scrollElement || !$messages.length) return;
     const st = scrollElement.scrollTop;
-    for (let i = 0; i < uiMessages.length; i++) {
-      const msg = uiMessages[i];
+    for (let i = 0; i < $messages.length; i++) {
+      const msg = $messages[i];
       const top = i === 0 ? 0 : cumulativeHeights[i - 1];
       const bottom = cumulativeHeights[i];
       if (bottom > st && top < st + scrollElement.clientHeight) {
@@ -186,12 +184,12 @@
         return;
       }
     }
-    scrollAnchor = { messageId: uiMessages[0]?.id, offset: st };
+    scrollAnchor = { messageId: $messages[0]?.id, offset: st };
   }
 
   function restoreScrollAnchor() {
     if (!scrollAnchor.messageId || !scrollElement) return;
-    const idx = uiMessages.findIndex(m => m.id === scrollAnchor.messageId);
+    const idx = $messages.findIndex(m => m.id === scrollAnchor.messageId);
     if (idx === -1) return;
     const top = idx === 0 ? 0 : cumulativeHeights[idx - 1];
     scrollElement.scrollTop = top + scrollAnchor.offset;
@@ -202,7 +200,11 @@
 
     applyPendingHeights();
 
-    if (!skipAnchor) {
+    const shouldUseAnchor =
+      !skipAnchor &&
+      !isDragging;
+
+    if (shouldUseAnchor) {
       captureScrollAnchor();
     }
 
@@ -219,23 +221,23 @@
     if (isNearBottom) {
       const targetOffset = Math.max(0, totalHeight - clientHeight - OVERSCAN);
       startIdx = findIndexByOffset(targetOffset);
-      endIdx = uiMessages.length - 1;
+      endIdx = $messages.length - 1;
     } else {
       const viewTop = Math.max(0, scrollTop - OVERSCAN);
       const viewBottom = scrollTop + clientHeight + OVERSCAN;
       startIdx = findIndexByOffset(viewTop);
       endIdx = findIndexByOffset(viewBottom);
-      endIdx = Math.min(endIdx, uiMessages.length - 1);
+      endIdx = Math.min(endIdx, $messages.length - 1);
       if (startIdx > endIdx) endIdx = startIdx;
     }
 
     const newVisible = [];
-    for (let i = startIdx; i <= endIdx && i < uiMessages.length; i++) {
-      newVisible.push(uiMessages[i].id);
+    for (let i = startIdx; i <= endIdx && i < $messages.length; i++) {
+      newVisible.push($messages[i].id);
     }
     visibleMessages = newVisible;
 
-    if (!skipAnchor) {
+    if (shouldUseAnchor) {
       await tick();
       restoreScrollAnchor();
     } else {
@@ -250,7 +252,7 @@
     for (const wrapper of wrappers) {
       const id = wrapper.id?.replace('m-', '');
       if (!id) continue;
-      const content = wrapper.querySelector('.message-clickable-area');
+      const content = wrapper.querySelector('#clickable-area');
       if (content) {
         const height = content.getBoundingClientRect().height;
         if (height > 0) updates[id] = height;
@@ -269,17 +271,16 @@
     if (!chat) return;
 
     loading = true;
-    const oldScrollHeight = scrollElement ? scrollElement.scrollHeight : 0;
-    const oldScrollTop = scrollElement ? scrollElement.scrollTop : 0;
-    let anchorId = null, anchorOffset = 0;
 
-    if (scrollElement && visibleMessages.length > 0 && !isInitial) {
-      const firstVisibleId = visibleMessages[0];
-      const idx = uiMessages.findIndex(m => m.id === firstVisibleId);
-      if (idx !== -1) {
-        anchorId = firstVisibleId;
-        const topOffset = idx > 0 ? cumulativeHeights[idx - 1] : 0;
-        anchorOffset = oldScrollTop - topOffset;
+    let anchorId = null;
+    let oldTop = null;
+
+    if (scrollElement && !isInitial) {
+      const anchorNode = scrollElement.querySelector('.message-wrapper');
+
+      if (anchorNode) {
+        anchorId = anchorNode.id.replace('m-', '');
+        oldTop = anchorNode.getBoundingClientRect().top;
       }
     }
 
@@ -300,16 +301,26 @@
         $API.savedMessages[chat.id] = syncedMessages;
         initialized = true;
       } else {
-        const oldestMsg = uiMessages[0];
-        const fromTime = oldestMsg ? oldestMsg.time : Date.now();
-        const { error, messages: syncedMessages } = await $API.getMessages(chat.id, fromTime);
+        const oldestMsg = $messages[0];
+
+        const fromTime = oldestMsg ? oldestMsg.time : undefined;
+
+        const {
+          error,
+          messages: syncedMessages
+        } = await $API.getMessages(chat.id, fromTime);
+
+        console.log("Loaded " + syncedMessages.length + " messages")
+
+        if (syncedMessages.length < BATCH_SIZE) {
+          all_loaded = true;
+        }
+
         if (!error && syncedMessages.length > 0) {
           const currentMsgs = get(messages);
           const existingIds = new Set(currentMsgs.map(m => m.id));
           const newUnique = syncedMessages.filter(m => !existingIds.has(m.id));
           if (newUnique.length > 0) {
-            messages.update(msgs => [...msgs, ...newUnique]);
-
             const newDecoded = {};
             await Promise.all(newUnique.map(async (msg) => {
               const res = await decode_msg(msg);
@@ -317,25 +328,33 @@
             }));
             decodedMessages.update(d => ({ ...d, ...newDecoded }));
 
-            if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
+            messages.update(msgs => [...newUnique, ...msgs]);
 
             await tick();
-            applyPendingHeights();
-            computeCumulativeHeights();
 
-            if (scrollElement) {
-              if (anchorId) {
-                const newIdx = uiMessages.findIndex(m => m.id === anchorId);
-                if (newIdx !== -1) {
-                  const newTopOffset = newIdx > 0 ? cumulativeHeights[newIdx - 1] : 0;
-                  scrollElement.scrollTop = newTopOffset + anchorOffset;
-                } else {
-                  const diff = scrollElement.scrollHeight - oldScrollHeight;
-                  scrollElement.scrollTop = oldScrollTop + diff;
-                }
-              } else {
-                const diff = scrollElement.scrollHeight - oldScrollHeight;
-                scrollElement.scrollTop = oldScrollTop + diff;
+
+            const anchorEl = anchorId
+              ? document.getElementById(`m-${anchorId}`)
+              : null;
+
+            const newTop = anchorEl?.getBoundingClientRect().top;
+
+            if (
+              scrollElement &&
+              oldTop != null &&
+              newTop != null
+            ) {
+              const delta = newTop - oldTop;
+
+              scrollElement.scrollTop += delta;
+
+              await tick();
+              measureAllHeights();
+              computeCumulativeHeights();
+              await updateVisibleMessages(true);
+
+              if (isDragging) {
+                startScrollTop += delta;
               }
             }
           }
@@ -512,10 +531,10 @@
 
   let dateSeparators = {};
 
-  $: if (uiMessages.length) {
+  $: if ($messages.length) {
     const newSeparators = {};
     let lastDateStr = null;
-    for (const msg of uiMessages) {
+    for (const msg of $messages) {
       const dateStr = new Date(msg.time).toLocaleDateString();
       if (dateStr !== lastDateStr) {
         newSeparators[msg.id] = dateStr;
@@ -550,7 +569,7 @@
   }
 
   /* media stuff */
-  $: allMedia = uiMessages.flatMap((m) =>
+  $: allMedia = $messages.flatMap((m) =>
     (m.attaches || [])
       .filter((a) => a._type === "PHOTO" || a._type === "VIDEO")
       .map((a) => ({
@@ -649,7 +668,7 @@
 
     <div style={"flex-shrink: 0; height: " + (chat.pinnedMessage ? "60px" : "10px")}></div>
 
-    {#each uiMessages as msg (msg.id)}
+    {#each $messages as msg (msg.id)}
       <div class="message-wrapper" id={"m-" + msg.id}>
         {#if visibleMessages.includes(msg.id) || !$messageHeights[msg.id]}
           <div
@@ -900,7 +919,7 @@
     transition: background 1s;
   }
 
-  .observable-area {
+  .observer-area {
     position: relative;
   }
 </style>
