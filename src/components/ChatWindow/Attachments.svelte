@@ -1,5 +1,6 @@
 <script>
-  import { invoke } from '@tauri-apps/api/core';
+  import { download } from '@tauri-apps/plugin-upload';
+  import { open, save } from "@tauri-apps/plugin-dialog";
   import { onDestroy } from 'svelte';
 
   export let getFile;
@@ -130,17 +131,34 @@
   $: layout = computeLayout(mediaItems);
 
   function isDownloaded(attach) { return !!attach.filePath; }
+
   function isDownloading(attach) { return downloadingMap[attach.fileId] === true; }
+
   async function handleFileClick(attach) {
     if (isDownloaded(attach)) { openFile(attach); return; }
     if (isDownloading(attach)) return;
     downloadingMap = { ...downloadingMap, [attach.fileId]: true };
+
+    const path = await save({
+      defaultPath: attach.name,
+    });
+
+    if (!path) return;
+
     try {
       const response = await getFile(attach.fileId);
-      const filePath = await invoke("download", { url: response.url, name: attach.name });
+
+      const result = await download(
+        response.url,
+        path,
+        ({ progress, total }) => {}, { 'Content-Type': 'text/plain' }
+      );
+
       for (const a of attaches) {
-        if (a.fileId === attach.fileId) a.filePath = filePath;
+        if (a.fileId === attach.fileId) a.filePath = attach.fileId;
       }
+
+      attaches = attaches;
     } catch (err) {
       console.error("Ошибка при загрузке файла:", err);
     } finally {
