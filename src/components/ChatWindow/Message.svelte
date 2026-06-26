@@ -48,14 +48,17 @@
     const target = document.getElementById("m-" + linkedMsg.id);
     if (!target || !scrollElement) return;
 
-    const highlight = target.querySelector("#clickable-area");
-    highlight.style.background = "rgba(255,255,255,0.05)";
+    const highlight = document.createElement("div");
+    highlight.className = "msg-highlight";
+
+    target.style.position = "relative";
+    target.appendChild(highlight);
 
     scrollTo(scrollElement, target, {
       smooth: true,
       onComplete: () => {
         setTimeout(() => {
-          highlight.style.background = null;
+          highlight.remove();
         }, 1000);
       }
     });
@@ -181,7 +184,7 @@
         {/if}
       </div>
       <div class={column ? "bottom cmn" : "bottom"}>
-        <Reactions info={msg.reactionInfo} msgId={msg.id} {isMe} />
+        <Reactions info={msg.reactionInfo} {isMe} />
 
         <div class="message-status">
           <div class="status-meta">
@@ -266,6 +269,11 @@
     max-width: 80%;
     font-size: 13px;
     position: relative;
+    overflow: hidden;
+  }
+
+  .text {
+    min-width: 0;
   }
 
   .message-bubble.column .text {
@@ -353,6 +361,7 @@
     border-radius: 4px 12px 12px 4px;
     padding-top: 4px;
     padding-bottom: 4px;
+    overflow: hidden;
   }
 
   .forward-header {
@@ -374,7 +383,6 @@
     font-weight: 600;
     color: #34b7f1;
     font-size: 12px;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -496,6 +504,28 @@
 
   .line.system {
     text-align: center;
+  }
+
+  @keyframes pulseHighlight {
+    0% {
+      background: rgba(255,255,255,0);
+    }
+    30% {
+      background: rgba(255,255,255,0.12);
+    }
+    100% {
+      background: rgba(255,255,255,0);
+    }
+  }
+
+  .msg-highlight {
+    position: absolute;
+    top: -3px;
+    left: 0;
+    width: 100%;
+    height: calc(100% + 6px);
+    pointer-events: none;
+    animation: pulseHighlight 1.2s ease-out forwards;
   }
 
   /*.spinner {

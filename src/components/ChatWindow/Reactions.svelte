@@ -47,5 +47,6 @@
   .reactions .amount {
     font-size: 11px;
     opacity: 0.8;
+    pointer-events: none;
   }
 </style>

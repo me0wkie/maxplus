@@ -13,12 +13,11 @@
   export let chat;
   export let chatKeysLoaded;
   export let messages;
+  export let attachesDropout;
 
   let newMessage = "";
   let attaches = [];
   let elements = [];
-
-  let attachesDropout;
 
   async function onSend(event) {
     if (!newMessage.trim() && !attaches.length) return;
@@ -166,7 +165,7 @@
 
 <div class="input-area">
   <div class="input-controls">
-    <button class="button" on:click={toggleAttachesDropout}>
+    <button class="button input-button" on:click={toggleAttachesDropout}>
       <img
         src="icons/attachment.png"
         style="transform: scale(0.6) rotate(70deg)"

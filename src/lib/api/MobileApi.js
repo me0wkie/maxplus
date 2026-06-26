@@ -22,6 +22,11 @@ import { goto } from "$app/navigation";
 
 export default class MobileApi extends BaseAPI {
   resolve_sync = null;
+  /* TODO throw an error if sync takes > 10 sec?
+  to prevent request spam
+  1) async function waitSync() {}
+  2) if (!await waitSync()) return null;
+  */
   synchronized = new Promise((resolve) => (this.resolve_sync = resolve));
   latest_init = null;
   unlisten = null;
@@ -306,7 +311,8 @@ export default class MobileApi extends BaseAPI {
       chatId,
       options: {
         from_time,
-        backward: 40
+        backward: 40,
+        interactive: true
       }
     }
 
@@ -573,7 +579,6 @@ export default class MobileApi extends BaseAPI {
 
   async updateChatProfile(chat) {
     await this.synchronized;
-
     const response = await invoke("change_group_profile", {
       chatId: chat.id,
       title: chat.title,

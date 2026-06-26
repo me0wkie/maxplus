@@ -1,4 +1,5 @@
 <script>
+  import { invoke } from '@tauri-apps/api/core';
   import { onDestroy } from 'svelte';
 
   export let getFile;
@@ -266,7 +267,6 @@
     border-radius: 10px;
     cursor: pointer;
     background-color: #0002;
-    min-width: 130px;
     margin-right: 10px;
     margin-top: 4px;
   }

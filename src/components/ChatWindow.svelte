@@ -44,6 +44,8 @@
 
   $: chat = $currentSessionChats?.find((c) => c.id === chatId);
 
+  let title;
+
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
   let chatKeysLoaded = null;
@@ -331,7 +333,7 @@
             messages.update(msgs => [...newUnique, ...msgs]);
 
             await tick();
-
+            await new Promise(requestAnimationFrame);
 
             const anchorEl = anchorId
               ? document.getElementById(`m-${anchorId}`)
@@ -424,7 +426,6 @@
     checkForEncryptionRequest(chat, chatKeysLoaded, [message]);
   });
 
-  let title;
   onMount(async () => {
     if (chat?.id === 0) {
       title = "Избранное";
@@ -436,8 +437,6 @@
     chatPasswordLoaded = await chatPassword.get(chat?.id);
     chatObfuscationLoaded = await chatObfs.get(chat?.id);
     chatKeysLoaded = await chatKeys.get(chat?.id);
-
-
 
     setupResizeObserver();
     startAutoScrollIfAtBottom();
@@ -463,7 +462,6 @@
   function startDrag(e) {
     clickStartPos = { x: e.clientX, y: e.clientY };
     if (e.button !== 0) return;
-    isDragging = true;
     startY = e.pageY;
     startScrollTop = scrollElement.scrollTop;
     scrollElement.style.cursor = "grabbing";
@@ -472,11 +470,50 @@
 
   function stopDrag() {
     isDragging = false;
+    startScrollTop = 0;
     if (scrollElement) scrollElement.style.cursor = "grab";
     document.body.style.userSelect = "";
   }
 
+  async function mouseUp(e) {
+    const clicked =
+      !isDragging ||
+      Math.abs(startScrollTop - scrollElement.scrollTop) < 5;
+
+    startScrollTop = 0;
+    isDragging = false;
+
+    if (scrollElement) scrollElement.style.cursor = "grab";
+    document.body.style.userSelect = "";
+
+    if (e.target.closest(".reply-block") || e.target.closest(".forward-block")) return;
+
+    if (clicked) {
+      const children = visibleMessages
+        .map(id => document.getElementById('m-' + id))
+        .filter(Boolean);
+
+      const nearest = children.find(el => {
+        const rect = el.getBoundingClientRect();
+        return rect.top < e.clientY && rect.bottom > e.clientY;
+      })
+
+      if (nearest) {
+        const id = nearest.id.split('-')[1];
+        const msg = $messages.find(x => x.id === id);
+
+        if (e.target.closest(".reaction")) {
+          const reaction = e.target.childNodes[0].nodeValue.trim();
+          await handleReaction(chat, msg, reaction);
+          messages.update(x => x);
+        }
+        else if (msg && !dropoutActiveAt) selectMessage(e, msg);
+      }
+    }
+  }
+
   function moveDrag(e) {
+    if (startScrollTop && !isDragging) isDragging = true;
     if (!isDragging) return;
     e.preventDefault();
     const y = e.pageY;
@@ -485,34 +522,28 @@
   }
 
   function handleClick(e) {
-    if (e.target.closest(".reply-block") || e.target.closest(".forward-block")) return;
-    if (dropoutActiveAt) {
-      if (![".message-actions-dropout"].some(x => e.target.closest(x))) {
-        dropoutActiveAt = null;
-        e.stopPropagation();
-        if (onBack.dropout) delete onBack["dropout"];
-      }
+    if (!justOpenedDropout && dropoutActiveAt && !e.target.closest(".message-actions-dropout")) {
+      dropoutActiveAt = null;
+      delete onBack.dropout;
     }
-    if (attachesDropout) {
-      if (!e.target.closest(".attaches-dropout") && !e.target.closest(".send-button")) {
-        attachesDropout = null;
-        e.stopPropagation();
-      }
-    }
-    if (e.target.closest(".reaction")) {
-      const reaction = e.target.childNodes[0].nodeValue.trim();
-      const msgId = e.target.parentNode.dataset.msgId;
-      handleReaction(chat, $messages.find(x => x.id === msgId), reaction);
-      messages.update(x => x);
-      e.stopPropagation();
+
+    if (attachesDropout && !e.target.closest(".attaches-dropout") && !e.target.closest(".input-button")) {
+      attachesDropout = null;
     }
   }
 
+  let justOpenedDropout = false;
+
   function selectMessage(e, msg) {
-    if (e.target.closest(".grid-item") || e.target.closest(".reply-block")) return;
     const dx = Math.abs(e.clientX - clickStartPos.x);
     const dy = Math.abs(e.clientY - clickStartPos.y);
     if (dx > 5 || dy > 5) return;
+
+    if (msg === dropoutActiveAt?.msg) return;
+
+    justOpenedDropout = true;
+    requestAnimationFrame(() => (justOpenedDropout = false));
+
     dropoutActiveAt = { e, msg };
   }
 
@@ -649,7 +680,7 @@
     on:scroll={handleScroll}
     on:mousedown={startDrag}
     on:mouseleave={stopDrag}
-    on:mouseup={stopDrag}
+    on:mouseup={mouseUp}
     on:mousemove={moveDrag}
     bind:this={scrollElement}
     class="message-list-container grab-scroll"
@@ -671,10 +702,6 @@
     {#each $messages as msg (msg.id)}
       <div class="message-wrapper" id={"m-" + msg.id}>
         {#if visibleMessages.includes(msg.id) || !$messageHeights[msg.id]}
-          <div
-            id="clickable-area"
-            on:click|stopPropagation={(e) => selectMessage(e, msg)}
-          ></div>
           <div
             class="observer-area"
             use:observeResize={msg.id}
@@ -713,6 +740,7 @@
   {#if chat.type !== "CHANNEL"}
     <Input
       bind:replyTo
+      bind:attachesDropout
       {scrollElement}
       {chat}
       {messages}
@@ -773,6 +801,7 @@
     cursor: pointer;
     flex: 1;
     min-width: 0;
+    width: 100vw;
     padding-left: 15px;
   }
 
@@ -812,6 +841,7 @@
   header .align-right {
     flex: 0 0 auto;
     margin-left: auto;
+    margin-right: 0;
     display: flex;
     align-items: center;
   }
@@ -910,13 +940,6 @@
     position: relative;
     width: 100%;
     transition: background 0.3s;
-  }
-
-  #clickable-area {
-    position: absolute;
-    width: 100vw;
-    height: 100%;
-    transition: background 1s;
   }
 
   .observer-area {
