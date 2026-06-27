@@ -15,6 +15,7 @@ import {
   currentlySyncing,
   currentPresence,
   receivedMessage,
+  purgeAccount,
 } from "$lib/stores/api";
 import { get as sessionGet, set as sessionSet } from "$lib/stores/session";
 import { cacheChat, syncContacts } from "$lib/utils/caching";
@@ -109,10 +110,8 @@ export default class MobileApi extends BaseAPI {
     const response = await invoke("init", {
       identity: this.getDevice(),
     });
-    console.log(response);
 
     const auth = await invoke("start_auth", { phone });
-    console.log(auth);
 
     const success = !!auth.token;
     if (!success) return auth;
@@ -125,7 +124,6 @@ export default class MobileApi extends BaseAPI {
 
   async login(code) {
     const checkCode = await invoke("check_code", { code });
-    console.log(checkCode);
 
     const success = !!checkCode.profile;
     if (success) {
@@ -133,10 +131,10 @@ export default class MobileApi extends BaseAPI {
       const userId = profile.contact.id;
 
       await usersDb.set("device-" + userId, this._device);
-      currentUser.set(userId);
-      currentUserDetails.set(profile.contact);
       this.setUser(userId);
       this.setToken(tokenAttrs.LOGIN.token);
+      currentUser.set(userId);
+      currentUserDetails.set(profile.contact);
     } else return checkCode;
 
     return {
@@ -185,15 +183,33 @@ export default class MobileApi extends BaseAPI {
   }
 
   async logout(userId, redirect = true) {
-    invoke("logout");
+    await invoke("logout");
 
     if (get(currentUser) === userId) {
       this.setToken(undefined);
       this.disconnect();
     }
+
+    await purgeAccount(userId);
+
     if (redirect) goto("/auth/login");
 
     // TODO purge all data
+  }
+
+  async closeAllSessions() {
+    await this.synchronized;
+
+    await invoke("close_all_sessions");
+
+    const userId = get(currentUser);
+
+    this.setToken(undefined);
+    this.disconnect();
+
+    await purgeAccount(userId);
+
+    goto("/auth/login");
   }
 
   disconnect() {
@@ -247,8 +263,8 @@ export default class MobileApi extends BaseAPI {
       const rtt = t1 - t0;
       const offset = Math.ceil(res.time - (t0 + rtt / 2));
 
-      sessionSet("drift", offset); // ошибка времени (для FetchHistory)
-      console.log("Сдвиг времени", offset)
+      // сдвиг системного времени относительно серверного
+      sessionSet("drift", offset);
 
       const { chats, contacts, config } = res;
 
@@ -428,11 +444,6 @@ export default class MobileApi extends BaseAPI {
   async getSessions() {
     await this.synchronized;
     return await invoke("get_sessions");
-  }
-
-  async closeAllSessions() {
-    await this.synchronized;
-    return await invoke("close_all_sessions");
   }
 
   async uploadAttachment(attach) {

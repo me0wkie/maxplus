@@ -24,12 +24,16 @@
     error = "Ожидайте...";
     console.log("Проверяем пароль:", password);
 
-    const response = await $API.checkPassword(password, challenge.trackId);
-    if (response.error) {
-      error = response.localizedMessage;
-    } else {
-      sessionSet("connected", true);
-      goto("/");
+    try {
+      const response = await $API.checkPassword(password, challenge.trackId);
+      if (response.error) {
+        error = response.localizedMessage;
+      } else {
+        sessionSet("connected", true);
+        goto("/");
+      }
+    } catch (e) {
+      alert(e.toString());
     }
   }
 </script>
@@ -100,8 +104,8 @@
 
   .error {
     color: red;
-    font-size: 0.9rem;
-    height: auto;
+    font-size: 15px;
+    height: 22px;
     word-break: break-all;
   }
 

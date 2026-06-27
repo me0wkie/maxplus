@@ -135,9 +135,18 @@
     await $API.setDevice(device);
     update(device, true);
   }
+
+  function close() {
+    sessionSet("devicesPage", false);
+  }
 </script>
 
-<div class="overlay" in:fade={{ duration: 100 }} out:fade={{ duration: 100 }}>
+<div
+  class="overlay"
+  in:fade={{ duration: 100 }}
+  out:fade={{ duration: 100 }}
+  on:click={e => { if (!e.target.closest(".modal")) close(); }}
+>
   <div class="modal">
     <div class="header">
       <div class="title">Устройство</div>
@@ -152,7 +161,7 @@
         <button class="import" on:click={importDevice}>
           <img src="/icons/import.svg">
         </button>
-        <button class="close" on:click={() => sessionSet("devicesPage", false)}>
+        <button class="close" on:click={close}>
           ✕
         </button>
       </div>
@@ -250,7 +259,7 @@
     font-size: 30px;
     font-weight: 1000;
     position: relative;
-    bottom: 2px;
+    bottom: 3px;
   }
 
   .buttons .close {

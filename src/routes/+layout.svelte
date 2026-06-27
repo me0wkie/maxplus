@@ -46,6 +46,7 @@
   });
 
   currentUser.subscribe(async (user) => {
+    console.log('currentUser changed.\nValue:', user,"\n$Session.sync:", sessionGet("sync"), "$Session.connected:", sessionGet("connected"));
     try {
       if (!user) {
         if (

@@ -117,6 +117,11 @@ export default class API {
     updateProfile() { throw "updateProfile: Unimplemented" }
     createGroup() { throw "createGroup: Unimplemented" }
     deleteChat() { throw "deleteChat: Unimplemented" }
+    leaveChannel() { throw "leaveChannel: Unimplemented" }
+    leaveChat() { throw "leaveChat: Unimplemented" }
+    joinChannel() { throw "joinChannel: Unimplemented" }
+    deleteChatForAll() { throw "deleteChatForAll: Unimplemented" }
+    updateChatProfile() { throw "updateChatProfile: Unimplemented" }
     
     onCall() { throw "onCall: Unimplemented" }
     onMessage() { throw "onMessage: Unimplemented" }

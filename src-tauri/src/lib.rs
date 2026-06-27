@@ -71,6 +71,7 @@ pub fn run() {
             commands::start_auth,
             commands::check_code,
             commands::check_password,
+            commands::logout,
             commands::sync_client,
             commands::send_message,
             commands::add_reaction,

@@ -102,8 +102,8 @@
 
   .error {
     color: red;
-    font-size: 0.9rem;
-    height: auto;
+    font-size: 15px;
+    height: 22px;
     word-break: break-all;
   }
 </style>

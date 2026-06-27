@@ -7,6 +7,7 @@
   import API from "$lib/stores/api";
 
   let sessions = [];
+  let current = null;
   let loading = true;
   let expandedId = null;
 
@@ -17,6 +18,7 @@
     try {
       const res = await $API.getSessions();
       sessions = res?.sessions || res || [];
+      current = sessions.find(x => x.current);
     } catch (e) {
       console.error(e);
     } finally {
@@ -29,6 +31,11 @@
   };
 
   async function handleTerminateAll() {
+    if (current.time + 1000 * 60 * 60 * 24 > Date.now()) {
+      alert("Должно пройти 24 часа после входа в аккаунт!")
+      return;
+    }
+
     /*const confirmed = await confirm(
       "Вы уверены, что хотите завершить все остальные сессии?",
     );
@@ -37,7 +44,6 @@
 
     try {
       await $API.closeAllSessions();
-      await $API.logout();
     } catch (e) {
       console.error(e);
       alert("Ошибка при завершении сессий.");
