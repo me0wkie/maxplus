@@ -600,6 +600,23 @@ export default class MobileApi extends BaseAPI {
     return response.chat;
   }
 
+  async readMessage(chatId, messageId) {
+    const response = await invoke("read_message", {
+      chatId, messageId
+    })
+
+    // TODO Optimize
+    // сделать отдельные сторы под каждые значения? unreadStore, lastMessageStore и тд
+    currentSessionChats.update(chats => {
+      if (!chats) return;
+      const updated = chats.find(x => x.id === chatId);
+      if (updated) updated.newMessages = response.unread;
+      return chats;
+    });
+
+    return response;
+  }
+
   async getCalls() {
     await this.synchronized;
     return await invoke("get_calls", { forward: false, count: 100 });

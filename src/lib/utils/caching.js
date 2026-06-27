@@ -17,10 +17,12 @@ export const cacheChat = (chat, chats = null) => {
     changed = true;
   } else {
     const existing = list[index];
-    const merged = { ...existing, ...normalized };
 
-    if (!isEqual(existing, merged)) {
-      list[index] = merged;
+    console.log('changed?');
+
+    if (!isEqual(existing, normalized)) {
+      console.log("unequel")
+      list[index] = normalized;
       changed = true;
     }
   }
@@ -52,6 +54,9 @@ export const removeChat = (chat, chats = null) => {
 
 const isEqual = (a, b) => {
   for (const key in b) {
+    if (a[key] !== b[key]) return false;
+  }
+  for (const key in a) {
     if (a[key] !== b[key]) return false;
   }
   return true;

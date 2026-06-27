@@ -1,6 +1,10 @@
 <script>
   import { createEventDispatcher } from "svelte";
-  import { currentUser, currentSessionContacts } from "$lib/stores/api";
+  import {
+    currentUser,
+    currentSessionChats,
+    currentSessionContacts
+  } from "$lib/stores/api";
   import { getAttachText, getSystemText } from "$lib/utils/attachs.js";
   import Avatar from "$components/main/Avatar.svelte";
 
@@ -8,6 +12,8 @@
   export let replace;
   export let isSelected = false; // Выбран ли этот чат
   export let selectionMode = false; // Включен ли вообще режим выбора
+
+  let unread = chat.newMessages || 0;
 
   const dispatch = createEventDispatcher();
 
@@ -23,6 +29,15 @@
 
   $: shownMessage = replace?.message || chat.lastMessage;
   $: attaches = getAttachText(chat, shownMessage);
+
+  currentSessionChats.subscribe(chats => {
+    const entry = chats.find(x => x.id === chat.id);
+    console.log(entry.newMessages, unread)
+    if (entry?.newMessages !== unread) {
+      console.log('updated', unread)
+      unread = entry.newMessages;
+    }
+  });
 
   $: timeDisplay = (() => {
     if (!shownMessage?.time) return "";
@@ -116,9 +131,9 @@
           {shownMessage?.text || getSystemText(shownMessage)}
         {/if}
       </p>
-      {#if chat.newMessages > 0}
-        <div class="badge" style={chat.newMessages >= 99 ? "width: 26px;" : ""}>
-          {chat.newMessages > 99 ? "99+" : chat.newMessages}
+      {#if unread > 0}
+        <div class="badge" style={unread >= 99 ? "width: 26px;" : ""}>
+          {unread > 99 ? "99+" : unread}
         </div>
       {/if}
     </div>

@@ -108,7 +108,7 @@
   const messageHeights = writable({});
   let cumulativeHeights = [];
   let innerList;
-  let visibleMessages = [];
+  let visibleMessages = {};
   let scrollAnchor = { messageId: null, offset: 0 };
 
   let pendingHeightUpdates = {};
@@ -213,7 +213,7 @@
     const { scrollTop, clientHeight } = scrollElement;
     const totalHeight = cumulativeHeights.length ? cumulativeHeights[cumulativeHeights.length - 1] : 0;
     if (totalHeight === 0) {
-      visibleMessages = [];
+      visibleMessages = {};
       return;
     }
 
@@ -233,11 +233,14 @@
       if (startIdx > endIdx) endIdx = startIdx;
     }
 
-    const newVisible = [];
+    const newVisible = {};
     for (let i = startIdx; i <= endIdx && i < $messages.length; i++) {
-      newVisible.push($messages[i].id);
+      const id = $messages[i].id;
+      if (!visibleMessages[id]) {
+        visibleMessages[id] = document.getElementById("m-" + id);
+      }
     }
-    visibleMessages = newVisible;
+    //visibleMessages = newVisible;
 
     if (shouldUseAnchor) {
       await tick();
@@ -245,6 +248,8 @@
     } else {
       await tick();
     }
+
+    await scheduleRead();
   }
 
   function measureAllHeights() {
@@ -372,9 +377,13 @@
   let scrollTimeout = null;
   let updateScheduled = false;
 
+  let readTimer = null;
+  let lastReadMessageId = null;
+
   function handleScroll(event) {
     const target = event.currentTarget;
-    const distanceFromBottom = target.scrollHeight - target.scrollTop - target.clientHeight;
+    const distanceFromBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight;
     showScrollDown = distanceFromBottom > 50;
 
     if (!updateScheduled) {
@@ -393,6 +402,55 @@
         setTimeout(() => scrollLoaderTimeout = null, 500);
       }, 200);
     }
+  }
+
+  function getLowestVisibleMessageId() {
+    if (!scrollElement) return null;
+
+    let lowest = null;
+    let lowestTop = -Infinity;
+
+    for (const key in visibleMessages) {
+      const entry = $messages.find(x => x.id === key);
+      if (entry.sender === $currentUser) continue;
+
+      const el = visibleMessages[key];
+      if (!el) continue;
+
+      const rect = el.getBoundingClientRect();
+
+      if (rect.bottom < 0 || rect.top > window.innerHeight) continue;
+
+      if (rect.top > lowestTop) {
+        lowestTop = rect.top;
+        lowest = el;
+      }
+    }
+
+    return lowest?.id?.replace("m-", "") || null;
+  }
+
+  function scheduleRead() {
+    if (readTimer) clearTimeout(readTimer);
+
+    readTimer = setTimeout(async () => {
+      const msgId = getLowestVisibleMessageId();
+      if (!msgId) return;
+
+      if (msgId === lastReadMessageId) return;
+
+      const index = $messages.length - $messages.findIndex(x => x.id === msgId)
+      if (index > chat.newMessages) return;
+
+      lastReadMessageId = msgId;
+
+      try {
+        chat.newMessages = index - 1;
+        await $API.readMessage(chat.id, msgId);
+      } catch (e) {
+        console.error("readMessage failed", e);
+      }
+    }, 500);
   }
 
   receivedMessage.subscribe(async (message) => {
@@ -450,6 +508,8 @@
     await updateVisibleMessages(true);
 
     scrollToBottom(scrollElement, false);
+
+    await scheduleRead();
   });
 
   /*
@@ -489,9 +549,7 @@
     if (e.target.closest(".reply-block") || e.target.closest(".forward-block")) return;
 
     if (clicked) {
-      const children = visibleMessages
-        .map(id => document.getElementById('m-' + id))
-        .filter(Boolean);
+      const children = Object.values(visibleMessages);
 
       const nearest = children.find(el => {
         const rect = el.getBoundingClientRect();
@@ -593,8 +651,8 @@
   }
 
   async function makeVisible(id) {
-    if (!visibleMessages.includes(id)) {
-      visibleMessages = [...visibleMessages, id];
+    if (!visibleMessages[id]) {
+      visibleMessages[id] = document.getElementById("m-" + id);
       await tick();
     }
   }
@@ -701,7 +759,7 @@
 
     {#each $messages as msg (msg.id)}
       <div class="message-wrapper" id={"m-" + msg.id}>
-        {#if visibleMessages.includes(msg.id) || !$messageHeights[msg.id]}
+        {#if visibleMessages[msg.id] || !$messageHeights[msg.id]}
           <div
             class="observer-area"
             use:observeResize={msg.id}
