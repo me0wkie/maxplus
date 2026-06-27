@@ -100,6 +100,19 @@ export const chatObfs = { // TODO будет перенесено в user-ID/set
   },
 };
 
+export const chatReader = { // TODO будет перенесено в user-ID/settings.bin
+  get: (chatId) => {
+    const meId = get(currentUser);
+    if (!meId) throw "No session!";
+    return chats.get(`cnread-${meId}-${chatId}`);
+  },
+  set: (chatId, value) => {
+    const meId = get(currentUser);
+    if (!meId) throw "No session!";
+    return chats.set(`cnread-${meId}-${chatId}`, value); // reversed
+  },
+};
+
 export const getAccounts = async () => {
   return (await users.keys())
     .filter(x => /^user-\d+$/.test(x))

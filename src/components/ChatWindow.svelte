@@ -19,6 +19,7 @@
     chatMessages,
     chatKeys,
     chatObfs,
+    chatReader,
     chatPassword,
     currentSessionContacts,
     currentSessionChats,
@@ -434,6 +435,9 @@
     if (readTimer) clearTimeout(readTimer);
 
     readTimer = setTimeout(async () => {
+      const readDisabled = await chatReader.get(chat.id);
+      if (readDisabled) return;
+
       const msgId = getLowestVisibleMessageId();
       if (!msgId) return;
 

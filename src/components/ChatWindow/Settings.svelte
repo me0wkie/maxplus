@@ -1,7 +1,7 @@
 <script>
   import { switchEnc } from "$components/ChatWindow/e2e";
   import { fade, fly, scale } from "svelte/transition";
-  import { chatPassword, chatObfs } from '$lib/stores/api';
+  import { chatPassword, chatObfs, chatReader } from '$lib/stores/api';
   import { dict } from '$lib/crypto/text-codec';
 
   export let chatKeysLoaded;
@@ -14,6 +14,7 @@
   let saveTimeout;
   let showPassword = false;
   let hasDictionary = (async() => !!(await dict.getDictionary()))();
+  let reader = (async() => chatReader.get(chat.id))();
 
   function onPasswordInput(event) {
     password = event.target.value;
@@ -41,6 +42,13 @@
     }
     obfuscation = type;
     chatObfs.set(chat.id, type);
+  }
+
+  async function swapReader() {
+    const value = await reader;
+    reader = !value;
+    if (reader) chatReader.set(chat.id, true);
+    else chatReader.set(chat.id, false);
   }
 
   function close() {
@@ -172,8 +180,16 @@
     <div class="subtitle">Остальное</div>
     <div class="group" in:fade={{ delay: 280, duration: 220 }}>
       <div class="row">
-        <div class="row-title">Выключить нечиталку</div>
-        <button class="row-action disabled" disabled>Скоро</button>
+        <div class="row-title">Помечать прочитанным</div>
+        {#await reader}
+        {:then value}
+          <button
+            class="row-action"
+            on:click={swapReader}
+          >
+            { value ? "Включить" : "Отключить" }
+          </button>
+        {/await}
       </div>
       <div class="row">
         <div class="row-title">
