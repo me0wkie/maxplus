@@ -6,6 +6,7 @@
     currentSessionContacts,
     currentUser,
   } from "$lib/stores/api";
+  import { get as sessionGet } from "$lib/stores/session";
 
   import Timestamp from "$components/main/Timestamp.svelte";
 
@@ -23,12 +24,18 @@
 
 {#if chat?.type === "DIALOG"}
   {#if contact}
-    {#if $currentPresence[contact.id]?.seen !== undefined}
-      {contact.gender === 2 ? "Была" : "Был"}
-      <Timestamp
-        gender={contact.gender || 1}
-        unixTime={$currentPresence[contact.id]?.seen}
-      />
+    {#if $currentPresence[contact.id]}
+      {#if $currentPresence[contact.id]?.status === 1}
+        {contact.gender === 2 ? "Была" : "Был"}
+        <Timestamp
+          gender={contact.gender || 1}
+          unixTime={
+            $currentPresence[contact.id]?.seen - sessionGet("drift") / 1000
+          }
+        />
+      {:else}
+        {contact.gender === 2 ? "Была" : "Был"} недавно
+      {/if}
     {:else if contact.options}
       {(() => {
         const list = [];
