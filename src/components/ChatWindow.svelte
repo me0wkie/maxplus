@@ -1,6 +1,5 @@
 <script>
   import {
-    createEventDispatcher,
     getContext,
     onMount,
     onDestroy,
@@ -24,7 +23,10 @@
     currentSessionContacts,
     currentSessionChats,
   } from "$lib/stores/api";
-  import Session from "$lib/stores/session";
+  import Session, {
+    openChat,
+    closeChat,
+  } from "$lib/stores/session";
   import { handleReaction } from "$components/ChatWindow/actions.js";
   import {
     checkForEncryptionRequest,
@@ -76,8 +78,6 @@
   const messages = writable([]);
   let initialized = false;
 
-  const dispatch = createEventDispatcher();
-
   messages.subscribe(async (_messages) => {
     if (_messages.length && chat?.id) {
       await chatMessages.set(chat.id, _messages);
@@ -91,7 +91,7 @@
   const onBack = getContext("onBack");
 
   onBack["chat"] = () => {
-    dispatch("close");
+    closeChat(chat.id);
     delete onBack["chat"];
   };
 
@@ -701,7 +701,7 @@
     <div class="align-left">
       <button
         class="icon-button"
-        on:click|stopPropagation={() => dispatch("close")}
+        on:click|stopPropagation={() => closeChat(chat.id)}
       >
         <img src="icons/arrow.svg" style="transform: scale(-1.5)" />
       </button>
@@ -779,7 +779,7 @@
               makeVisible={makeVisible}
               decoded={$decodedMessages[msg.id]}
               on:openMedia={(e) => openMedia(e.detail.attach)}
-              on:openChat={(e) => { dispatch("chat", e.detail); }}
+              on:openChat={() => openChat(chat.id, msg.id)}
             />
           </div>
         {:else}

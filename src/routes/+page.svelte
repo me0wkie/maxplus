@@ -29,44 +29,17 @@
   const openCard = ({ detail }) => {
     active = detail.index;
   };
-
-  async function openChat({ detail }) {
-    const { chatId, messageId } = detail;
-    const exists = $Session.openedChats.find((id) => id === chatId);
-    if (!exists) {
-      let chat = $currentSessionChats.find((x) => x.id === chatId);
-      if (!chat) {
-        console.log("no chat found, requesting:", chat);
-        const response = await $API.getChat(chatId);
-        console.log(response);
-        if (!response.chats.length) {
-          return alert("Не удалось получить информацию о чате.");
-        }
-        Caching.cacheChat(response.chats[0]);
-        console.log("Чат кеширован");
-      }
-      $Session.openedChats = [...$Session.openedChats, chatId];
-    }
-  }
-
-  function closeChat(chatId) {
-    $Session.openedChats = $Session.openedChats.filter((id) => id !== chatId);
-  }
 </script>
 
 <div class="container">
   {#each pages as page, index}
     <Card {index} {active}>
-      <svelte:component this={page.component} on:chat={openChat} />
+      <svelte:component this={page.component}/>
     </Card>
   {/each}
 
   {#each $Session.openedChats as chatId}
-    <ChatWindow
-      {chatId}
-      on:close={() => closeChat(chatId)}
-      on:chat={openChat}
-    />
+    <ChatWindow {chatId}/>
   {/each}
 </div>
 

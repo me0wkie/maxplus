@@ -18,10 +18,7 @@ export const cacheChat = (chat, chats = null) => {
   } else {
     const existing = list[index];
 
-    console.log('changed?');
-
     if (!isEqual(existing, normalized)) {
-      console.log("unequel")
       list[index] = normalized;
       changed = true;
     }

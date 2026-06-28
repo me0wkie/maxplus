@@ -5,7 +5,11 @@
     currentSessionChats,
     currentSessionContacts
   } from "$lib/stores/api";
-  import { getAttachText, getSystemText } from "$lib/utils/attachs.js";
+  import {
+    getAttachText,
+    getSystemText,
+  } from "$lib/utils/attachs";
+  import { openChat } from "$lib/stores/session";
   import Avatar from "$components/main/Avatar.svelte";
 
   export let chat;
@@ -32,9 +36,8 @@
 
   currentSessionChats.subscribe(chats => {
     const entry = chats.find(x => x.id === chat.id);
-    console.log(entry.newMessages, unread)
+
     if (entry?.newMessages !== unread) {
-      console.log('updated', unread)
       unread = entry.newMessages;
     }
   });
@@ -87,7 +90,7 @@
     if (selectionMode) {
       dispatch("toggle", chat);
     } else {
-      dispatch("open", chat);
+      openChat(chat.id);
     }
   }
 </script>

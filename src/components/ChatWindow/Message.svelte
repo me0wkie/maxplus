@@ -1,12 +1,13 @@
 <script>
   import { createEventDispatcher, onMount } from "svelte";
+  import { openPath } from "@tauri-apps/plugin-opener";
   import API, { currentUser, currentUserDetails, currentSessionContacts } from "$lib/stores/api";
+  import { openChat } from "$lib/stores/session";
   import { getAttachText, getSystemText } from "$lib/utils/attachs";
   import { scrollTo } from '$lib/utils/scroll.js';
   import MessagePreview from "$components/main/MessagePreview.svelte";
-  import { openPath } from "@tauri-apps/plugin-opener";
   import Avatar from "$components/main/Avatar.svelte";
-  import Reactions from "./Reactions.svelte";
+  import Reactions from "$components/ChatWindow/Reactions.svelte";
   import Attachments from "$components/ChatWindow/Attachments.svelte";
 
   const dispatch = createEventDispatcher();
@@ -30,12 +31,7 @@
   }
 
   function handleForwardHeaderClick() {
-    if (msg.link?.chatId) {
-      dispatch("openChat", {
-        chatId: msg.link.chatId,
-        messageId: msg.link.message.id,
-      });
-    }
+    return openChat(msg.link.chatId, msg.link.message.id);
   }
 
   function getFile(fileId) {

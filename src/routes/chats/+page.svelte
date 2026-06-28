@@ -1,7 +1,5 @@
 <script>
-  import { createEventDispatcher } from "svelte";
   import { fly } from "svelte/transition";
-
   import ChatItem from "$components/chats/ChatItem.svelte";
   import FolderTabs from "$components/chats/FolderTabs.svelte";
   import AddContactBtn from "$components/main/AddContactBtn.svelte";
@@ -9,6 +7,7 @@
   import FolderEditModal from "$components/chats/FolderEditModal.svelte";
   import { escapeHtml } from "$lib/utils/text.js";
   import { debounce } from "$lib/utils/debounce.js";
+  import { openChat } from "$lib/stores/session.js";
   import API, {
     currentSessionChats,
     currentSessionContacts,
@@ -19,8 +18,6 @@
     currentUser,
     receivedMessage,
   } from "$lib/stores/api.js";
-
-  const dispatch = createEventDispatcher();
 
   let localFolders = [];
   $: if ($currentFolders) {
@@ -378,7 +375,7 @@
                 }
               }
 
-              dispatch("chat", { chatId });
+              openChat(chatId);
             }}
           />
         {/each}
@@ -401,7 +398,7 @@
                   `<b>${hl}</b>`,
                 ),
               }}
-              on:open={() => dispatch("chat", { chatId: result.chatId })}
+              on:open={() => openChat(result.chatId)}
             />
           {/if}
         {/each}
@@ -432,7 +429,7 @@
                     {chat}
                     selectionMode={isSelectionMode}
                     isSelected={selectedChats.has(chat.id)}
-                    on:open={() => dispatch("chat", { chatId: chat.id })}
+                    on:open={() => openChat(chat.id)}
                     on:longpress={handleChatLongPress}
                     on:toggle={handleChatToggle}
                   />

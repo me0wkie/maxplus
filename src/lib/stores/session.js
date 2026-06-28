@@ -1,4 +1,6 @@
 import { writable, get as getStoreValue, readable } from "svelte/store";
+import API, { currentSessionChats } from "$lib/stores/api";
+import { goto } from "$app/navigation";
 
 const data = writable({
   openedChats: [],
@@ -22,3 +24,52 @@ export const now = readable(Date.now(), (set) => {
 
   return () => clearInterval(interval);
 });
+
+export async function openChat(chatId/*,  messageId */) { // TODO
+  const { openedChats, profile } = getStoreValue(data);
+
+  if (openedChats.findIndex(id => id === chatId) === -1) {
+    let chat = getStoreValue(currentSessionChats).find(x => x.id === chatId);
+
+    if (!chat) {
+      console.log("Chat not cached, requesting:", chatId);
+
+      const response = await getStoreValue(API).getChat(chatId);
+
+      if (!response.chats.length) {
+        return alert("Не удалось получить информацию о чате.\nВозможно, чат закрыт.");
+      }
+
+      Caching.cacheChat(response.chats[0]);
+
+      if (!chat) {
+        console.error("Чат не найден");
+        return;
+      }
+    }
+
+    console.log('Opening chat', chatId);
+
+    data.update(s => ({
+      ...s,
+      profile: null,
+      openedChats: [ ...openedChats, chatId ]
+    }));
+  }
+  else if (profile) {
+    data.update(s => ({
+      ...s,
+      profile: null
+    }));
+  }
+}
+
+export function closeChat(chatId) {
+  console.log('Closing', chatId)
+
+  return data.update(session => {
+    const idx = session.openedChats.indexOf(chatId);
+    if (idx !== -1) session.openedChats.splice(idx, 1);
+    return session;
+  });
+}

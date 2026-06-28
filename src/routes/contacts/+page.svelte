@@ -1,5 +1,4 @@
 <script>
-  import { createEventDispatcher } from "svelte";
   import { goto } from "$app/navigation";
   import API, {
     currentSessionContacts,
@@ -15,8 +14,6 @@
   import AddContactBtn from "$components/main/AddContactBtn.svelte";
 
   import "$lib/styles/AnimatedPanel.css";
-
-  const dispatch = createEventDispatcher();
 
   let grouped = {};
   let filter = "";

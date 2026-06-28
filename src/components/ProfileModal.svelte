@@ -2,13 +2,15 @@
   import { fly, fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { createEventDispatcher } from "svelte";
-  import { goto } from "$app/navigation";
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
   import InputModal from "$components/main/InputModal.svelte";
   import Signature from "$components/main/Signature.svelte";
   import Avatar from "$components/main/Avatar.svelte";
   import { formatMs } from "$lib/utils/time";
-  import Session from "$lib/stores/session";
+  import Session, {
+    openChat as _openChat,
+    closeChat,
+  } from "$lib/stores/session";
   import API, {
     currentUser,
     currentUserDetails,
@@ -56,42 +58,8 @@
 
   const closeModal = () => $Session.profile = null;
 
-  function closeChat() {
-    const idx = $Session.openedChats.indexOf(chat.id);
-    console.log(idx)
-    if (idx !== -1) $Session.openedChats.splice(idx, 1);
-  }
-
   function handleWindowClick(e) {
     if (showMenu && !e.target.closest(".menu-container")) showMenu = false;
-  }
-
-  function openChat() { // TODO перенести отсюда
-    goto("/?card=2");
-    $Session.profile = null;
-
-    let _chatId = chatId ? chatId : $currentUser ^ userId;
-
-    const exists = $Session.openedChats.find((c) => c.id === _chatId);
-    if (exists) {
-      $Session.openedChats = [
-        ...$Session.openedChats.filter((c) => c.id !== _chatId),
-        exists,
-      ];
-    } else {
-      let chat = $currentSessionChats.find((x) => x.id === _chatId);
-      if (!chat) {
-        const participants = {};
-        participants[$currentUser] = Date.now();
-        participants[_chatId] = Date.now();
-        chat = {
-          id: _chatId,
-          participants,
-          // TODO добавить type?
-        };
-      }
-      $Session.openedChats = [...$Session.openedChats, { ...chat }];
-    }
   }
 
   function formatId(num) {
@@ -130,6 +98,8 @@
 
     await $API.updateChatProfile(chat);
   }
+
+  const openChat = () => _openChat(chatId);
 </script>
 
 <svelte:window on:click={handleWindowClick} />
