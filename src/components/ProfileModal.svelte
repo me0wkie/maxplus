@@ -39,7 +39,6 @@
   $: avatar = peer.avatar || chat.avatar;
 
   $: infoFields = [
-    info(chat.link, "about", "Тэг", chat.link?.replace("https://max.ru/", "")),
     info(chat.description, "about", "Описание", chat.description),
     info(chat.phone, "about", "Мобильный", chat.phone),
     info(chat.created > 1, "about", "Дата создания", formatMs(chat.created)),
@@ -100,6 +99,8 @@
   }
 
   const openChat = () => _openChat(chatId);
+
+  const copyLink = () => navigator.clipboard.writeText(chat.link);
 </script>
 
 <svelte:window on:click={handleWindowClick} />
@@ -193,6 +194,20 @@
         <Signature contact={peer} chat={chat} />
         </a>
       </div>
+      {#if chat.link}
+        <div
+          class="tag"
+          on:click={copyLink}
+        >
+          {#if chat.link.includes("join/")}
+            {chat.link.slice(0, 24)}...{chat.link.slice(chat.link.length - 4)}
+          {:else}
+            @{chat.link.replace("https://max.ru/", "")}
+          {/if}
+        </div>
+      {:else}
+        <div style="height:10px;"></div>
+      {/if}
     </div>
 
     <div class="info-list">
@@ -328,7 +343,7 @@
   }
 
   .hero {
-    padding: 80px 20px 30px;
+    padding: 80px 20px 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -344,6 +359,28 @@
     margin: 0;
     color: #fff;
     font-size: 22px;
+  }
+
+  .url {
+    margin-top: 10px;
+    color: #0bf;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .url:active {
+    cursor: default;
+  }
+
+  .tag {
+    margin-top: 10px;
+    color: #0bf;
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .tag:active {
+    cursor: default;
   }
 
   .status {
@@ -410,6 +447,7 @@
     z-index: 20;
     border: 1px solid #333;
   }
+
   .menu-item {
     padding: 10px;
     color: #eee;
