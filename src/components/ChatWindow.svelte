@@ -63,6 +63,7 @@
 
   let loading = false;
   let all_loaded = false;
+  let allRendered = false;
 
   let scrollElement;
   let scrollLoaderTimeout;
@@ -511,7 +512,10 @@
 
     await updateVisibleMessages(true);
 
-    scrollToBottom(scrollElement, false);
+    await scrollToBottom(scrollElement, false);
+
+    await new Promise(r => setTimeout(r, 1));
+    allRendered = true;
 
     await scheduleRead();
   });
@@ -756,6 +760,7 @@
 
     <div
       class="message-list-inner"
+      style={"opacity: " + (allRendered ? "1;" : "0;")}
       bind:this={innerList}
     >
 
@@ -965,6 +970,7 @@
     display: flex;
     gap: 8px;
     flex-direction: column;
+    transition: opacity 0.1s;
   }
 
   @media screen and (min-width: 500px) {
@@ -994,6 +1000,7 @@
   .grab-scroll {
     cursor: grab;
   }
+
   .grab-scroll:active {
     cursor: grabbing;
   }

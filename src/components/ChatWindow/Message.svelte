@@ -265,7 +265,6 @@
     max-width: 80%;
     font-size: 13px;
     position: relative;
-    overflow: hidden;
   }
 
   .text {
