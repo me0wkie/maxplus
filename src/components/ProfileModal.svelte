@@ -9,7 +9,7 @@
   import { formatMs } from "$lib/utils/time";
   import Session, {
     openChat as _openChat,
-    closeChat,
+    closeChat as _closeChat,
   } from "$lib/stores/session";
   import API, {
     currentUser,
@@ -26,7 +26,7 @@
   if (!chatId) chatId = $currentUser ^ userId;
 
   const peer = userId ? $currentSessionContacts[userId] || {} : {};
-  const chat = $currentSessionChats.find((x) => x.id === chatId);
+  const chat = $currentSessionChats.find(x => x.id === chatId);
 
   let showMenu = false;
   let showDeleteConfirm = false;
@@ -45,6 +45,8 @@
     info(chat.registrationTime, "about", "Дата регистрации", formatMs(peer.registrationTime)),
   ].filter(Boolean);
 
+  let chatLink = chat.link;
+
   const info = (k, icon, label, value) => k && { icon, label, value };
 
   const toggleMenu = () => showMenu = !showMenu;
@@ -56,6 +58,7 @@
   }
 
   const closeModal = () => $Session.profile = null;
+  const closeChat = () => _closeChat(chat.id);
 
   function handleWindowClick(e) {
     if (showMenu && !e.target.closest(".menu-container")) showMenu = false;
@@ -101,6 +104,12 @@
   const openChat = () => _openChat(chatId);
 
   const copyLink = () => navigator.clipboard.writeText(chat.link);
+
+  async function refreshInvite() {
+    showMenu = false;
+    const { chat: updated } = await $API.refreshInviteLink(chat.id);
+    chatLink = updated.link;
+  }
 </script>
 
 <svelte:window on:click={handleWindowClick} />
@@ -159,6 +168,9 @@
                 <div class="menu-item" on:click={() => showInputs = true}>
                   Изменить название
                 </div>
+                <div class="menu-item" on:click={refreshInvite}>
+                  Обновить ссылку
+                </div>
               {/if}
               {#if chat.owner === $currentUser}
               <div
@@ -194,15 +206,15 @@
         <Signature contact={peer} chat={chat} />
         </a>
       </div>
-      {#if chat.link}
+      {#if chatLink}
         <div
           class="tag"
           on:click={copyLink}
         >
-          {#if chat.link.includes("join/")}
-            {chat.link.slice(0, 24)}...{chat.link.slice(chat.link.length - 4)}
+          {#if chatLink.includes("join/")}
+            {chatLink.slice(0, 24)}...{chatLink.slice(chatLink.length - 4)}
           {:else}
-            @{chat.link.replace("https://max.ru/", "")}
+            @{chatLink.replace("https://max.ru/", "")}
           {/if}
         </div>
       {:else}

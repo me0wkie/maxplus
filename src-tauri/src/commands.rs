@@ -47,6 +47,7 @@ delegate_cmd!(leave_channel(channel_id: i64) => leave_channel(channel_id));
 delegate_cmd!(leave_group(chat_id: i64) => leave_group(chat_id));
 delegate_cmd!(change_group_profile(chat_id: i64, title: Option<String>, description: Option<String>) => change_group_profile(chat_id, title, description));
 delegate_cmd!(fetch_history(chat_id: i64, options: Option<FetchHistoryOptions>) => fetch_history(chat_id, options));
+delegate_cmd!(refresh_invite_link(chat_id: i64) => refresh_invite_link(chat_id));
 
 delegate_cmd!(add_reaction(chat_id: i64, message_id: String, reaction: String) => add_reaction(chat_id, p(message_id)?, reaction));
 delegate_cmd!(remove_reaction(chat_id: i64, message_id: String) => remove_reaction(chat_id, p(message_id)?));

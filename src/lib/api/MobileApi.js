@@ -601,9 +601,10 @@ export default class MobileApi extends BaseAPI {
   }
 
   async readMessage(chatId, messageId) {
+    await this.synchronized;
     const response = await invoke("read_message", {
       chatId, messageId
-    })
+    });
 
     // TODO Optimize
     // сделать отдельные сторы под каждые значения? unreadStore, lastMessageStore и тд
@@ -611,6 +612,22 @@ export default class MobileApi extends BaseAPI {
       if (!chats) return;
       const updated = chats.find(x => x.id === chatId);
       if (updated) updated.newMessages = response.unread;
+      return chats;
+    });
+
+    return response;
+  }
+
+  async refreshInviteLink(chatId) {
+    await this.synchronized;
+    const response = await invoke("refresh_invite_link", { chatId });
+
+    if (!response.chat) throw new Error("Неизвестный ответ сервера");
+
+    currentSessionChats.update(chats => {
+      if (!chats) return;
+      const updated = chats.find(x => x.id === chatId);
+      if (updated) updated.link = response.chat.link;
       return chats;
     });
 
@@ -625,5 +642,9 @@ export default class MobileApi extends BaseAPI {
   async call(actionId, payload) {
     await this.synchronized;
     return await invoke("call", { actionId, payload });
+  }
+
+  async _command(cmd, options) {
+    return await invoke(cmd, options);
   }
 }
