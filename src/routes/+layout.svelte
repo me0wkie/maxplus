@@ -7,6 +7,7 @@
   } from "$lib/stores/api.js";
   import DevSettings from "$components/main/dev/Settings.svelte";
   import DevicesSettings from "$components/main/devices/Settings.svelte";
+  import AddContactModal from "$components/main/AddContactModal.svelte";
   import ProfileModal from "$components/ProfileModal.svelte";
   import * as Settings from "$lib/stores/settings.js";
   import Session, { get as sessionGet } from "$lib/stores/session.js";
@@ -95,6 +96,10 @@
 
 {#if $Session.profile}
   <ProfileModal on:close={() => ($Session.profile = null)} />
+{/if}
+
+{#if $Session.contactModal}
+  <AddContactModal on:close={() => ($Session.contactModal = false)} />
 {/if}
 
 {#if loaded}

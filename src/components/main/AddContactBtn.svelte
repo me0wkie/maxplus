@@ -1,18 +1,15 @@
 <script>
-  import AddContactModal from "$components/chats/AddContactModal.svelte";
-
-  let addContactModal = false;
-  let addContactVisible = true;
+  import Session from "$lib/stores/session";
 
   const addContact = () => {
-    addContactModal = true;
+    $Session.contactModal = true;
   };
 </script>
 
 <div
   class="add-contact top-btn animated-panel"
   role="switch"
-  class:visible={addContactVisible}
+  class:visible={$Session.contactModal}
   on:click={addContact}
 >
   <svg width="20" height="20" viewBox="0 0 20 20">
@@ -20,10 +17,6 @@
     <rect x="4" y="9" width="12" height="2" fill="white" />
   </svg>
 </div>
-
-{#if addContactModal}
-  <AddContactModal on:close={() => (addContactModal = false)} />
-{/if}
 
 <style>
   .top-btn {
