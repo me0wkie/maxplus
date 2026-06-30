@@ -970,7 +970,7 @@
     display: flex;
     gap: 8px;
     flex-direction: column;
-    transition: opacity 0.1s;
+    transition: opacity 0.15s;
   }
 
   @media screen and (min-width: 500px) {

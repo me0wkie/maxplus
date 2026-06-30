@@ -58,8 +58,7 @@ export async function sendMessage(
 
   if (debug) console.log('Final', text);
 
-  let chatId = chat.id;
-
+  const chatId = chat.id;
   const id = Date.now();
 
   const displayMessageEarlyEntry = {
@@ -71,13 +70,13 @@ export async function sendMessage(
     elements,
     type: "USER",
     time: Date.now(),
-    link: { type: "REPLY", messageId: replyTo },
+    ...(replyTo && { link: { type: "REPLY", messageId: replyTo } }),
     status: 0,
   };
 
-  const _messages = get(messages);
-  _messages.unshift(displayMessageEarlyEntry);
-  messages.set(_messages);
+  /*const _messages = get(messages);
+  _messages.push(displayMessageEarlyEntry);
+  messages.set(_messages);*/
 
   const params = {
     notify: true,
@@ -96,22 +95,17 @@ export async function sendMessage(
       return msgs;
     });
   }
-
-  if (message) {
+  else {
     const msgId = message.id;
-    message.chatId = chat.id;
     message.status = 1;
 
     receivedMessage.set(message);
 
-    messages.update((msgs) => {
-      //msgs.find(x => x.id === id).id = msgId
-      //console.log('set id ' + id + ' -> ' + msgId)
+    /*messages.update((msgs) => {
       const element = msgs.indexOf(displayMessageEarlyEntry);
       if (element !== -1) msgs.splice(element, 1);
-
       return msgs;
-    });
+    });*/
 
     if (ass) {
       const entry = chatKeysCached.messages.find(
