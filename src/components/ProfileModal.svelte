@@ -6,6 +6,7 @@
   import InputModal from "$components/main/InputModal.svelte";
   import Signature from "$components/main/Signature.svelte";
   import Avatar from "$components/main/Avatar.svelte";
+  import { getContact } from "$lib/utils/caching";
   import { formatMs } from "$lib/utils/time";
   import Session, {
     openChat as _openChat,
@@ -17,6 +18,7 @@
     currentSessionContacts,
     currentSessionChats,
     currentPresence,
+    currentRealContacts,
     currentRealChats,
   } from "$lib/stores/api";
 
@@ -143,7 +145,7 @@
       </button>
 
       <div class="menu-container">
-        {#if chat && chat.type === "CHAT"}
+        {#if chat && (chat.type === "CHAT" || chat.type === "DIALOG")}
           <button class="icon-btn" on:click|stopPropagation={toggleMenu}>
             <svg
               width="24"
@@ -273,6 +275,40 @@
           </div>
         </div>
       {/each}
+
+      {#if chat.type === "CHAT"}
+      <hr />
+        <div class="members">
+          {#each Object.keys(chat.participants) as userId}
+            {#await getContact(userId)}
+            {:then contact}
+              <div class="member" on:click={() => $Session.profile = { userId: contact.id }}>
+                <div class="row">
+                  <Avatar {contact} size={44} />
+                  <div class="column">
+                    <div class="name">
+                      {contact.names[0].name}
+                    </div>
+                    <a><Signature {contact} /></a>
+                  </div>
+                </div>
+                <svg
+                  width="24" height="24"
+                  viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2"
+                  ><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"
+                  ></circle><circle cx="12" cy="19" r="1"></circle></svg>
+              </div>
+            {/await}
+          {/each}
+        </div>
+        <div
+          class="invite"
+          on:click={_ => alert("В разработке!")}
+        >
+          <b>+</b> Пригласить контакты
+        </div>
+      {/if}
     </div>
   </div>
 </div>
@@ -333,8 +369,6 @@
     flex-direction: column;
     overflow-y: auto;
     position: relative;
-    box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
-
     will-change: transform;
     transform: translate3d(0, 0, 0);
   }
@@ -500,5 +534,56 @@
     justify-content: center;
     cursor: pointer;
     backdrop-filter: blur(4px);
+  }
+
+  .members {
+    display: flex;
+    margin-top: 20px;
+    justify-content: center;
+    flex: 1;
+    width: 100%;
+  }
+
+  .member {
+    position: relative;
+    height: 40px;
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    color: white;
+    margin: 0 20px;
+  }
+
+  .member .row {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+  }
+
+  .member .column {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .member .name {
+    font-size: 16px;
+    display: flex;
+  }
+
+  .member a {
+    font-size: 14px;
+    color: #999;
+    position: relative;
+  }
+
+  .invite {
+    margin-top: 30px;
+    flex: 1;
+    cursor: pointer;
+    text-align: center;
+    color: #66f6;
   }
 </style>

@@ -1,4 +1,7 @@
-import { currentSessionChats } from "$lib/stores/api";
+import {
+  currentSessionChats,
+  currentSessionContacts,
+} from "$lib/stores/api";
 import { invoke } from "$lib/utils/invoke";
 import { get } from "svelte/store";
 
@@ -82,15 +85,43 @@ export const syncContacts = async (contacts, currentContacts, requireInfo) => {
       userIds: [...requireInfo],
     });
 
-    console.log("Ответ", response);
-
-    response.contacts.forEach((raw) => {
+    response.contacts.forEach(raw => {
       const contact = normalizeContact(raw);
 
       upsertContact(currentContacts, contact);
     });
   }
 };
+
+const contactBatch = [];
+let getContactPromise;
+
+export const getContact = async contactId => {
+  const contacts = get(currentSessionContacts);
+
+  if (!contacts[contactId]) {
+    contactBatch.push(contactId);
+    if (!getContactPromise)
+      getContactPromise = new Promise(r => setTimeout(r, 300));
+    await getContactPromise;
+
+    const userIds = [...contactBatch];
+    contactBatch.length = 0;
+    getContactPromise = null;
+
+    const response = await invoke("fetch_contacts", { userIds });
+
+    response.contacts.forEach(raw => {
+      const contact = normalizeContact(raw);
+      currentSessionContacts.update(contacts => ({
+        ...contacts,
+        [raw.id]: contact,
+      }));
+    });
+  }
+
+  return contacts[contactId];
+}
 
 const upsertContact = (store, contact) => {
   const id = contact.id;
