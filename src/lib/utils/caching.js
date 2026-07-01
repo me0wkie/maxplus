@@ -104,6 +104,7 @@ export const getContact = async contactId => {
     if (!getContactPromise)
       getContactPromise = new Promise(r => setTimeout(r, 300));
     await getContactPromise;
+    // накапливает запросы за 300мс
 
     const userIds = [...contactBatch];
     contactBatch.length = 0;

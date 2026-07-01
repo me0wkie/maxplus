@@ -22,23 +22,27 @@
     currentRealChats,
   } from "$lib/stores/api";
 
-  let { userId, chatId } = $Session.profile;
+  $: userId = (() => {
+    const value = $Session.profile.userId;
+    return value || $currentUser ^ $Session.profile.chatId;
+  })();
 
-  if (!userId) userId = $currentUser ^ chatId;
-  if (!chatId) chatId = $currentUser ^ userId;
+  $: chatId = (() => {
+    const value = $Session.profile.chatId;
+    return value || $currentUser ^ $Session.profile.userId;
+  })();
 
-  const peer = userId ? $currentSessionContacts[userId] || {} : {};
-  const chat = $currentSessionChats.find(x => x.id === chatId);
+  $: peer = userId ? $currentSessionContacts[userId] || {} : {};
+  $: chat = $currentSessionChats.find(x => x.id === chatId);
 
   let showMenu = false;
   let showDeleteConfirm = false;
   let showInputs = false;
 
-  $: title = (() => {
-    if (peer.id) return peer?.names?.[0]?.firstName;
-    else return chat.title;
-  })();
+  $: title = peer?.names?.[0]?.firstName || chat.title;
+
   $: avatar = peer.avatar || chat.avatar;
+  $: chatLink = chat.link;
 
   $: infoFields = [
     info(chat.description, "about", "Описание", chat.description),
@@ -47,16 +51,15 @@
     info(chat.registrationTime, "about", "Дата регистрации", formatMs(peer.registrationTime)),
   ].filter(Boolean);
 
-  let chatLink = chat.link;
-
   const info = (k, icon, label, value) => k && { icon, label, value };
 
   const toggleMenu = () => showMenu = !showMenu;
 
   function handleAction(action) {
     showMenu = false;
-    if (action === "quit") leaveChat();
-    else if (action === "delete") showDeleteConfirm = true;
+    if (action === "delete") return showDeleteConfirm = true;
+    if (action === "quit")   return leaveChat();
+    if (action === "invite") return refreshInvite();
   }
 
   const closeModal = () => $Session.profile = null;
@@ -108,9 +111,29 @@
   const copyLink = () => navigator.clipboard.writeText(chat.link);
 
   async function refreshInvite() {
-    showMenu = false;
     const { chat: updated } = await $API.refreshInviteLink(chat.id);
     chatLink = updated.link;
+  }
+
+  function selectMember(memberId) {
+    Session.update(entry => ({
+      ...entry,
+      profile: { history: [
+        ...(entry.profile.history || []),
+        { chatId, userId }
+      ], userId: memberId }
+    }));
+  }
+
+  function goBack() {
+    if ($Session.profile.history?.length) {
+      const length = $Session.profile.history.length;
+      const last = $Session.profile.history[length - 1];
+      $Session.profile = {
+        history: $Session.profile.history.slice(length),
+        ...last
+      };
+    } else $Session.profile = null;
   }
 </script>
 
@@ -130,7 +153,7 @@
     </div>
 
     <div class="header-controls">
-      <button class="icon-btn" on:click={closeModal}>
+      <button class="icon-btn" on:click={goBack}>
         <svg
           width="24"
           height="24"
@@ -165,29 +188,37 @@
             class="dropdown"
             transition:scale={{ duration: 150, start: 0.9 }}
           >
-            {#if chat?.type === "CHAT"}
-              {#if chat.admins.includes($currentUser)}
-                <div class="menu-item" on:click={() => showInputs = true}>
+            {#if chat?.type === "CHAT" || chat.type === "DIALOG"}
+              {#if chat.admins?.includes($currentUser)}
+                <div
+                  class="menu-item"
+                  on:click={() => showInputs = true}
+                >
                   Изменить название
                 </div>
-                <div class="menu-item" on:click={refreshInvite}>
+                <div
+                  class="menu-item"
+                  on:click={() => handleAction("invite")}
+                >
                   Обновить ссылку
                 </div>
               {/if}
-              {#if chat.owner === $currentUser}
-              <div
-                class="menu-item danger"
-                on:click={() => handleAction("delete")}
-              >
-                Удалить для всех
-              </div>
+              {#if chat.owner === $currentUser || chat.type === "DIALOG"}
+                <div
+                  class="menu-item danger"
+                  on:click={() => handleAction("delete")}
+                >
+                  Удалить для всех
+                </div>
               {/if}
-              <div
-                class="menu-item danger"
-                on:click={() => handleAction("quit")}
-              >
-                Выйти из чата
-              </div>
+              {#if chat.type === "CHAT"}
+                <div
+                  class="menu-item danger"
+                  on:click={() => handleAction("quit")}
+                >
+                  Выйти из группы
+                </div>
+              {/if}
             {/if}
           </div>
         {/if}
@@ -282,7 +313,10 @@
           {#each Object.keys(chat.participants) as userId}
             {#await getContact(userId)}
             {:then contact}
-              <div class="member" on:click={() => $Session.profile = { userId: contact.id }}>
+              <div
+                class="member"
+                on:click={() => selectMember(contact.id)}
+              >
                 <div class="row">
                   <Avatar {contact} size={44} />
                   <div class="column">
@@ -580,7 +614,7 @@
   }
 
   .invite {
-    margin-top: 30px;
+    margin: 30px 0 10px 0;
     flex: 1;
     cursor: pointer;
     text-align: center;
