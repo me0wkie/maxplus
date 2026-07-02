@@ -1,21 +1,23 @@
 <script>
   import { onMount, onDestroy } from "svelte";
 
-  export let bubbleCount = 40;
+  export let bubbleCount = 30;
   export let colors = [
     "rgba(255,255,255,0.35)",
     "rgba(200,230,255,0.25)",
     "rgba(180,210,255,0.18)",
   ];
-  export let minRadius = 14; // px
-  export let maxRadius = 38; // px
+  export let minRadius = 14;
+  export let maxRadius = 38;
   export let speed = 0.6;
   export let parallax = false;
 
   let canvas;
   let ctx;
   let rafId;
+
   let particles = [];
+
   let width = 0;
   let height = 0;
   let dpr = 1;
@@ -29,85 +31,100 @@
 
   function initParticles() {
     particles = [];
+
     for (let i = 0; i < bubbleCount; i++) {
-      const r = rand(minRadius, maxRadius);
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      const vy = -rand(0.2, 1.2) * speed * (0.4 + r / maxRadius);
-      const vx = rand(-0.3, 0.3) * speed;
-      const color = colors[Math.floor(Math.random() * colors.length)];
-      const alpha = rand(0.06, 0.28);
-      particles.push({ x, y, vx, vy, r, color, alpha });
+      particles.push({
+        x: Math.random(),
+        y: Math.random(),
+        vx: rand(-0.0003, 0.0003) * speed,
+        vy: -rand(0.0002, 0.0008) * speed,
+        r: rand(minRadius, maxRadius),
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: rand(0.06, 0.28),
+      });
     }
   }
 
   function resize() {
     if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    width = rect.width;
+    height = rect.height;
+
     dpr = window.devicePixelRatio || 1;
-    width =
-      canvas.clientWidth ||
-      canvas.parentElement.clientWidth ||
-      window.innerWidth;
-    height =
-      canvas.clientHeight ||
-      canvas.parentElement.clientHeight ||
-      window.innerHeight;
+
     canvas.width = Math.max(1, Math.floor(width * dpr));
     canvas.height = Math.max(1, Math.floor(height * dpr));
-    canvas.style.width = width + "px";
-    canvas.style.height = height + "px";
-    ctx = canvas.getContext("2d");
-    ctx.scale(dpr, dpr);
 
-    if (particles.length === 0) initParticles();
+    ctx = canvas.getContext("2d");
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
   }
 
   function draw() {
     ctx.clearRect(0, 0, width, height);
 
-    for (let p of particles) {
-      let px = p.x;
-      let py = p.y;
+    for (const p of particles) {
+      const px = p.x * width;
+      const py = p.y * height;
+
+      const offsetX = parallax ? (pointerX - 0.5) * 20 : 0;
+      const offsetY = parallax ? (pointerY - 0.5) * 20 : 0;
+
+      const x = px + offsetX;
+      const y = py + offsetY;
+
+      ctx.globalAlpha = p.alpha;
+
+      const g = ctx.createRadialGradient(
+        x - p.r * 0.3,
+        y - p.r * 0.4,
+        p.r * 0.1,
+        x,
+        y,
+        p.r
+      );
+
+      g.addColorStop(0, p.color);
+      g.addColorStop(1, p.color);
+
+      ctx.fillStyle = g;
 
       ctx.beginPath();
-      ctx.arc(px, py, p.r, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.globalAlpha = p.alpha;
-      const g = ctx.createRadialGradient(
-        px - p.r * 0.3,
-        py - p.r * 0.4,
-        p.r * 0.1,
-        px,
-        py,
-        p.r,
-      );
-      g.addColorStop(0, p.color.replace(/rgba\((.*)\)/, "rgba($1)"));
-      g.addColorStop(1, p.color.replace(/rgba\((.*)\)/, "rgba($1)"));
-      ctx.fillStyle = g;
+      ctx.arc(x, y, p.r, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    for (let p of particles) {
+    ctx.globalAlpha = 1;
+  }
+
+  function update() {
+    for (const p of particles) {
       p.x += p.vx;
       p.y += p.vy;
 
-      if (p.y + p.r < -20) {
-        p.y = height + p.r + rand(0, 40);
-        p.x = Math.random() * width;
-      }
-      if (p.x - p.r > width + 20) p.x = -p.r - rand(0, 40);
-      if (p.x + p.r < -20) p.x = width + p.r + rand(0, 40);
+      if (p.y < -0.1) p.y = 1.1;
+      if (p.y > 1.1) p.y = -0.1;
+
+      if (p.x < -0.1) p.x = 1.1;
+      if (p.x > 1.1) p.x = -0.1;
     }
   }
 
   function loop() {
+    update();
     draw();
     rafId = requestAnimationFrame(loop);
   }
 
   function onPointerMove(e) {
     const rect = canvas.getBoundingClientRect();
+
     let clientX, clientY;
+
     if (e.touches && e.touches[0]) {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
@@ -115,6 +132,7 @@
       clientX = e.clientX;
       clientY = e.clientY;
     }
+
     pointerX = (clientX - rect.left) / rect.width;
     pointerY = (clientY - rect.top) / rect.height;
   }
@@ -122,11 +140,14 @@
   onMount(() => {
     resize();
     initParticles();
+
     window.addEventListener("resize", resize, { passive: true });
+
     if (parallax) {
-      window.addEventListener("pointermove", onPointerMove);
+      window.addEventListener("pointermove", onPointerMove, { passive: true });
       window.addEventListener("touchmove", onPointerMove, { passive: true });
     }
+
     loop();
   });
 
