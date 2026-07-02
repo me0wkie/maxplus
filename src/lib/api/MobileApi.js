@@ -31,6 +31,7 @@ export default class MobileApi extends BaseAPI {
   synchronized = new Promise((resolve) => (this.resolve_sync = resolve));
   latest_init = null;
   unlisten = null;
+  notify = {};
 
   constructor(token) {
     super(token);
@@ -69,7 +70,19 @@ export default class MobileApi extends BaseAPI {
         receivedMessage.set(message);
       } else if (opc == 129) {
         // typing
+      } else if (opc === 136) {
+        const { videoId, fileId } = response.payload;
+        this.notify[videoId || fileId]?.();
       }
+    });
+  }
+
+  waitForProcessing(id) {
+    return new Promise(resolve => {
+      this.notify[id] = (() => {
+        delete this.notify[id];
+        resolve();
+      });
     });
   }
 
@@ -470,6 +483,20 @@ export default class MobileApi extends BaseAPI {
 
     if (type === "PHOTO") {
       payload.uploadUrl = response.url;
+      /* const formData = new FormData();
+        formData.append(
+        "file",
+        await fetch(convertFileSrc(path)).then(r => r.blob()),
+        "image.jpg"
+        );
+        const res = await fetch(response.url, {
+        method: "POST",
+        body: formData,
+        referrer: "no-referrer",
+      });
+      const json = await res.json();
+      const uploaded = Object.values(json.photos)[0];
+      return { _type: "PHOTO", photoToken: uploaded.token };*/
     } else if (type === "VIDEO") {
       const { token, url, videoId } = response.info[0];
       payload.token = token;
@@ -484,7 +511,8 @@ export default class MobileApi extends BaseAPI {
 
     const data = await invoke("upload", payload);
 
-    console.log(data);
+    if (type === "VIDEO") await this.waitForProcessing(payload.videoId);
+    if (type === "FILE") await this.waitForProcessing(payload.fileId);
 
     if (data.error) {
       alert("Не удалось загрузить " + type + "\n" + data.error);

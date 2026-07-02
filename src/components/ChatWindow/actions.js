@@ -107,6 +107,10 @@ export async function sendMessage(
       return msgs;
     });*/
 
+    messages.update(msgs => {
+      return [ ...msgs, message ];
+    })
+
     if (ass) {
       const entry = chatKeysCached.messages.find(
         (entry) => entry.key === chatKeysCached.current,

@@ -44,6 +44,9 @@
 
     if (!textToSend && !_attaches.length) return;
 
+    attaches.length = 0;
+    elements.length = 0;
+
     try {
       await sendMessage(
         chat,
@@ -201,7 +204,7 @@
       </button>
     </div>
 
-    {#if newMessage.length}
+    {#if newMessage.length || attaches.length}
       <button class="button" on:click={onSend}>
         <svg viewBox="0 0 24 24"
           ><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg
