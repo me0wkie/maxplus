@@ -1,4 +1,4 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
+//import { LazyStore } from "@tauri-apps/plugin-store";
 import { writable, get } from "svelte/store";
 import MockApi from "../api/MockApi.js";
 import MobileApi from "../api/MobileApi.js";
@@ -11,8 +11,8 @@ const Apis = {
 
 let apiInstance = new Apis[SELECTED]();
 
-const users = new LazyStore("users.bin");
-const chats = new LazyStore("chats.bin");
+const users = {}//new LazyStore("users.bin");
+const chats = {}//new LazyStore("chats.bin");
 
 export const currentUser = writable(undefined);
 export const currentUserDetails = writable(undefined);

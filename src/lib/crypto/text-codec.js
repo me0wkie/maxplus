@@ -1,11 +1,11 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
+//import { LazyStore } from "@tauri-apps/plugin-store";
 import { writable, get } from "svelte/store";
 
 import { ready } from "$lib/crypto/sodium";
 import { gzipSync, gunzipSync, strToU8 } from "fflate";
 
-const dictSettings = new LazyStore("dict-settings.json");
-const dictStore = new LazyStore("dict.json");
+//const dictSettings = new LazyStore("dict-settings.json");
+//const dictStore = new LazyStore("dict.json");
 const dictionary = writable(undefined);
 
 export const dict = {

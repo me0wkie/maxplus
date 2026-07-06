@@ -1,7 +1,7 @@
 use crate::state::AppState;
+use rumax::models::{FetchHistoryOptions, Identity};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use rumax::models::{Identity, FetchHistoryOptions};
 use tauri::State;
 
 fn p(s: String) -> Result<u64, String> {

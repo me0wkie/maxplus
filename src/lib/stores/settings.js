@@ -1,7 +1,7 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
+//import { LazyStore } from "@tauri-apps/plugin-store";
 //import { browser } from '$app/environment';
 
-const store = new LazyStore("settings.json");
+const store = {}//new LazyStore("settings.json");
 
 export function keys() {
   return store.keys();

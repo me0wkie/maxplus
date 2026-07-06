@@ -2,13 +2,11 @@ mod commands;
 mod files;
 mod secure;
 mod state;
-mod stores;
 mod video;
 
 use crate::secure::{CryptoManager, EncType};
 use state::AppState;
 use std::sync::Arc;
-use stores::setup_custom_stores;
 use tauri::{Emitter, Manager};
 use tokio::sync::RwLock;
 
@@ -17,14 +15,14 @@ pub fn run() {
     video::start_video_proxy();
 
     let builder = tauri::Builder::default()
+        .plugin(tauri_plugin_turso::init())
         .plugin(tauri_plugin_upload::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_store::Builder::new().build());
+        .plugin(tauri_plugin_opener::init());
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     let builder = builder
@@ -36,11 +34,6 @@ pub fn run() {
 
     builder
         .setup(|app| {
-            let store_names = &["users.bin", "chats.bin"]; // TODO будут инициализироваться при init_user()
-
-            let stores =
-                setup_custom_stores(app.handle(), store_names).expect("failed to init stores");
-
             let crypto = CryptoManager::init(EncType::None, "system", None);
 
             let (client, mut event_stream) = tauri::async_runtime::block_on(async {
@@ -52,7 +45,6 @@ pub fn run() {
             app.manage(AppState {
                 crypto: Arc::new(RwLock::new(crypto)),
                 client,
-                stores,
             });
 
             let handle = app.handle().clone();
@@ -108,9 +100,6 @@ pub fn run() {
             files::download,
             files::upload,
             files::pick,
-            stores::get,
-            stores::set,
-            stores::delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

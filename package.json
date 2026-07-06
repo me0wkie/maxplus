@@ -25,12 +25,12 @@
     "@tauri-apps/plugin-notification": "~2.3.3",
     "@tauri-apps/plugin-opener": "^2.5.4",
     "@tauri-apps/plugin-os": "~2.3.2",
-    "@tauri-apps/plugin-store": "~2.4.3",
     "@tauri-apps/plugin-stronghold": "~2.3.1",
     "@tauri-apps/plugin-upload": "~2",
     "fflate": "^0.8.3",
     "jsqr": "^1.4.0",
-    "libsodium-wrappers-sumo": "^0.8.4"
+    "libsodium-wrappers-sumo": "^0.8.4",
+    "tauri-plugin-turso-api": "git+https://github.com/readest/tauri-plugin-turso.git#main"
   },
   "devDependencies": {
     "@sveltejs/adapter-static": "^3.0.10",
