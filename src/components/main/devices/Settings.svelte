@@ -153,7 +153,7 @@
 
       <div class="buttons">
         <button class="reroll" on:click={rerollDevice}>
-          ⟳
+          <img src="/icons/reload.svg">
         </button>
         <button class="export" on:click={exportDevice}>
           <img src="/icons/export.svg">
@@ -203,7 +203,7 @@
     border-radius: 14px 14px 0 0;
 
     margin-top: auto;
-    padding: 0 20px;
+    padding: 0 20px 20px 20px;
     color: white;
   }
 
@@ -226,6 +226,7 @@
   .buttons {
     display: flex;
     gap: 5px;
+    justify-content: center;
   }
 
   .buttons button {
@@ -251,23 +252,12 @@
     padding: 8px;
   }
 
-  .buttons .import img {
-    height: 19px;
-  }
-
-  .buttons .reroll {
-    font-size: 30px;
-    font-weight: 1000;
+  .buttons .import {
     position: relative;
-    bottom: 3px;
+    top: 1px;
   }
 
-  .buttons .close {
-    position: relative;
-    bottom: 1px;
-  }
-
-  .buttons *:hover {
+  .buttons *:active {
     color: white;
     opacity: 1;
   }
