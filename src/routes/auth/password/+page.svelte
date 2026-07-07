@@ -5,6 +5,7 @@
   import { set as sessionSet, get as sessionGet } from "$lib/stores/session.js";
 
   import "$lib/styles/AnimatedPanel.css";
+  import BackButton from "$components/main/auth/BackButton.svelte";
 
   import API, { currentUser } from "$lib/stores/api";
 
@@ -51,10 +52,7 @@
     />
     <button class="animated-panel" type="submit">Проверить</button>
   </form>
-  <div
-    class="back"
-    on:click={_ => goto("/auth/login")}
-  ><a>←</a></div>
+  <BackButton path="/auth/login"/>
 </div>
 
 <style>
@@ -107,21 +105,5 @@
     font-size: 15px;
     height: 22px;
     word-break: break-all;
-  }
-
-  .back {
-    position: absolute;
-    height: 42px;
-    width: 42px;
-    border-radius: 32px;
-    background-color: #fff3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    top: 10px;
-    left: 10px;
-    font-weight: 1000;
-    font-size: 20px;
-    cursor: pointer;
   }
 </style>

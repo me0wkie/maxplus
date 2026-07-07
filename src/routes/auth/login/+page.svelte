@@ -8,6 +8,7 @@
   import "$lib/styles/AnimatedPanel.css";
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
   import OpenDevicesButton from "$components/main/devices/OpenButton.svelte";
+  import BackButton from "$components/main/auth/BackButton.svelte";
 
   let phone = "";
   let error = "";
@@ -39,15 +40,7 @@
     <button class="animated-panel" type="submit">Получить код</button>
   </form>
   <a href="/auth/register" class="link">Создать аккаунт</a>
-  {#await showBackButton()}
-  {:then backButton}
-    {#if backButton}
-      <div
-        class="back"
-        on:click={_ => goto("/auth/select")}
-      ><a>←</a></div>
-    {/if}
-  {/await}
+  <BackButton condition={showBackButton} path="/auth/select"/>
 </div>
 
 <OpenDevSettingsButton />
@@ -111,24 +104,5 @@
     word-break: break-all;
     white-space: nowrap;
     text-align: center;
-  }
-
-  .back {
-    position: absolute;
-    height: 32px;
-    width: 32px;
-    border-radius: 32px;
-    background-color: #fff3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    top: 75px;
-    left: 10px;
-    font-weight: 1000;
-  }
-
-  .back a {
-    position: relative;
-    bottom: 1px;
   }
 </style>

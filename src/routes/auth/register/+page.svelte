@@ -10,10 +10,6 @@
   let phone = "";
   let name = "";
 
-  /*
-    reg is different
-    */
-
   async function handleRegister() {
     error = "Ожидайте...";
     console.log("Запрос на регистрацию:", { phone, name });

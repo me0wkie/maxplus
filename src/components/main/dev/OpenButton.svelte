@@ -23,9 +23,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 100px 0 0 15px;
+    border-radius: 100px 0 0 100px;
     cursor: pointer;
     transition: padding 0.1s;
+    font-size: 16px;
   }
 
   .open-dev:hover {
