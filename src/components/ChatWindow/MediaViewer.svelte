@@ -1,8 +1,15 @@
 <script>
-  import { createEventDispatcher } from "svelte";
   import { fade, fly, scale as scaleTransition } from "svelte/transition";
-  import API from "$lib/stores/api";
   import { invoke as tauriInvoke } from "@tauri-apps/api/core";
+  import { convertFileSrc } from '@tauri-apps/api/core';
+  import { fetch } from '@tauri-apps/plugin-http';
+  import { createEventDispatcher } from "svelte";
+
+  import API from "$lib/stores/api";
+  import {
+    getCachedImage,
+    setCachedImage
+  } from "$lib/stores/cache";
 
   export let index = 0;
   export let allMedia;
@@ -298,6 +305,25 @@
     x = Math.max(-maxX, Math.min(maxX, x));
     y = Math.max(-maxY, Math.min(maxY, y));
   }
+
+  async function load(url) {
+    let path = await getCachedImage(url);
+
+    if (!path) {
+      const response = await fetch(url, {
+        method: "GET"
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      path = await setCachedImage(url, blob);
+    }
+
+    return convertFileSrc(path);
+  }
 </script>
 
 <div
@@ -340,12 +366,15 @@
     >
       {#key index}
         {#if currentMedia._type === "PHOTO"}
-          <img
-            style="transform: {transformStyle}"
-            src={currentMedia.baseUrl}
-            alt="view"
-            in:fly={{ y: 20, duration: 200 }}
-          />
+          {#await load(currentMedia.baseUrl)}
+          {:then url}
+            <img
+              style="transform: {transformStyle}"
+              src={url}
+              alt="view"
+              in:fly={{ y: 20, duration: 200 }}
+            />
+          {/await}
         {:else if currentMedia._type === "VIDEO"}
           {#if videoCache[currentMedia.videoId]}
             <div

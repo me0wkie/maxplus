@@ -1,5 +1,6 @@
 <script>
   import { currentUser, currentSessionContacts } from "$lib/stores/api";
+  import Image from "$components/main/Image.svelte";
 
   export let size;
   export let selectionMode;
@@ -19,7 +20,7 @@
         : chat.title || contact?.names?.[0]?.name || "Без названия";
 
   $: avatarUrl =
-    chat.avatar || (chat.id === 0 ? "saved.webp" : (contact?.avatar || contact?.baseUrl));
+    chat.avatar || (contact?.avatar || contact?.baseUrl);
 
   function getAvatarPlaceholder(id) {
     const colors = [
@@ -49,6 +50,8 @@
       .join("")
       .toUpperCase();
   }
+
+  const imageStyle = `width: 100%; height: 100%; border-radius: 50%; object-fit: cover;`;
 </script>
 
 <div class="avatar-wrapper" style="width: {size}px; height: {size}px; {style}">
@@ -71,8 +74,10 @@
   {/if}
 
   <div class="avatar-container">
-    {#if avatarUrl}
-      <img src={avatarUrl} alt={title} class="avatar-img" loading="lazy" />
+    {#if chat.id === 0}
+      <img src="saved.webp" style={imageStyle} />
+    {:else if avatarUrl}
+      <Image src={avatarUrl} alt={title} style={imageStyle} />
     {:else}
       <div
         class="avatar-placeholder"
@@ -99,7 +104,6 @@
     height: 100%;
   }
 
-  .avatar-img,
   .avatar-placeholder {
     width: 100%;
     height: 100%;

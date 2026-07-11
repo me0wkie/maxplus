@@ -28,6 +28,34 @@
       ]
     },
     {
+      "identifier": "fs:allow-exists",
+      "allow": [
+        { "path": "**/*" },
+        { "path": "$APPCACHE/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        { "path": "**/*" },
+        { "path": "$APPCACHE/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        { "path": "**/*" },
+        { "path": "$APPCACHE/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-mkdir",
+      "allow": [
+        { "path": "**/*" },
+        { "path": "$APPCACHE/**" }
+      ]
+    },
+    {
       "identifier": "fs:allow-remove",
       "allow": [
         { "path": "**/*" },

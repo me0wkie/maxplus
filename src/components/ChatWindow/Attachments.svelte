@@ -1,7 +1,14 @@
 <script>
+  import { fetch } from '@tauri-apps/plugin-http';
   import { download } from '@tauri-apps/plugin-upload';
+  import { convertFileSrc } from '@tauri-apps/api/core';
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { onDestroy } from 'svelte';
+
+  import {
+    getCachedImage,
+    setCachedImage
+  } from "$lib/stores/cache";
 
   export let getFile;
   export let attaches;
@@ -35,10 +42,33 @@
   });
 
   function lazyLoad(node, src) {
+    let cancelled = false;
+    let url = null;
     let observer;
-    function load() {
-      if (node.src !== src) node.src = src;
+
+    async function load() {
+      let path = await getCachedImage(src);
+
+      if (!path) {
+        const response = await fetch(src, {
+          method: "GET"
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        path = await setCachedImage(src, blob);
+      }
+
+      url = convertFileSrc(path);
+
+      if (!cancelled) {
+        node.src = url;
+      }
     }
+
     if (IntersectionObserver) {
       observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
@@ -52,6 +82,7 @@
     }
     return {
       destroy() {
+        cancelled = true;
         if (observer) observer.disconnect();
       }
     };
