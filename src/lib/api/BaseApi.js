@@ -2,7 +2,7 @@ import { usersDb, chatsDb } from "$lib/stores/api";
 
 // prettier-ignore
 export default class API {
-    _user = null;
+    _user = null; // TODO эт нахуя, уже есть $currentUser
     _device = null;
     folders = [];
     

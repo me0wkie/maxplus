@@ -5,7 +5,7 @@ import MobileApi from "../api/MobileApi.js";
 
 const SELECTED = "mobile";
 const Apis = {
-  mock: MockApi,
+  mock: MockApi, // outdated
   mobile: MobileApi,
 };
 

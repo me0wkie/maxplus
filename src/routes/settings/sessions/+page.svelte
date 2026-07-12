@@ -4,7 +4,9 @@
   import { slide, fly } from "svelte/transition";
   import { flip } from "svelte/animate";
   import { page } from "$app/stores";
-  import API from "$lib/stores/api";
+
+  import { getAccounts, getAccountMeta } from "$lib/stores/accounts";
+  import API, { currentUser } from "$lib/stores/api";
 
   let sessions = [];
   let current = null;
@@ -31,8 +33,14 @@
   };
 
   async function handleTerminateAll() {
-    if (current.time + 1000 * 60 * 60 * 24 > Date.now()) {
-      alert("Должно пройти 24 часа после входа в аккаунт!")
+    const accounts = await getAccounts();
+    const current = accounts.find(x => x.uid === $currentUser);
+    if (!current) throw new Error("Ошибка получения данных аккаунта");
+    const accountMeta = await getAccountMeta(current.id);
+    console.log(accountMeta);
+
+    if (accountMeta.added + 1000 * 60 * 60 * 24 > Date.now()) {
+      alert("Должно пройти 24 часа со входа в аккаунт!")
       return;
     }
 
@@ -120,7 +128,7 @@
 
   <div class="actions-panel">
     <button class="terminate-btn" on:click|stopPropagation={handleTerminateAll}>
-      Завершить все сессии
+      Завершить все
     </button>
     <button class="back-btn" on:click|stopPropagation={() => goto(from)}>
       Назад
@@ -258,6 +266,12 @@
     height: 40px;
   }
 
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .terminate-btn {
     width: 100%;
     background: #f22727aa;
@@ -271,8 +285,6 @@
   }
 
   .back-btn {
-    display: flex;
-    align-items: center;
     gap: 8px;
     background: #6366f1;
     color: white;

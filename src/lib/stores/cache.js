@@ -26,7 +26,7 @@ async function getStore() {
         await mkdir(await join(await appCacheDir(), "cache", "files"), {
             baseDir: BaseDirectory.AppCache,
             recursive: true
-        })
+        });
 
         storePromise = await load(await join(await appCacheDir(), "cache", "index.json"), {
             autoSave: false

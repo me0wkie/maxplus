@@ -19,6 +19,7 @@ import {
 } from "$lib/stores/api";
 import { get as sessionGet, set as sessionSet } from "$lib/stores/session";
 import { cacheChat, syncContacts } from "$lib/utils/caching";
+import { addAccount, getAccounts, removeAccount } from "$lib/stores/accounts";
 import { goto } from "$app/navigation";
 
 export default class MobileApi extends BaseAPI {
@@ -144,6 +145,7 @@ export default class MobileApi extends BaseAPI {
       const userId = profile.contact.id;
 
       await usersDb.set("device-" + userId, this._device);
+      await addAccount(profile.contact);
       this.setUser(userId);
       this.setToken(tokenAttrs.LOGIN.token);
       currentUser.set(userId);
@@ -176,6 +178,7 @@ export default class MobileApi extends BaseAPI {
       const userId = profile.contact.id;
 
       await usersDb.get("device-" + userId, this._device);
+      await addAccount(profile.contact);
       currentUser.set(userId);
       currentUserDetails.set(profile.contact);
       this.setUser(userId);
@@ -198,12 +201,15 @@ export default class MobileApi extends BaseAPI {
   async logout(userId, redirect = true) {
     await invoke("logout");
 
+    const userDetails = get(currentUserDetails);
+
     if (get(currentUser) === userId) {
       this.setToken(undefined);
       this.disconnect();
     }
 
     await purgeAccount(userId);
+    await removeAccount(userDetails);
 
     if (redirect) goto("/auth/login");
 
@@ -216,11 +222,13 @@ export default class MobileApi extends BaseAPI {
     await invoke("close_all_sessions");
 
     const userId = get(currentUser);
+    const userDetails = get(currentUserDetails);
 
     this.setToken(undefined);
     this.disconnect();
 
     await purgeAccount(userId);
+    await removeAccount(userDetails);
 
     goto("/auth/login");
   }
@@ -317,6 +325,10 @@ export default class MobileApi extends BaseAPI {
 
       currentSessionChats.set(currentChats);
       currentSessionContacts.set(currentContacts);
+
+      // TODO remove (it's for testing)
+      const accounts = await getAccounts();
+      if (!accounts.find(x => x.uid === get(currentUser))) await addAccount(get(currentUserDetails));
     } catch (e) {
       alert(e);
       console.error(e);
