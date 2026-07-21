@@ -1,17 +1,15 @@
 import { LazyStore } from "@tauri-apps/plugin-store";
 import { writable, get } from "svelte/store";
-import MockApi from "../api/MockApi.js";
-import MobileApi from "../api/MobileApi.js";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
 
-const SELECTED = "mobile";
-const Apis = {
-  mock: MockApi, // outdated
-  mobile: MobileApi,
-};
+import MobileApi from "$lib/api/MobileApi.js";
+import * as Accounts from "$lib/stores/accounts.js";
+import {
+  get as sessionGet,
+  set as sessionSet
+} from "$lib/stores/session.js";
 
-let apiInstance = new Apis[SELECTED]();
-
-const users = new LazyStore("users.bin");
 const chats = new LazyStore("chats.bin");
 
 export const currentUser = writable(undefined);
@@ -23,12 +21,13 @@ export const currentlySyncing = writable(false);
 export const currentFolders = writable([]);
 export const currentPresence = writable({});
 export const receivedMessage = writable(undefined); // heap
-export default writable(apiInstance);
+
+const API = new MobileApi();
+export default writable(API);
 
 export const currentRealChats = writable([]);
 export const currentRealContacts = writable([]);
 
-export const usersDb = users;
 export const chatsDb = chats;
 
 export function clearMessages() {
@@ -113,48 +112,47 @@ export const chatReader = { // TODO будет перенесено в user-ID/s
   },
 };
 
-export const getAccounts = async () => {
-  return (await users.keys())
-    .filter(x => /^user-\d+$/.test(x))
-    .map(x => x.split('-')[1]);
-}
-
-export const getAccount = async id => {
-  return await users.get("user-" + id);
-}
-
-export const purgeAccount = async id => {
-  const regex = new RegExp("-" + id + "$");
-  for (const key of await users.keys()) {
-    if (regex.test(key)) await users.delete(key);
-  }
-}
-
-currentUser.subscribe(async (user) => {
-  if (user === undefined) {
-    const _currentUserId = await users.get("current");
-    const _currentUser = await users.get("user-" + _currentUserId);
-    if (!_currentUserId || !_currentUser) {
+currentUser.subscribe(async (userId) => {
+  if (userId === undefined) {
+    const data = await Accounts.getCurrentAccount();
+    console.log('Accounts.getCurrentAccount() =', data);
+    if (!data || !data.uid) { // TODO pin request
       currentUser.set(null);
     } else {
-      await apiInstance.loadDevice();
-      apiInstance._user = _currentUserId;
-      updateDetails(undefined, _currentUser);
-      updateChats(undefined, _currentUserId);
-      updateContacts(undefined, _currentUserId);
-      updateFolders(undefined, _currentUserId);
-      currentUser.set(_currentUserId);
+      currentUserDetails.set(data.contact);
+      updateChats(undefined, data.uid);
+      updateContacts(undefined, data.uid);
+      updateFolders(undefined, data.uid);
+      currentUser.set(data.uid);
     }
-  } else {
-    apiInstance.setUser(user); // login err fix
+  }
+  else if (userId === null) openAuth();
+  else {
+    // account init
+    try {
+      if (sessionGet("sync")) return; // already synced
+
+      if (!sessionGet("connected")) await API.init();
+
+      await API.sync();
+
+      const calls = await API.getCalls();
+      currentSessionCalls.set(calls);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      sessionSet("loaded", true);
+    }
   }
 });
 
-currentUserDetails.subscribe(async (_details) => {
-  const user = get(currentUser);
-  if (user === undefined || user === null) return;
-  await updateDetails(_details, user);
-});
+async function openAuth() {
+  if (await Accounts.getAccounts().length) {
+    goto("/auth/select");
+  } else {
+    goto("/auth/login");
+  }
+}
 
 currentSessionChats.subscribe(async (_chats) => {
   const user = get(currentUser);
@@ -173,18 +171,6 @@ currentFolders.subscribe(async (_folders) => {
   if (user === undefined || user === null) return;
   await updateFolders(_folders, user);
 });
-
-const updateDetails = async (_details, user) => {
-  if (!user) return;
-  if (_details === undefined) {
-    const fromDb = await users.get("user-" + user);
-    currentUserDetails.set(fromDb || {});
-  } else if (Object.keys(_details).length) {
-    await users.set("user-" + user, _details);
-  } else if (_details === null) {
-    await users.delete("user-" + user); // TODO purge other data as well
-  }
-};
 
 const updateChats = async (_chats, user) => {
   if (!user) return;

@@ -3,21 +3,27 @@
   import { set as sessionSet } from "$lib/stores/session.js";
   import API from "$lib/stores/api";
 
-  import "$lib/styles/AnimatedPanel.css";
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
+  import OpenDevicesButton from "$components/main/devices/OpenButton.svelte";
+  import ActionButton from "$components/main/auth/ActionButton.svelte";
 
   let error = "";
   let phone = "";
   let name = "";
 
-  async function handleRegister() {
-    error = "Ожидайте...";
+  async function register() {
+    if (phone.length < 7) {
+      error = "Это не номер!";
+      return;
+    }
+
+    error = "";
     console.log("Запрос на регистрацию:", { phone, name });
     const response = await $API.startAuth(phone);
-    console.log(response);
+
     if (!response.success) {
       error = "Ошибка!";
-      alert(response.localizedMessage);
+      alert(response.title);
     } else {
       sessionSet("name", name);
       goto("/auth/verify");
@@ -27,21 +33,25 @@
 
 <div class="auth-page">
   <h1>Регистрация</h1>
-  <form on:submit|preventDefault={handleRegister}>
+  <div class="form">
     <div class="error">{error}</div>
-    <input type="text" bind:value={name} placeholder="Псевдоним" required />
+    <input
+      type="text"
+      bind:value={name}
+      placeholder="Псевдоним"
+    />
     <input
       type="tel"
       bind:value={phone}
       placeholder="Номер телефона"
-      required
     />
-    <button class="animated-panel" type="submit">Получить код</button>
-  </form>
-  <a href="/auth/login" class="link">Уже есть аккаунт? Войти</a>
+    <ActionButton text="Получить код" action={register}/>
+  </div>
+  <a href="/auth/login" class="link">Уже есть аккаунт? <u>Войти</u></a>
 </div>
 
 <OpenDevSettingsButton />
+<OpenDevicesButton />
 
 <style>
   .auth-page {
@@ -49,27 +59,24 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    gap: 1rem;
+    min-height: 100vh;
     text-align: center;
     color: #ddd;
-    max-width: min(300px, 90%);
-    margin: 0 auto;
   }
 
   .auth-page h1 {
     margin: 0;
   }
 
-  form {
+  .form {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
+    max-width: min(300px, 90%);
   }
 
-  input,
-  button {
+  input {
     padding: 0.75rem;
     border-radius: 8px;
     border: 1px solid #333;
@@ -79,21 +86,16 @@
     outline: none;
   }
 
-  button {
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-
   .link {
-    margin-top: 1rem;
-    font-size: 0.9rem;
+    margin-top: 20px;
+    font-size: 15px;
     color: #4a90e2;
     text-decoration: none;
+    transition: transform 0.2s;
   }
 
   .link:hover {
-    text-decoration: underline;
+    transform: scale(1.02);
   }
 
   .error {

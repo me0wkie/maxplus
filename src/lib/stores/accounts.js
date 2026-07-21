@@ -2,10 +2,12 @@ import { LazyStore, load } from "@tauri-apps/plugin-store";
 import { join, appDataDir } from '@tauri-apps/api/path';
 import { remove } from '@tauri-apps/plugin-fs';
 
-const store = new LazyStore("accounts.json");
-const encrypted = [];//TODO
+import { currentUser } from "$lib/stores/api";
 
-export const addAccount = async (account, token) => {
+const store = new LazyStore("accounts.json");
+const encrypted = []; //TODO
+
+export const addAccount = async (account, token, device) => {
   const accounts = await store.get("accounts") || [];
 
   if (accounts.find(x => x.uid === account.id))
@@ -17,26 +19,45 @@ export const addAccount = async (account, token) => {
     if (!accounts.find(x => x.id === generated)) internalId = generated;
   }
 
-  accounts.push({
+  const entry = {
     id: internalId,
-    uid: account.id,
+    uid: account.id, // if encryption != null, this will be hidden (encrypted)
     encryption: null,
     key: null
+  };
+
+  accounts.push(entry);
+
+  await saveDataEntry(["data", internalId, "meta.json"], "meta", {
+    version: 1,
+    token,
+    device,
+    added: Date.now()
   });
 
-  const metaStore = await load(await join(await appDataDir(), "data", internalId, "meta.json"), {
+  await saveDataEntry(["data", internalId, "self.json"], "self", {
+    version: 1,
+    ...account
+  });
+
+  await store.set("accounts", accounts);
+
+  return entry;
+}
+
+export const saveDataEntry = async (storePathArray, key, value) => {
+  const now = Date.now();
+  const store = await load(await join(await appDataDir(), ...storePathArray), {
     autoSave: false
   });
 
-  await metaStore.set("meta", {
-    version: 1,
-    token,
-    added: Date.now()
-  });
-  await metaStore.save();
-  await metaStore.close();
+  await store.set(key, value);
 
-  await store.set("accounts", accounts);
+  await store.save();
+  await store.close();
+
+  const then = Date.now();
+  console.log('Estimated', (then - now) + "MS for saveDataEntry, path", storePathArray);
 }
 
 export const getAccounts = async () => {
@@ -51,28 +72,80 @@ export const getAccounts = async () => {
   return encrypted;
 }
 
+// todo caching
+export const getCurrentAccount = async () => {
+  const currentId = await store.get("current");
+
+  if (!currentId) return null;
+
+  return getAccount(currentId);
+}
+
+export const getAccount = async internalId => {
+  const accounts = await store.get("accounts") || [];
+
+  const account = accounts.find(x => x.id === internalId);
+  if (!account) throw new Error("No account " + internalId + " found!");
+
+  const meta = await getAccountMeta(internalId);
+  const contact = await getAccountContact(internalId);
+
+  return {
+    ...account,
+    meta,
+    contact
+  }
+}
+
+export const setCurrentAccount = async internalId => {
+  if (internalId !== null) {
+    await getAccount(internalId);
+  }
+
+  currentUser.set(internalId);
+  await store.set("current", internalId);
+}
+
 export const init = async () => {
   // TODO
 }
 
-export const getAccountMeta = async id => {
-  const metaStore = await load(await join(await appDataDir(), "data", id, "meta.json"));
-  const data = await metaStore.get("meta");
-  await metaStore.close();
+export const getAccountMeta = async internalId => {
+  const store = await load(await join(await appDataDir(), "data", internalId, "meta.json"));
+  const data = await store.get("meta");
+  await store.close().catch(e => {});
   return data;
 }
 
-export const removeAccount = async account => {
+export const getAccountContact = async internalId => {
+  const store = await load(await join(await appDataDir(), "data", internalId, "self.json"));
+  const data = await store.get("self");
+  await store.close().catch(e => {});
+  return data;
+}
+
+export const removeAccount = async internalId => {
   const accounts = await store.get("accounts");
 
-  const idx = accounts.findIndex(x => x.id === account.id);
+  const idx = accounts.findIndex(x => x.id === internalId);
   if (idx === -1)
-    throw new Error("Account with id " + account.id + " not found!");
+    throw new Error("Account with id " + internalId + " not found!");
 
   accounts.splice(idx, 1);
 
+  const encryptedEntry = encrypted.findIndex(x => x.id === internalId);
+  if (encryptedEntry) encrypted.splice(encryptedEntry, 1);
+
   await store.set("accounts", accounts);
-  await remove(await join(await appDataDir(), "data", id, { recursive: true }));
+  await remove(await join(await appDataDir(), "data", internalId), { recursive: true });
+}
+
+export const removeAccountByUserId = async uid => {
+  const account = encrypted.find(x => x.uid === uid);
+
+  if (!account) throw new Error("No encrypted account with uid " + uid + " found!");
+
+  return removeAccount(account.id);
 }
 
 export const setEncryption = async (account, type, wrapKey) => {

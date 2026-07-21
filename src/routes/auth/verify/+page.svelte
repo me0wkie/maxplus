@@ -2,12 +2,17 @@
   import { getContext, onDestroy } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import { goto } from "$app/navigation";
-  import { set as sessionSet, get as sessionGet } from "$lib/stores/session.js";
+  import {
+    set as sessionSet,
+    get as sessionGet
+  } from "$lib/stores/session.js";
 
-  import "$lib/styles/AnimatedPanel.css";
   import BackButton from "$components/main/auth/BackButton.svelte";
+  import ActionButton from "$components/main/auth/ActionButton.svelte";
 
-  import API, { currentUser } from "$lib/stores/api";
+  import API, {
+    currentUser
+  } from "$lib/stores/api";
 
   let error = "";
   let code = "";
@@ -20,8 +25,7 @@
   };
   onDestroy(() => delete onBack["sms"]);
 
-  async function handleVerify() {
-    error = "Ожидайте...";
+  async function verify() {
     console.log("Проверяем код:", code);
 
     let response;
@@ -33,9 +37,7 @@
       }
       response = await $API.login(code);
     }
-    else {
-      response = await $API.register(code, name);;
-    }
+    else response = await $API.register(code, name);
 
     if (response.error) {
       error = response.localizedMessage;
@@ -61,7 +63,7 @@
 <div class="auth-page">
   <h1>Подтверждение</h1>
   <p>Введите код, отправленный по указанному номеру телефона</p>
-  <form on:submit|preventDefault={handleVerify}>
+  <div class="form">
     <div class="error">{error}</div>
     <input
       type="text"
@@ -69,8 +71,8 @@
       placeholder="Код подтверждения"
       required
     />
-    <button class="animated-panel" type="submit">Подтвердить</button>
-  </form>
+    <ActionButton text="Подтвердить" action={verify}/>
+  </div>
   <BackButton path="/auth/login"/>
 </div>
 
@@ -96,15 +98,14 @@
     font-size: 14px;
   }
 
-  form {
+  .form {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     width: 100%;
   }
 
-  input,
-  button {
+  input {
     padding: 0.75rem;
     border-radius: 8px;
     border: 1px solid #333;
@@ -112,12 +113,6 @@
     background-color: #26262e;
     color: #ccc;
     outline: none;
-  }
-
-  button {
-    color: white;
-    border: none;
-    cursor: pointer;
   }
 
   .error {

@@ -52,11 +52,11 @@
         text: "Настроить профиль",
         action: () => goto("settings/profile?from=/?card=3"),
       },
-      {
+      /*{
         icon: "crypto.svg",
         text: "Настройки шифрования",
         action: () => goto("setup/tokens?from=/?card=3"),
-      }, // card 3 is settings
+      },*/
       {
         icon: "book.svg",
         text: "Словарь шифрования",

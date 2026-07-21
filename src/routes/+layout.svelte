@@ -1,24 +1,20 @@
 <script>
-  import { fade } from "svelte/transition";
-  import API, {
-    currentUser,
-    currentSessionCalls,
-    getAccounts
-  } from "$lib/stores/api.js";
-  import DevSettings from "$components/main/dev/Settings.svelte";
-  import DevicesSettings from "$components/main/devices/Settings.svelte";
-  import AddContactModal from "$components/main/AddContactModal.svelte";
-  import ProfileModal from "$components/ProfileModal.svelte";
-  import * as Settings from "$lib/stores/settings.js";
-  import Session, { get as sessionGet } from "$lib/stores/session.js";
-  import { page } from "$app/stores";
-  import { goto } from "$app/navigation";
-  import { onMount, setContext } from "svelte";
   import { onBackButtonPress } from "@tauri-apps/api/app";
+  import { onMount, setContext } from "svelte";
+  import { fade } from "svelte/transition";
+  import { page } from "$app/stores";
   import { type } from "@tauri-apps/plugin-os";
 
+  import Loading from "$components/effects/Loading.svelte";
+  import ProfileModal from "$components/ProfileModal.svelte";
+  import DevSettings from "$components/main/dev/Settings.svelte";
+  import AddContactModal from "$components/main/AddContactModal.svelte";
+  import DevicesSettings from "$components/main/devices/Settings.svelte";
+
+  import Session from "$lib/stores/session.js";
+  import * as Settings from "$lib/stores/settings.js";
+
   let settings;
-  let loaded = false;
   const onBack = {};
 
   setContext("onBack", onBack);
@@ -26,9 +22,9 @@
   onMount(async () => {
     settings = await Settings.keys();
 
-    if (!settings.includes("tokenEncType")) {
+    /*if (!settings.includes("tokenEncType")) {
       goto("/setup/tokens");
-    }
+    }*/
 
     const system = type();
 
@@ -40,50 +36,7 @@
         else if (onBack.addContact) onBack.addContact();
       });
     }
-
-    setTimeout(() => {
-      if (!loaded) loaded = true;
-    }, 5000);
   });
-
-  currentUser.subscribe(async (user) => {
-    console.log('currentUser changed.\nValue:', user,"\n$Session.sync:", sessionGet("sync"), "$Session.connected:", sessionGet("connected"));
-    try {
-      if (!user) {
-        if (
-          user === null &&
-          $page.route.id !== "/auth/login" &&
-          $page.route.id !== "/auth/register" &&
-          $page.route.id !== "/auth/select"
-        ) {
-          openAuth();
-        }
-      } else {
-        if (sessionGet("sync")) return;
-
-        if (!$API.getToken()) await $API.loadToken();
-
-        if (!sessionGet("connected")) await $API.init();
-
-        await $API.sync();
-        const calls = await $API.getCalls();
-        $currentSessionCalls = calls;
-      }
-    } catch (e) {
-      console.error(e);
-      alert(e);
-    } finally {
-      if (!loaded) loaded = true;
-    }
-  });
-
-  async function openAuth() {
-    if (await getAccounts().length) {
-      goto("/auth/select");
-    } else {
-      goto("/auth/login");
-    }
-  }
 </script>
 
 {#if $Session.devSettings}
@@ -102,27 +55,18 @@
   <AddContactModal on:close={() => ($Session.contactModal = false)} />
 {/if}
 
-{#if loaded}
+{#if $Session.loaded}
   {#key $page.url.pathname}
     <main in:fade={{ duration: 150 }}>
       <slot />
     </main>
   {/key}
 {:else}
-  <a class="loading">Загрузка...</a>
+  <Loading/>
 {/if}
 
 <style>
   main {
     overflow: hidden;
-  }
-
-  .loading {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
   }
 </style>

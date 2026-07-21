@@ -1,23 +1,30 @@
 <script>
   import { invoke } from "@tauri-apps/api/core";
   import { goto } from "$app/navigation";
-  import API, {
-    getAccounts
-  } from "$lib/stores/api";
 
-  import "$lib/styles/AnimatedPanel.css";
+  import { getAccounts } from "$lib/stores/accounts";
+  import API from "$lib/stores/api";
+
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
   import OpenDevicesButton from "$components/main/devices/OpenButton.svelte";
+  import ActionButton from "$components/main/auth/ActionButton.svelte";
   import BackButton from "$components/main/auth/BackButton.svelte";
 
   let phone = "";
   let error = "";
 
-  async function handleLogin() {
+  async function login() {
+    if (phone.length < 7) {
+      error = "Это не номер!";
+      return;
+    }
+
     error = "";
     console.log("Запрос на вход:", phone);
     if (!phone.startsWith("+")) phone = "+" + phone;
+
     const response = await $API.startAuth(phone);
+
     if (response.success) goto("/auth/verify");
     else error = response.title || response.message;
   }
@@ -29,7 +36,7 @@
 
 <div class="auth-page">
   <h1>Вход</h1>
-  <form on:submit|preventDefault={handleLogin}>
+  <div class="form">
     <div class="error">{error}</div>
     <input
       type="tel"
@@ -37,8 +44,8 @@
       placeholder="Номер телефона"
       required
     />
-    <button class="animated-panel" type="submit">Получить код</button>
-  </form>
+    <ActionButton text="Получить код" action={login}/>
+  </div>
   <a href="/auth/register" class="link">Создать аккаунт</a>
   <BackButton condition={showBackButton} path="/auth/select"/>
 </div>
@@ -61,7 +68,7 @@
     margin-bottom: 0px;
   }
 
-  form {
+  .form {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -69,8 +76,7 @@
     max-width: min(300px, 90%);
   }
 
-  input,
-  button {
+  input {
     padding: 0.75rem;
     border-radius: 8px;
     border: 1px solid #333;
@@ -80,27 +86,22 @@
     outline: none;
   }
 
-  button {
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-
   .link {
-    margin-top: 2rem;
-    font-size: 0.9rem;
+    margin-top: 20px;
+    font-size: 15px;
     color: #4a90e2;
     text-decoration: none;
+    transition: transform 0.2s;
   }
 
   .link:hover {
-    text-decoration: underline;
+    transform: scale(1.02);
   }
 
   .error {
     color: red;
     font-size: 15px;
-    height: 22px;
+    height: 18px;
     word-break: break-all;
     white-space: nowrap;
     text-align: center;

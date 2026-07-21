@@ -1,13 +1,35 @@
 <script>
-  import { invoke } from "@tauri-apps/api/core";
-  import { onMount } from "svelte";
-  import { fade } from "svelte/transition";
-  import { set as sessionSet } from "$lib/stores/session";
-  import { open, save } from "@tauri-apps/plugin-dialog";
   import { readFile, writeFile } from "@tauri-apps/plugin-fs";
+  import { open, save } from "@tauri-apps/plugin-dialog";
+  import { join, appDataDir } from '@tauri-apps/api/path';
+  import { load } from "@tauri-apps/plugin-store";
+  import { invoke } from "@tauri-apps/api/core";
+  import { fade } from "svelte/transition";
+  import { onMount } from "svelte";
+
+  import { set as sessionSet } from "$lib/stores/session";
+  import { generateDevice } from "$lib/utils/device";
   import API from "$lib/stores/api";
 
-  onMount(() => $API.checkDevice().then(update, false));
+  onMount(async () => {
+    const device = await globalUnsafeGet();
+    if (device) update(device, false);
+    else rerollDevice();
+  });
+
+  async function globalUnsafeSave(device) { // TODO ???????
+    const store = await load(await join(await appDataDir(), "data", "device.json"));
+    await store.set("device", device);
+    await store.save().catch(e => {}); // ???????!
+    await store.close().catch(e => {});
+  }
+
+  async function globalUnsafeGet() { // TODO ?????????????????????????????
+    const store = await load(await join(await appDataDir(), "data", "device.json"));//?????
+    const device = await store.get("device");// ???????????????
+    await store.close().catch(e => {});//  ??????????
+    return device;// ?????  ????!
+  }// ???????????????
 
   function update(device, animate = false) {
     console.log('Device', device);
@@ -22,8 +44,6 @@
   const setValue = async (key, value, animate) => {
     const element = document.getElementById(key);
     if (!element) return;
-
-    //if (element.value === value + "") return;
 
     if (!animate) {
       element.value = value;
@@ -67,7 +87,7 @@
   ];
 
   async function exportDevice() {
-    const device = await $API.checkDevice();
+    const device = await globalUnsafeGet();
 
     if (!device.deviceId) return alert("Текущий конфиг сломан!");
 
@@ -123,7 +143,8 @@
 
     if (json.version === 1) {
       const { version, type, ...cut } = json;
-      await $API.setDevice(cut);
+      sessionSet("device", cut);
+      globalUnsafeSave(cut);
       update(cut, true);
     } else {
       return alert("Это конфиг для более новой версии Max+!")
@@ -131,8 +152,9 @@
   }
 
   async function rerollDevice() {
-    const device = $API.generateDevice();
-    await $API.setDevice(device);
+    const device = generateDevice();
+    sessionSet("device", device);
+    globalUnsafeSave(device);
     update(device, true);
   }
 

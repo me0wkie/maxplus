@@ -4,7 +4,6 @@ import BaseAPI from "./BaseApi";
 import { get } from "svelte/store";
 import { add as addLog } from "$lib/stores/logs";
 import {
-  usersDb,
   currentUser,
   currentUserDetails,
   currentSessionChats,
@@ -14,12 +13,23 @@ import {
   currentFolders,
   currentlySyncing,
   currentPresence,
-  receivedMessage,
-  purgeAccount,
+  receivedMessage
 } from "$lib/stores/api";
-import { get as sessionGet, set as sessionSet } from "$lib/stores/session";
-import { cacheChat, syncContacts } from "$lib/utils/caching";
-import { addAccount, getAccounts, removeAccount } from "$lib/stores/accounts";
+import {
+  get as sessionGet,
+  set as sessionSet
+} from "$lib/stores/session";
+import {
+  cacheChat,
+  syncContacts
+} from "$lib/utils/caching";
+import {
+  addAccount,
+  getAccounts,
+  removeAccountByUserId,
+  getCurrentAccount,
+  setCurrentAccount
+} from "$lib/stores/accounts";
 import { goto } from "$app/navigation";
 
 export default class MobileApi extends BaseAPI {
@@ -33,6 +43,7 @@ export default class MobileApi extends BaseAPI {
   latest_init = null;
   unlisten = null;
   notify = {};
+  savedMessages = {};
 
   constructor(token) {
     super(token);
@@ -92,7 +103,10 @@ export default class MobileApi extends BaseAPI {
       console.error("Had recent reconnection, not trying again");
       return;
     }
-    if (!this.getDevice()?.deviceId) throw "No device id";
+
+    const account = await getCurrentAccount();
+
+    if (!account?.meta?.device) throw "No device entry";
 
     if (this.unlisten) await this.unlisten();
     this.startListener();
@@ -104,26 +118,27 @@ export default class MobileApi extends BaseAPI {
     sessionSet("sync", false);
 
     const response = await invoke("init", {
-      token: this.getToken(),
-      userId: this.getUser(),
-      identity: this.getDevice(),
+      userId: get(currentUser),
+      token: account.meta.token,
+      identity: account.meta.device,
     });
-
-    console.log('Init response', response);
 
     if (response.success) {
       sessionSet("connected", true);
-      if (forceSync) this.sync();
+      if (forceSync) await this.sync();
+      return true;
     }
     else alert(response);
   }
 
-  async startAuth(phone) {
-    await this.loadDevice();
+  async startAuth(phone, device) {
+    if (!device) throw new Error("Device data can't be undefined")
 
     const response = await invoke("init", {
-      identity: this.getDevice(),
+      identity: device
     });
+
+    sessionSet("device", device); // will be saved after logging in
 
     const auth = await invoke("start_auth", { phone });
 
@@ -139,28 +154,11 @@ export default class MobileApi extends BaseAPI {
   async login(code) {
     const checkCode = await invoke("check_code", { code });
 
-    const success = !!checkCode.profile;
-    if (success) {
-      const { profile, tokenAttrs } = checkCode;
-      const userId = profile.contact.id;
-
-      await usersDb.set("device-" + userId, this._device);
-      await addAccount(profile.contact);
-      this.setUser(userId);
-      this.setToken(tokenAttrs.LOGIN.token);
-      currentUser.set(userId);
-      currentUserDetails.set(profile.contact);
-    } else return checkCode;
-
-    return {
-      success,
-      payload: checkCode,
-    };
+    return _handleLoginResponse(checkCode);
   }
 
   async register(code, first_name) {
     const checkCode = await invoke("check_code", { code });
-    console.log(checkCode);
 
     let register;
 
@@ -169,47 +167,64 @@ export default class MobileApi extends BaseAPI {
     } else {
       console.log("Not registered. Sending request...");
       register = await invoke("register", { first_name });
-      console.log(register);
     }
 
-    const success = !!register.profile;
-    if (success) {
-      const { profile, tokenAttrs } = register;
-      const userId = profile.contact.id;
+    return _handleLoginResponse(register);
+  }
 
-      await usersDb.get("device-" + userId, this._device);
-      await addAccount(profile.contact);
-      currentUser.set(userId);
-      currentUserDetails.set(profile.contact);
-      this.setUser(userId);
-      this.setToken(tokenAttrs.LOGIN.token);
-    } else return register;
+  async _handleLoginResponse(payload) {
+    if (!payload || !payload.profile) return payload; // failed
+
+    const { profile, tokenAttrs } = payload;
+    const userId = profile.contact.id;
+
+    const accountEntry = await addAccount(
+      profile.contact,
+      tokenAttrs.LOGIN.token,
+      sessionGet("device")
+    );
+
+    currentUserDetails.set(profile.contact); // TODO remove
+    await setCurrentAccount(accountEntry.id);
 
     return {
-      success,
-      payload: register,
-    };
+      success: true,
+      payload
+    }
   }
 
-  async loadToken() {
-    if (!this._user)
-      throw "Tried to load token, but no user was set in API instance";
-    const loaded = await usersDb.get("token-" + this._user);
-    if (loaded) this._token = loaded;
-  }
+  async checkPassword(password, trackId) {
+    const response = await invoke("check_password", { password, trackId });
 
-  async logout(userId, redirect = true) {
-    await invoke("logout");
+    const { tokenAttrs } = response;
 
-    const userDetails = get(currentUserDetails);
-
-    if (get(currentUser) === userId) {
-      this.setToken(undefined);
-      this.disconnect();
+    if (tokenAttrs) {
+      this.setToken(tokenAttrs.LOGIN.token); // wtf?
+      await this.sync();
+      return {
+        success: true,
+        payload: response
+      }
     }
 
-    await purgeAccount(userId);
-    await removeAccount(userDetails);
+    return {
+      success: false,
+      payload: response
+    }
+  }
+
+  async logout(userId = get(currentUser), redirect = true) {
+    await setCurrentAccount(null);
+
+    try {
+      await invoke("logout");
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (get(currentUser) === userId) this.disconnect();
+
+    await removeAccountByUserId(userId);
 
     if (redirect) goto("/auth/login");
 
@@ -224,18 +239,14 @@ export default class MobileApi extends BaseAPI {
     const userId = get(currentUser);
     const userDetails = get(currentUserDetails);
 
-    this.setToken(undefined);
     this.disconnect();
 
-    await purgeAccount(userId);
-    await removeAccount(userDetails);
+    await removeAccountByUserId(userId);
 
     goto("/auth/login");
   }
 
   disconnect() {
-    this.setUser(undefined);
-
     currentUserDetails.set(null);
     currentUser.set(null);
 
@@ -243,31 +254,8 @@ export default class MobileApi extends BaseAPI {
     sessionSet("connected", false);
   }
 
-  async checkPassword(password, trackId) {
-    const response = await invoke("check_password", { password, trackId });
-    console.log(response);
-
-    const { tokenAttrs } = response;
-
-    if (tokenAttrs) {
-      this.setToken(tokenAttrs.LOGIN.token);
-      await this.sync();
-      return {
-        success: true,
-        payload: response
-      }
-    }
-
-    return {
-      success: false,
-      payload: response
-    }
-  }
-
   async sync() {
     try {
-      if (!this.getToken()) throw "Ошибка: токен не установлен";
-      //if (!this.getUser()) throw "Ошибка: User ID не установлен";
       if (sessionGet("sync")) {
         console.warn("Уже синхронизовано!");
         return;
@@ -297,7 +285,7 @@ export default class MobileApi extends BaseAPI {
       currentUserDetails.set(res.profile.contact);
       currentRealContacts.set(contacts.map((x) => x.id));
 
-      if (!this.getUser()) this.setUser(res.profile.contact.id);
+      //if (!this.getUser()) this.setUser(res.profile.contact.id);
 
       sessionSet("reactions", config.server["reactions-menu"]);
       //const callsEndpoint = config.server['calls-endpoint'];
@@ -325,10 +313,6 @@ export default class MobileApi extends BaseAPI {
 
       currentSessionChats.set(currentChats);
       currentSessionContacts.set(currentContacts);
-
-      // TODO remove (it's for testing)
-      const accounts = await getAccounts();
-      if (!accounts.find(x => x.uid === get(currentUser))) await addAccount(get(currentUserDetails));
     } catch (e) {
       alert(e);
       console.error(e);

@@ -2,7 +2,12 @@
   import { invoke } from "@tauri-apps/api/core";
   import { goto } from "$app/navigation";
   import { onMount } from "svelte";
-  import API, { currentUser, getAccounts, getAccount, purgeAccount } from "$lib/stores/api";
+  import API, { currentUser } from "$lib/stores/api";
+  import {
+    getAccounts,
+    getAccount,
+    setCurrentAccount
+  } from "$lib/stores/accounts";
 
   import "$lib/styles/AnimatedPanel.css";
   import Avatar from "$components/main/Avatar.svelte";
@@ -14,16 +19,19 @@
   });
 
   async function updateAccounts() {
-    const ids = await getAccounts();
-    return await Promise.all(ids.map(id => getAccount(id)));
+    const encrypted = await getAccounts();
+    console.log(encrypted)
+    return await Promise.all(encrypted.map(entry => getAccount(entry.id)));
   }
 
   async function select(account) {
-    console.log('Selecting', account.id, 'current', $currentUser)
+    // TODO pincode
+    console.log('Selecting', account.uid, 'current', $currentUser)
 
-    if ($currentUser !== account.id || !$currentUser) {
-      console.log('set user', account.id);
-      await currentUser.set(account.id);
+    if ($currentUser !== account.uid || !$currentUser) {
+      await setCurrentAccount(account.id);
+      await currentUser.set(account.uid);
+      await $API.loadDevice();
       await $API.loadToken();
       await $API.init(true);
     }
@@ -33,10 +41,9 @@
 
   async function logout(e, account) {
     e.stopPropagation();
-    console.log('Logging out', account.id)
+    console.log('Logging out', account.id, 'current', $currentUser)
 
-    await $API.logout(account.id === $currentUser, false);
-    await purgeAccount(account.id);
+    await $API.logout(account.uid, false);
     await updateAccounts();
 
     if (!accountsPromise.length) {
@@ -58,8 +65,8 @@
     {:then accounts}
       {#each accounts as account}
         <div on:click={_ => select(account)} class="account">
-          <Avatar contact={account} size=72/>
-          <a>{ account.names[0].firstName }</a>
+          <Avatar contact={account.contact} size=72/>
+          <a>{ account.contact.names[0].firstName }</a>
           <div on:click={e => logout(e, account)} class="logout"><a>✕</a></div>
         </div>
       {/each}

@@ -4,7 +4,7 @@
   export let condition;
   export let path;
 
-  const _condition = condition || (() => {});
+  const _condition = condition || (() => true);
 </script>
 
 {#await _condition()}
