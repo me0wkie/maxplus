@@ -3,6 +3,7 @@
 
   export let condition;
   export let path;
+  export let top = 75;
 
   const _condition = condition || (() => true);
 </script>
@@ -12,6 +13,7 @@
   {#if display}
       <div
       class="back"
+      style:top={`${top}px`}
       on:click={_ => goto(path)}
       ><a>←</a></div>
   {/if}
@@ -27,7 +29,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    top: 75px;
     left: 10px;
     font-weight: 1000;
   }
