@@ -1,8 +1,5 @@
 <script>
   import {
-    clearMessages,
-    clearContacts,
-    clearKeys,
     currentUserDetails,
   } from "$lib/stores/api";
   import {
@@ -93,12 +90,6 @@
       },
     ],
   ];
-
-  function clearCache() {
-    clearMessages();
-    clearContacts();
-    alert("Кэш успешно очищен.");
-  }
 
   function clearAllKeys() {
     clearKeys();

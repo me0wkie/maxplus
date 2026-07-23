@@ -1,54 +1,50 @@
 <script>
   import { switchEnc } from "$components/ChatWindow/e2e";
   import { fade, fly, scale } from "svelte/transition";
-  import { chatPassword, chatObfs, chatReader } from '$lib/stores/api';
   import { dict } from '$lib/crypto/text-codec';
 
-  export let chatKeysLoaded;
   export let chat;
   export let messages;
   export let shown;
-  export let password;
-  export let obfuscation;
+  export let chatSettings;
 
   let saveTimeout;
   let showPassword = false;
   let hasDictionary = (async() => !!(await dict.getDictionary()))();
-  let reader = (async() => chatReader.get(chat.id))();
+  let reader = $chatSettings.reader;
 
   function onPasswordInput(event) {
-    password = event.target.value;
+    const password = event.target.value;
 
     if (password.length) {
-      if (!obfuscation) setObfuscation("zh");
+      if (!$chatSettings.obfuscation) setObfuscation("zh");
     } else {
-      if (obfuscation) setObfuscation(null);
+      if ($chatSettings.obfuscation) setObfuscation(null);
     }
 
     clearTimeout(saveTimeout);
 
     saveTimeout = setTimeout(() => {
-      chatPassword.set(chat.id, password);
+      $chatSettings.password = password;
     }, 500);
   }
 
   function startEncryption() {
-    if (!obfuscation) setObfuscation("zh");
+    if (!$chatSettings.obfuscation) setObfuscation("zh");
   }
 
   async function setObfuscation(type) {
     if (type === "words") {
       hasDictionary = !!(await dict.getDictionary());
     }
-    obfuscation = type;
-    chatObfs.set(chat.id, type);
+    $chatSettings.obfuscation = type;
+    $chatSettings.obfs = type;
   }
 
   async function swapReader() {
     const value = await reader;
     reader = !value;
-    if (reader) chatReader.set(chat.id, true);
-    else chatReader.set(chat.id, false);
+    $chatSettings.reader = !!reader;
   }
 
   function close() {
@@ -79,9 +75,9 @@
       <button
         style="align-self: flex-end;"
         class="row-action"
-        on:click={() => switchEnc(chat, chatKeysLoaded, messages)}
+        on:click={() => switchEnc(chat, chatSettings, messages)}
       >
-        { !chatKeysLoaded?.current ? "Новая сессия" : "Отключить" }
+        { !$chatSettings.keys.current ? "Новая сессия" : "Отключить" }
       </button>
     </div>
     <div class="group" in:fade={{ delay: 120, duration: 220 }}>
@@ -90,8 +86,8 @@
           Статус
         </div>
         <div class="row-value">
-          { chatKeysLoaded?.current ? "Активно"
-          : chatKeysLoaded?.some(x => x.edp === null) ? "Предложение отправлено"
+          { $chatSettings.keys.current ? "Активно"
+          : $chatSettings.keys.keys?.some(x => x.edp === null) ? "Предложение отправлено"
           : "Отключено" }
         </div>
       </div>
@@ -111,7 +107,7 @@
       <div class="row password-row">
         <input
           type={showPassword ? "text" : "password"}
-          value={password}
+          value={$chatSettings.password}
           on:input={onPasswordInput}
           class="input"
           placeholder="Иначе говоря — пароль чата"
@@ -133,7 +129,7 @@
     <div class="subtitle">Обфускация</div>
     <div class="obf-buttons">
       <button
-        class:active={!obfuscation}
+        class:active={!$chatSettings.obfuscation}
         class="obf-btn"
         on:click={() => setObfuscation(null)}
       >
@@ -142,7 +138,7 @@
       </button>
 
       <button
-        class:active={obfuscation === "zh"}
+        class:active={$chatSettings.obfuscation === "zh"}
         class="obf-btn"
         on:click={() => setObfuscation("zh")}
       >
@@ -151,7 +147,7 @@
       </button>
 
       <button
-        class:active={obfuscation === "words"}
+        class:active={$chatSettings.obfuscation === "words"}
         class="obf-btn"
         on:click={() => setObfuscation("words")}
       >
@@ -161,9 +157,9 @@
     </div>
 
     <div class="footer">
-      {#if obfuscation === "zh"}
+      {#if $chatSettings.obfuscation === "zh"}
         Текст маскируется китайскими символами.
-      {:else if obfuscation === "words"}
+      {:else if $chatSettings.obfuscation === "words"}
         {#await hasDictionary}
         {:then has}
           {#if has}

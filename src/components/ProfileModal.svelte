@@ -196,12 +196,14 @@
                 >
                   Изменить название
                 </div>
+                {#if chat.link}
                 <div
                   class="menu-item"
                   on:click={() => handleAction("invite")}
                 >
                   Обновить ссылку
                 </div>
+                {/if}
               {/if}
               {#if chat.owner === $currentUser || chat.type === "DIALOG"}
                 <div

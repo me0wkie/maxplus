@@ -11,9 +11,9 @@
   export let replyTo;
   export let scrollElement;
   export let chat;
-  export let chatKeysLoaded;
   export let messages;
   export let attachesDropout;
+  export let chatSettings;
 
   let newMessage = "";
   let attaches = [];
@@ -50,7 +50,7 @@
     try {
       await sendMessage(
         chat,
-        chatKeysLoaded,
+        chatSettings,
         messages,
         textToSend,
         _replyTo,

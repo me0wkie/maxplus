@@ -1,8 +1,6 @@
 import API, {
   currentUser,
   receivedMessage,
-  chatPassword,
-  chatObfs,
 } from "$lib/stores/api";
 import { xorEncrypt } from "$lib/crypto/symmetric";
 import { deflate, obfuscate, detectObfuscation } from "$lib/crypto/messages";
@@ -11,7 +9,7 @@ import { get } from "svelte/store";
 
 export async function sendMessage(
   chat,
-  chatKeysCached,
+  chatSettings,
   messages,
   newMessage,
   replyTo,
@@ -22,9 +20,11 @@ export async function sendMessage(
   if (!newMessage.trim()) return;
   let text = newMessage;
 
-  const ass = !!chatKeysCached?.current;
-  const sym = await chatPassword.get(chat.id);
-  const obf = await chatObfs.get(chat.id);
+  const keys = get(chatSettings).keys;
+
+  const ass = !!keys?.current;
+  const sym = get(chatSettings).password;
+  const obf = get(chatSettings).obfs;
 
   const debug = true;
 
@@ -36,7 +36,7 @@ export async function sendMessage(
     let bytes = new TextEncoder().encode(text);
     if (debug) console.log('2', bytes);
 
-    if (ass) bytes = await encryptAss(chat, chatKeysCached, bytes);
+    if (ass) bytes = await encryptAss(chat, chatSettings, bytes);
     if (debug) console.log('3', bytes);
 
     if (sym) bytes = await xorEncrypt(bytes, sym);
@@ -112,14 +112,14 @@ export async function sendMessage(
     })
 
     if (ass) {
-      const entry = chatKeysCached.messages.find(
-        (entry) => entry.key === chatKeysCached.current,
+      const entry = keys.messages.find(
+        (entry) => entry.key === keys.current,
       );
       if (!entry)
-        chatKeysCached.messages.push({
+        keys.messages.push({
           from: msgId,
           to: msgId,
-          key: chatKeysCached.current,
+          key: keys.current,
         });
       else {
         entry.to = msgId;
@@ -136,7 +136,7 @@ export async function handleReaction(chat, msg, emoji) {
     if (your) {
       if (your === emoji) {
         get(API)
-          .react(chat.id, msg.id + "")
+          .react(chat.id, msg.id)
           .then(console.warn);
         if (reactionInfo.totalCount === 1) msg.reactionInfo = {};
         else {
@@ -152,7 +152,7 @@ export async function handleReaction(chat, msg, emoji) {
         else counters[prev].count -= 1;
         reactionInfo.yourReaction = emoji;
         get(API)
-          .react(chat.id, msg.id + "", emoji)
+          .react(chat.id, msg.id, emoji)
           .then(console.warn);
         const entry = counters.find((x) => x.reaction === emoji);
         if (entry) entry.count += 1;
@@ -160,7 +160,7 @@ export async function handleReaction(chat, msg, emoji) {
       }
     } else {
       get(API)
-        .react(chat.id, msg.id + "", emoji)
+        .react(chat.id, msg.id, emoji)
         .then(console.warn);
       reactionInfo.yourReaction = emoji;
       const entry = reactionInfo.counters.find((x) => x.reaction === emoji);
@@ -169,7 +169,7 @@ export async function handleReaction(chat, msg, emoji) {
     }
   } else {
     get(API)
-      .react(chat.id, msg.id + "", emoji)
+      .react(chat.id, msg.id, emoji)
       .then(console.warn);
     msg.reactionInfo = {
       counters: [{ count: 1, reaction: emoji }],

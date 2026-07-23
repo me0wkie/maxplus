@@ -2,6 +2,14 @@
   import { handleEnc } from "$components/ChatWindow/e2e.js";
 
   export let gotSecretChatRequest;
+
+  export let chat;
+  export let messages;
+  export let chatSettings;
+
+  function action(name) {
+    return handleEnc(chat, chatSettings, messages, name);
+  }
 </script>
 
 {#if gotSecretChatRequest}
@@ -57,14 +65,14 @@
 
       <div class="modal-actions">
         <div class="main-actions">
-          <button on:click={() => handleEnc("agree")} class="btn btn-primary"
+          <button on:click={() => action("agree")} class="btn btn-primary"
             >Согласиться</button
           >
-          <button on:click={() => handleEnc("deny")} class="btn btn-secondary"
+          <button on:click={() => action("deny")} class="btn btn-secondary"
             >Отказаться</button
           >
         </div>
-        <button on:click={() => handleEnc("block")} class="btn btn-link"
+        <button on:click={() => action("block")} class="btn btn-link"
           >Не показывать 10 минут</button
         >
       </div>

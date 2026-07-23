@@ -15,14 +15,12 @@
   import API, {
     currentUser,
     receivedMessage,
-    chatMessages,
-    chatKeys,
-    chatObfs,
-    chatReader,
-    chatPassword,
     currentSessionContacts,
     currentSessionChats,
   } from "$lib/stores/api";
+  import {
+    getChatSettings
+  } from "$lib/stores/messages";
   import Session, {
     openChat,
     closeChat,
@@ -51,9 +49,6 @@
 
   let startSecretChatRequest = null;
   let gotSecretChatRequest = null;
-  let chatKeysLoaded = null;
-  let chatPasswordLoaded = "";
-  let chatObfuscationLoaded = "";
 
   let replyTo = null;
 
@@ -81,13 +76,16 @@
 
   messages.subscribe(async (_messages) => {
     if (_messages.length && chat?.id) {
-      await chatMessages.set(chat.id, _messages);
+      //await chatMessages.set(chat.id, _messages);
     }
   });
 
   const BATCH_SIZE = 40;
 
   $: avatarUserId = chat?.type === "DIALOG" ? (chat.id ^ $currentUser) : undefined;
+
+  $: chatSettings = getChatSettings(chat.id);
+  console.log(chatSettings)
 
   const onBack = getContext("onBack");
 
@@ -436,7 +434,7 @@
     if (readTimer) clearTimeout(readTimer);
 
     readTimer = setTimeout(async () => {
-      const readDisabled = await chatReader.get(chat.id);
+      const readDisabled = !$chatSettings.reader;
       if (readDisabled) return;
 
       const msgId = getLowestVisibleMessageId();
@@ -486,7 +484,7 @@
     }
 
     await updateVisibleMessages(wasAtBottom);
-    checkForEncryptionRequest(chat, chatKeysLoaded, [message]);
+    checkForEncryptionRequest(chat, chatSettings, [message]);
   });
 
   onMount(async () => {
@@ -496,10 +494,6 @@
       if (chat.id < 0) title = chat.title;
       else title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
     }
-
-    chatPasswordLoaded = await chatPassword.get(chat?.id);
-    chatObfuscationLoaded = await chatObfs.get(chat?.id);
-    chatKeysLoaded = await chatKeys.get(chat?.id);
 
     setupResizeObserver();
     startAutoScrollIfAtBottom();
@@ -733,14 +727,14 @@
     </div>
   </header>
 
-  <Settings
-    {chat}
-    {chatKeysLoaded}
-    {messages}
-    bind:password={chatPasswordLoaded}
-    bind:obfuscation={chatObfuscationLoaded}
-    bind:shown={settingsShown}
-  />
+  {#if $chatSettings}
+    <Settings
+      {chat}
+      {chatSettings}
+      {messages}
+      bind:shown={settingsShown}
+    />
+  {/if}
 
   <div
     on:scroll={handleScroll}
@@ -752,7 +746,12 @@
     class="message-list-container grab-scroll"
     id="scroll"
   >
-    <E2eModal {gotSecretChatRequest} />
+    <E2eModal
+      {chat}
+      {messages}
+      {chatSettings}
+      {gotSecretChatRequest}
+    />
 
     {#if chat.pinnedMessage}
       <PinnedMessage msg={chat.pinnedMessage} {chat} />
@@ -804,15 +803,14 @@
     on:close={handleDropout}
   />
 
-  {#if chat.type !== "CHANNEL"}
+  {#if chat.type !== "CHANNEL" && $chatSettings}
     <Input
       bind:replyTo
       bind:attachesDropout
       {scrollElement}
       {chat}
       {messages}
-      {chatObfuscationLoaded}
-      {chatKeysLoaded}
+      {chatSettings}
     />
   {/if}
 

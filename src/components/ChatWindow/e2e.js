@@ -2,9 +2,6 @@ import API, {
   currentUser,
   currentSessionContacts,
   receivedMessage,
-  chatMessages,
-  chatPassword,
-  chatKeys,
 } from "$lib/stores/api";
 import {
   createIdentity,
@@ -27,7 +24,7 @@ const requests = {};
 
 export const checkForEncryptionRequest = async (
   chat,
-  chatKeysCached,
+  chatSettings,
   newMessages,
 ) => {
   let encryptionRequest = null;
@@ -40,7 +37,8 @@ export const checkForEncryptionRequest = async (
    * EncryptionResponse - собеседник принял запрос
    */
 
-  const password = await chatPassword.get(chat.id);
+  const password = get(chatSettings).password;
+  const keys = get(chatSettings).keys;
 
   for (const msg of newMessages) {
     const hiddenData = await decode_msg(msg, password);
@@ -69,10 +67,7 @@ export const checkForEncryptionRequest = async (
   ) {
     const [_, userId, ed_public, cv_public] = encryptionRequest.data.split("|");
 
-    if (!chatKeysCached)
-      chatKeysCached = { current: null, keys: [], messages: [] };
-
-    const entry = chatKeysCached.keys.find((pairs) => pairs.edp === ed_public);
+    const entry = keys.keys.find((pairs) => pairs.edp === ed_public);
 
     // !!deny - отклонили
     // !!eds - уже согласились
@@ -96,30 +91,31 @@ export const checkForEncryptionRequest = async (
     const [_, userId, ed_public, cv_public] =
     encryptionResponse.data.split("|");
 
-    if (!chatKeysCached)
-      chatKeysCached = { current: null, keys: [], messages: [] };
-    const keyIndex = chatKeysCached.keys.length;
+    const keyIndex = keys.keys.length;
 
-    chatKeysCached.current = keyIndex;
+    keys.current = keyIndex;
 
-    await chatKeysCached.set(chat.id, chatKeysCached);
+    chatSettings.update(data => ({
+      ...data,
+      keys
+    }));
   }
 };
 
-export async function encryptMessage(chat, chatKeysCached, text) {
+export async function encryptMessage(chat, keys, text) {
   // TODO multiple participants support (MLS)
-  const keys = chatKeysCached.keys[chatKeysCached.current];
+  const entry = keys.keys[keys.current];
   const otherIdentityPacked = publicIdentityPack(keys, chat.id ^ get(currentUser));
   return await getEncrypted(
     get(currentUser),
-    keys,
+    entry,
     [otherIdentityPacked],
     text,
   );
 }
 
-function decryptMessage(chatKeysCached, message, deobfuscated) {
-  const entry = chatKeysCached.messages?.find(
+function decryptMessage(keys, message, deobfuscated) {
+  const entry = keys.messages?.find(
     (entry) => entry.from <= message.id && entry.to >= message.id,
   );
   if (!entry) return { ok: false, error: "Ключи шифрования не найдены!" };
@@ -127,7 +123,7 @@ function decryptMessage(chatKeysCached, message, deobfuscated) {
     deobfuscated,
     get(currentUser),
     message.sender, // UPD
-    chatKeysCached.keys[entry.key],
+    keys.keys[entry.key],
   );
 }
 
@@ -217,21 +213,18 @@ function inflateWrap(text) {
 }
 
 /* нажатие в меню запроса */
-export async function handleEnc(chat, chatKeysCached, messages, action) {
-  if (!chatKeysCached)
-    chatKeysCached = { current: null, keys: [], messages: [] };
-
+export async function handleEnc(chat, chatSettings, messages, action) {
   const request = requests[chat.id];
   if (!request) return alert("Ошибка! Код: 0");
 
   if (action === "agree") {
     const identity = await createIdentity(get(currentUser));
 
-    await sendMyIdentity(chat, chatKeysCached, messages, identity, "idy");
+    await sendMyIdentity(chat, keys, messages, identity, "idy");
 
     const request = requests[chat.id];
 
-    const keys = {
+    const entry = {
       eds: bufToBase64Url(identity.ed25519_sk),
       cvs: bufToBase64Url(identity.curve25519_sk),
       edp: request.edp,
@@ -239,13 +232,19 @@ export async function handleEnc(chat, chatKeysCached, messages, action) {
       deny: false,
     };
 
-    const keyIndex = chatKeysCached.keys.length;
-    chatKeysCached.keys.push(keys);
-    chatKeysCached.current = keyIndex;
-    await chatKeys.set(chat.id, chatKeys);
+    const keyIndex = keys.keys.length;
+    keys.keys.push(entry);
+    keys.current = keyIndex;
+    chatSettings.update(data => ({
+      ...data,
+      keys
+    }));
   } else if (action === "deny" || action === "block") {
-    chatKeysCached.keys.push({ edp: request.edp, deny: true });
-    await chatKeys.set(chat.id, chatKeys);
+    keys.keys.push({ edp: request.edp, deny: true });
+    chatSettings.update(data => ({
+      ...data,
+      keys
+    }));
 
     if (action === "block") {
       requestsBlocked[chat.id] = Date.now() + 10 * 60 * 1000;
@@ -257,8 +256,10 @@ export async function handleEnc(chat, chatKeysCached, messages, action) {
 }
 
 /* нажатие в настройках */
-export async function switchEnc(chat, chatKeysCached, messages) {
-  if (!chatKeysCached || chatKeysCached.current === null) {
+export async function switchEnc(chat, chatSettings, messages) {
+  const { keys } = get(chatSettings);
+
+  if (keys.current === null) {
     const identity = await createIdentity(get(currentUser));
 
     const startSecretChatRequest = {
@@ -266,10 +267,7 @@ export async function switchEnc(chat, chatKeysCached, messages) {
       cvs: bufToBase64Url(identity.curve25519_sk),
     };
 
-    if (!chatKeysCached)
-      chatKeysCached = { current: null, keys: [], messages: [] };
-
-    chatKeysCached.keys.push({
+    keys.keys.push({
       eds: startSecretChatRequest.eds,
       cvs: startSecretChatRequest.cvs,
       edp: null,
@@ -278,10 +276,13 @@ export async function switchEnc(chat, chatKeysCached, messages) {
     });
 
     await new Promise((r) => setTimeout(r, 250));
-    await sendMyIdentity(chat, chatKeysCached, messages, identity, "idx");
+    await sendMyIdentity(chat, chatSettings, messages, identity, "idx");
   } else {
-    chatKeysCached.current = null;
-    await chatKeys.set(chat.cid, chatKeys);
+    keys.current = null;
+    chatSettings.update(data => ({
+      ...data,
+      keys
+    }));
 
     // TODO signal to stop secret chat
     //newMessage = await encryptMessage('$stop-secret-chat')
@@ -291,7 +292,7 @@ export async function switchEnc(chat, chatKeysCached, messages) {
 
 export const sendMyIdentity = async (
   chat,
-  chatKeysCached,
+  chatSettings,
   messages,
   identity,
   prefix,
@@ -305,7 +306,7 @@ export const sendMyIdentity = async (
 
   await sendMessage(
     chat,
-    chatKeysCached,
+    chatSettings,
     messages,
     identityTransfer,
     undefined,

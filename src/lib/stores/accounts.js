@@ -2,7 +2,9 @@ import { LazyStore, load } from "@tauri-apps/plugin-store";
 import { join, appDataDir } from '@tauri-apps/api/path';
 import { remove } from '@tauri-apps/plugin-fs';
 
-import { currentUser } from "$lib/stores/api";
+import {
+  currentUser,
+} from "$lib/stores/api";
 
 const store = new LazyStore("accounts.json");
 const encrypted = []; //TODO
@@ -100,9 +102,12 @@ export const getAccount = async internalId => {
 export const setCurrentAccount = async internalId => {
   if (internalId !== null) {
     await getAccount(internalId);
+    const account = encrypted.find(x => x.id === internalId);
+    if (!account || !+account.uid) throw new Error("Account is encrypted");
+    currentUser.set(account.uid);
   }
+  else currentUser.set(null);
 
-  currentUser.set(internalId);
   await store.set("current", internalId);
 }
 
