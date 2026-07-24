@@ -50,6 +50,7 @@ rand = "0.8"
 argon2 = "0.5"
 tauri-plugin-http = "2.5.9"
 tauri-plugin-upload = "2"
+chrono = "0.4.45"
 
 [profile.dev]
 incremental = true

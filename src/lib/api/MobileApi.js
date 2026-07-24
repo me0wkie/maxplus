@@ -113,7 +113,8 @@ export default class MobileApi extends BaseAPI {
 
     const account = await getCurrentAccount();
 
-    if (!account?.meta?.device) throw "No device entry";
+    if (!account?.meta?.device)
+      throw new Error("No device entry");
 
     if (this.unlisten) await this.unlisten();
     this.startListener();
@@ -138,14 +139,15 @@ export default class MobileApi extends BaseAPI {
     else alert(response);
   }
 
-  async startAuth(phone, device) {
-    if (!device) throw new Error("Device data can't be undefined")
+  async startAuth(phone) {
+    const device = sessionGet("device");
+
+    if (!device)
+      throw new Error("Device data can't be undefined");
 
     const response = await invoke("init", {
       identity: device
     });
-
-    sessionSet("device", device); // will be saved after logging in
 
     const auth = await invoke("start_auth", { phone });
 
@@ -161,7 +163,7 @@ export default class MobileApi extends BaseAPI {
   async login(code) {
     const checkCode = await invoke("check_code", { code });
 
-    return _handleLoginResponse(checkCode);
+    return this._handleLoginResponse(checkCode);
   }
 
   async register(code, first_name) {
@@ -176,7 +178,7 @@ export default class MobileApi extends BaseAPI {
       register = await invoke("register", { first_name });
     }
 
-    return _handleLoginResponse(register);
+    return this._handleLoginResponse(register);
   }
 
   async _handleLoginResponse(payload) {
@@ -193,6 +195,7 @@ export default class MobileApi extends BaseAPI {
 
     currentUserDetails.set(profile.contact); // TODO remove
     await setCurrentAccount(accountEntry.id);
+    currentUser.set(userId);
 
     return {
       success: true,
@@ -203,19 +206,11 @@ export default class MobileApi extends BaseAPI {
   async checkPassword(password, trackId) {
     const response = await invoke("check_password", { password, trackId });
 
-    const { tokenAttrs } = response;
-
-    if (tokenAttrs) {
-      this.setToken(tokenAttrs.LOGIN.token); // wtf?
-      await this.sync();
-      return {
-        success: true,
-        payload: response
-      }
-    }
+    const success = !!response.tokenAttrs;
+    if (!success) return response;
 
     return {
-      success: false,
+      success: true,
       payload: response
     }
   }

@@ -50,13 +50,7 @@
       return;
     }
 
-    const id = response.payload?.profile?.contact?.id;
-    if (id) {
-      currentUser.set(id);
-      goto("/");
-    } else {
-      error = "Ошибка! Вероятно, приложение устарело.";
-    }
+    goto("/");
   }
 </script>
 

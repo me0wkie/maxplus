@@ -11,10 +11,16 @@
   import { generateDevice } from "$lib/utils/device";
   import API from "$lib/stores/api";
 
+  let glow = false;
+
   onMount(async () => {
+    glow = true;
     const device = await globalUnsafeGet();
-    if (device) update(device, false);
-    else rerollDevice();
+    if (device) await update(device, false);
+    else await rerollDevice();
+    setTimeout(() => {
+      glow = false;
+    }, 2000);
   });
 
   async function globalUnsafeSave(device) { // TODO ???????
@@ -33,6 +39,7 @@
 
   function update(device, animate = false) {
     console.log('Device', device);
+    sessionSet("device", device);
     const { deviceId, mtInstance, userAgent } = device;
     setValue('deviceId', deviceId, animate);
     setValue('mtInstance', mtInstance, animate);
@@ -46,15 +53,15 @@
     if (!element) return;
 
     if (!animate) {
-      element.value = value;
+      element.innerHTML = value;
       return;
     }
 
     const target = String(value ?? "");
-    const current = String(element.value ?? "");
+    const current = String(element.innerHTML ?? "");
 
     for (let i = current.length; i >= 0; i--) {
-      element.value = current.slice(0, i);
+      element.innerHTML = current.slice(0, i);
       await sleep(5);
     }
 
@@ -63,7 +70,7 @@
     let out = "";
     for (let i = 0; i < target.length; i++) {
       out += target[i];
-      element.value = out;
+      element.innerHTML = out;
       await sleep(5);
     }
   }
@@ -141,6 +148,7 @@
 
     if (!json.version || json.type !== "device") return alert("Неверный файл - это не конфиг девайса!");
 
+
     if (json.version === 1) {
       const { version, type, ...cut } = json;
       sessionSet("device", cut);
@@ -194,7 +202,11 @@
         <div class="row">
           <div class="label">{label}</div>
 
-          <input id={id} class="value" />
+          <a
+            id={id}
+            class="value"
+            class:glow={glow}
+          ></a>
         </div>
       {/each}
     </div>
@@ -316,10 +328,10 @@
     color: white;
     font-size: 13px;
     padding: 0;
-    transition: color 0.07s;
+    transition: color 0.5s;
   }
 
-  .value:focus {
+  .value.glow {
     color: #a5b4fc;
   }
 </style>

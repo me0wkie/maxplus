@@ -24,7 +24,7 @@
   }
 </script>
 
-{#if $contact && $contact?.id !== $currentUser}
+{#if $contact?.id && $contact?.id !== $currentUser}
   {#if $currentPresence[$contact.id]}
     {#if $currentPresence[$contact.id]?.status === 1}
       {$contact.gender === 2 ? "Была" : "Был"}

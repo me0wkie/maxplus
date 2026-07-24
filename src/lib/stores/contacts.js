@@ -1,16 +1,5 @@
-import { load } from "@tauri-apps/plugin-store";
-import { join, appDataDir } from '@tauri-apps/api/path';
+import { invoke } from "@tauri-apps/api/core";
 import { writable } from "svelte/store";
-import {
-  readFile,
-  writeFile,
-  readTextFile,
-  writeTextFile,
-  mkdir,
-  exists,
-  remove,
-  readDir
-} from '@tauri-apps/plugin-fs';
 
 import {
   getCurrentAccount
@@ -27,18 +16,24 @@ export const getContact = contactId => {
   cache[contactId] = { store };
 
   getCurrentAccount().then(async account => {
-    const dir = await join(await appDataDir(), "data", account.id + "", "contacts", contactId + "");
+    /*const dir = await join(await appDataDir(), "data", account.id + "", "contacts", contactId + "");
     const path = await join(dir, "meta");
 
     try {
       const data = JSON.parse(await readTextFile(path));
       store.set(data);
-    } catch (e) {}
+    } catch (e) {}*/
+    // TODO retrieve current account in stores.rs
+    const cached = await invoke("get_contact", { account: +account.id, contactId });
+    if (cached) store.set(cached);
 
-    cache[contactId].unsubscribe = store.subscribe(async updated => {
-      if (updated !== undefined) {
-        await mkdir(dir, { recursive: true });
-        await writeTextFile(path, JSON.stringify(updated));
+    cache[contactId].unsubscribe = store.subscribe(async data => {
+      if (data !== undefined) {
+        /*await mkdir(dir, { recursive: true });
+        await writeTextFile(path, JSON.stringify(updated));*/
+        getCurrentAccount().then(async _account => {
+          invoke("set_contact", { account: +_account.id, contactId, data });
+        });
       }
     });
   });
@@ -47,6 +42,8 @@ export const getContact = contactId => {
 };
 
 export const updateContact = async contact => {
+  if (!contact) throw new Error("Contact can't be undefined");
+  if (!contact.id) throw new Error("No contact id!");
   const store = await getContact(contact.id);
   store.set(contact);
   if (!cachedContacts.includes(contact.id)) {
@@ -58,17 +55,6 @@ let contactsLoaded = false;
 let cachedContacts = [];
 
 export const getCachedContacts = async () => {
-  if (!contactsLoaded) {
-    contactsLoaded = true;
-    const account = await getCurrentAccount();
-    const path = await join(await appDataDir(), "data", account.id + "", "contacts");
-    try {
-      const files = await readDir(path);
-      files.map(x => cachedContacts.push(+x.name));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  return cachedContacts;
+  const account = await getCurrentAccount();
+  return invoke("get_contacts", { account: +account.id });
 }

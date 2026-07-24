@@ -34,7 +34,6 @@
       if (response.error) {
         error = response.localizedMessage;
       } else {
-        sessionSet("connected", true);
         goto("/");
       }
     } catch (e) {

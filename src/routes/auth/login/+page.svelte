@@ -3,6 +3,9 @@
   import { goto } from "$app/navigation";
 
   import { getAccounts } from "$lib/stores/accounts";
+  import {
+    get as sessionGet,
+  } from "$lib/stores/session.js";
   import API from "$lib/stores/api";
 
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
@@ -18,6 +21,8 @@
       error = "Это не номер!";
       return;
     }
+
+    if (!sessionGet("device")) return alert("Нажмите на иконку телефона, чтобы настроить данные входа!");
 
     error = "";
     console.log("Запрос на вход:", phone);

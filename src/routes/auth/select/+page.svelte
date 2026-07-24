@@ -31,8 +31,6 @@
     if ($currentUser !== account.uid || !$currentUser) {
       await setCurrentAccount(account.id);
       await currentUser.set(account.uid);
-      await $API.loadDevice();
-      await $API.loadToken();
       await $API.init(true);
     }
 

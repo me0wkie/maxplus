@@ -177,7 +177,7 @@
   <img on:click={scanner} src={"icons/qr.svg"} class="scanner-icon icon" />
 
   <div class="info">
-    <Avatar size={85} contactId={contact.id}/>
+    <Avatar size={85} contactId={contact?.id}/>
     <a class="name">{name}</a>
     <a class="phone">{phone}</a>
   </div>

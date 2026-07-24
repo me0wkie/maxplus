@@ -35,7 +35,10 @@ currentUser.subscribe(async (userId) => {
       currentUser.set(data.uid);
     }
   }
-  else if (userId === null) openAuth();
+  else if (userId === null) {
+    openAuth();
+    sessionSet("loaded", true);
+  }
   else {
     // account init
     try {
@@ -56,9 +59,7 @@ currentUser.subscribe(async (userId) => {
 });
 
 async function openAuth() {
-  if (await Accounts.getAccounts().length) {
-    goto("/auth/select");
-  } else {
-    goto("/auth/login");
-  }
+  Accounts.getAccounts().then(acs => {
+    goto("/auth/" + (acs && acs[0] ? "select" : "login"));
+  });
 }

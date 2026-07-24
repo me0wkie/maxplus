@@ -8,7 +8,6 @@ mod video;
 use crate::secure::{CryptoManager, EncType};
 use state::AppState;
 use std::sync::Arc;
-use stores::setup_custom_stores;
 use tauri::{Emitter, Manager};
 use tokio::sync::RwLock;
 
@@ -36,11 +35,6 @@ pub fn run() {
 
     builder
         .setup(|app| {
-            let store_names = &["users.bin", "chats.bin"]; // TODO будут инициализироваться при init_user()
-
-            let stores =
-                setup_custom_stores(app.handle(), store_names).expect("failed to init stores");
-
             let crypto = CryptoManager::init(EncType::None, "system", None);
 
             let (client, mut event_stream) = tauri::async_runtime::block_on(async {
@@ -52,7 +46,6 @@ pub fn run() {
             app.manage(AppState {
                 crypto: Arc::new(RwLock::new(crypto)),
                 client,
-                stores,
             });
 
             let handle = app.handle().clone();
@@ -108,9 +101,24 @@ pub fn run() {
             files::download,
             files::upload,
             files::pick,
-            stores::get,
-            stores::set,
-            stores::delete,
+            stores::accounts_get,
+            stores::accounts_add,
+            stores::account_get,
+            stores::account_delete,
+            stores::account_delete_by_uid,
+            stores::account_meta,
+            stores::account_contact,
+            stores::current_get,
+            stores::current_set,
+            stores::current_account,
+            stores::current_account_set,
+            stores::get_contact,
+            stores::set_contact,
+            stores::get_contacts,
+            stores::get_chat_settings,
+            stores::set_chat_settings,
+            stores::load_messages,
+            stores::update_messages,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
