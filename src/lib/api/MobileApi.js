@@ -9,11 +9,9 @@ import {
   currentSessionChats,
   currentRealChats,
   currentRealContacts,
-  currentSessionContacts,
   currentFolders,
   currentlySyncing,
   currentPresence,
-  receivedMessage
 } from "$lib/stores/api";
 import {
   get as sessionGet,
@@ -21,15 +19,23 @@ import {
 } from "$lib/stores/session";
 import {
   cacheChat,
-  syncContacts
+  syncContacts,
 } from "$lib/utils/caching";
 import {
   addAccount,
   getAccounts,
   removeAccountByUserId,
   getCurrentAccount,
-  setCurrentAccount
+  setCurrentAccount,
 } from "$lib/stores/accounts";
+import {
+  getChat
+} from "$lib/stores/messages";
+import {
+  getContact,
+  updateContact,
+  getCachedContacts,
+} from "$lib/stores/contacts";
 import { goto } from "$app/navigation";
 
 export default class MobileApi extends BaseAPI {
@@ -79,7 +85,8 @@ export default class MobileApi extends BaseAPI {
         // TODO event handler
         const message = response.payload.message;
         message.chatId = response.payload.chatId;
-        receivedMessage.set(message);
+        const chat = getChat(message.chatId);
+        chat.receivedMessage.set(message);
       } else if (opc == 129) {
         // typing
       } else if (opc === 136) {
@@ -291,7 +298,8 @@ export default class MobileApi extends BaseAPI {
       //const callsEndpoint = config.server['calls-endpoint'];
 
       const currentChats = get(currentSessionChats) || [];
-      const currentContacts = get(currentSessionContacts) || {};
+      const cachedContacts = await getCachedContacts(); // [1, 2, 3]
+      console.log(cachedContacts)
 
       let updated = false;
 
@@ -304,15 +312,14 @@ export default class MobileApi extends BaseAPI {
       chats.forEach((chat) => {
         if (chat.type === "DIALOG") {
           Object.keys(chat.participants).forEach((member) => {
-            if (!currentContacts[member]) requireInfo.add(+member);
+            if (!cachedContacts.includes(+member)) requireInfo.add(+member);
           });
         };
       });
 
-      await syncContacts(contacts, currentContacts, requireInfo);
+      await syncContacts(contacts, requireInfo);
 
-      currentSessionChats.set(currentChats);
-      currentSessionContacts.set(currentContacts);
+      currentSessionChats.set(currentChats); // TODO store only ids there
     } catch (e) {
       alert(e);
       console.error(e);
@@ -399,9 +406,7 @@ export default class MobileApi extends BaseAPI {
       description: result.description,
     };
 
-    currentSessionContacts.update((contacts) => {
-      return { ...contacts, [contactId]: contact };
-    });
+    await updateContact(contact);
 
     currentRealContacts.update((contacts) => {
       if (!contacts.includes(contactId)) return [...contacts, contactId];

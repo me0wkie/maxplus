@@ -65,7 +65,7 @@
     {:then accounts}
       {#each accounts as account}
         <div on:click={_ => select(account)} class="account">
-          <Avatar contact={account.contact} size=72/>
+          <Avatar contactId={account.contact.id} size=72/>
           <a>{ account.contact.names[0].firstName }</a>
           <div on:click={e => logout(e, account)} class="logout"><a>✕</a></div>
         </div>

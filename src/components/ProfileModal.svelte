@@ -2,6 +2,7 @@
   import { fly, fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
   import { createEventDispatcher } from "svelte";
+  import { get } from "svelte/store";
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
   import InputModal from "$components/main/InputModal.svelte";
   import Signature from "$components/main/Signature.svelte";
@@ -15,7 +16,6 @@
   import API, {
     currentUser,
     currentUserDetails,
-    currentSessionContacts,
     currentSessionChats,
     currentPresence,
     currentRealContacts,
@@ -32,23 +32,23 @@
     return value || $currentUser ^ $Session.profile.userId;
   })();
 
-  $: peer = userId ? $currentSessionContacts[userId] || {} : {};
   $: chat = $currentSessionChats.find(x => x.id === chatId);
+  $: contact = getContact(chat.type === "DIALOG" ? userId : undefined);
 
   let showMenu = false;
   let showDeleteConfirm = false;
   let showInputs = false;
 
-  $: title = peer?.names?.[0]?.firstName || chat.title;
+  $: title = $contact?.names?.[0]?.firstName || chat.title;
 
-  $: avatar = peer.avatar || chat.avatar;
+  $: avatar = chat.avatar || $contact?.avatar;
   $: chatLink = chat.link;
 
   $: infoFields = [
-    info(chat.description, "about", "Описание", chat.description),
+    info(chat.description || $contact?.description, "about", "Описание", chat.description || $contact?.description),
     info(chat.phone, "about", "Мобильный", chat.phone),
     info(chat.created > 1, "about", "Дата создания", formatMs(chat.created)),
-    info(chat.registrationTime, "about", "Дата регистрации", formatMs(peer.registrationTime)),
+    info($contact?.registrationTime, "about", "Дата регистрации", formatMs($contact?.registrationTime)),
   ].filter(Boolean);
 
   const info = (k, icon, label, value) => k && { icon, label, value };
@@ -149,7 +149,7 @@
     transition:fly={{ x: 380, duration: 300, opacity: 1, easing: cubicOut }}
   >
     <div class="peer-id">
-      ID {formatId(peer.id || chat.id)}
+      ID {formatId(userId || chatIdd)}
     </div>
 
     <div class="header-controls">
@@ -230,15 +230,16 @@
     <div class="hero">
       <Avatar
         chat={chat}
+        contactId={$contact?.id}
         size={100}
         style="margin-bottom: 10px;"/>
       <div class="hero-info">
         <h2>{title}</h2>
         <a
-          class:online={$currentPresence[peer?.id]?.on === "ON"}
+          class:online={$currentPresence[$contact?.id]?.on === "ON"}
           class="status"
         >
-        <Signature contact={peer} chat={chat} />
+        <Signature contact={contact} chat={chat} />
         </a>
       </div>
       {#if chatLink}
@@ -314,18 +315,18 @@
         <div class="members">
           {#each Object.keys(chat.participants) as userId}
             {#await getContact(userId)}
-            {:then contact}
+            {:then member}
               <div
                 class="member"
-                on:click={() => selectMember(contact.id)}
+                on:click={() => selectMember(get(member).id)}
               >
                 <div class="row">
-                  <Avatar {contact} size={44} />
+                  <Avatar contactId={userId} size={44} />
                   <div class="column">
                     <div class="name">
-                      {contact.names[0].name}
+                      {get(member)?.names[0].name}
                     </div>
-                    <a><Signature {contact} /></a>
+                    <a><Signature {member} /></a>
                   </div>
                 </div>
                 <svg

@@ -1,13 +1,14 @@
 <script>
   import { getAttachText } from "$lib/utils/attachs.js";
-  import { currentSessionContacts } from "$lib/stores/api";
+  import { getContact } from "$lib/stores/contacts";
 
   export let replyTo;
   export let messages;
   export let chat;
 
   $: replyToMsg = $messages.find((x) => x.id === replyTo);
-  $: contact = $currentSessionContacts[replyToMsg.sender] || {
+  $: cachedContact = getContact(replyToMsg.sender);
+  $: contact = $cachedContact || {
     names: [{ first_name: "?" }],
   };
   $: attachText = getAttachText(chat, replyToMsg);

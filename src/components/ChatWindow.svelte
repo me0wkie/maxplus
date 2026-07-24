@@ -14,16 +14,19 @@
   import "$lib/styles/AnimatedPanel.css";
   import API, {
     currentUser,
-    receivedMessage,
-    currentSessionContacts,
     currentSessionChats,
   } from "$lib/stores/api";
   import {
-    getChatSettings
+    getChatSettings,
+    getChat
   } from "$lib/stores/messages";
+  import {
+    getContact
+  } from "$lib/stores/contacts";
   import Session, {
     openChat,
     closeChat,
+    get as sessionGet,
   } from "$lib/stores/session";
   import { handleReaction } from "$components/ChatWindow/actions.js";
   import {
@@ -85,7 +88,6 @@
   $: avatarUserId = chat?.type === "DIALOG" ? (chat.id ^ $currentUser) : undefined;
 
   $: chatSettings = getChatSettings(chat.id);
-  console.log(chatSettings)
 
   const onBack = getContext("onBack");
 
@@ -103,7 +105,7 @@
   });
 
   const DEFAULT_HEIGHT = 60;
-  const OVERSCAN = 1500;
+  const OVERSCAN = 1000;
 
   const messageHeights = writable({});
   let cumulativeHeights = [];
@@ -236,11 +238,11 @@
     const newVisible = {};
     for (let i = startIdx; i <= endIdx && i < $messages.length; i++) {
       const id = $messages[i].id;
-      if (!visibleMessages[id]) {
-        visibleMessages[id] = document.getElementById("m-" + id);
+      if (!newVisible[id]) {
+        newVisible[id] = document.getElementById("m-" + id);
       }
     }
-    //visibleMessages = newVisible;
+    visibleMessages = newVisible;
 
     if (shouldUseAnchor) {
       await tick();
@@ -272,7 +274,7 @@
 
   const decodedMessages = writable({});
 
-  const loadHistory = async (isInitial = false) => {
+  const loadHistory = async (isInitial = false, from = Date.now() + sessionGet("drift")) => {
     if (loading) return;
     if (all_loaded && !isInitial) return;
     if (!chat) return;
@@ -282,93 +284,149 @@
     let anchorId = null;
     let oldTop = null;
 
-    if (scrollElement && !isInitial) {
-      const anchorNode = scrollElement.querySelector('.message-wrapper');
+    const saveAnchor = () => {
+      if (!scrollElement) return;
+      const node = scrollElement.querySelector(".message-wrapper");
+      if (!node) return;
+      anchorId = node.id.replace("m-", "");
+      oldTop = node.getBoundingClientRect().top;
+    };
 
-      if (anchorNode) {
-        anchorId = anchorNode.id.replace('m-', '');
-        oldTop = anchorNode.getBoundingClientRect().top;
+    const restoreAnchor = async () => {
+      await tick();
+      await new Promise(requestAnimationFrame);
+
+      if (!anchorId || oldTop == null) return;
+
+      const element = document.getElementById(`m-${anchorId}`);
+      if (!element) return;
+
+      const delta = element.getBoundingClientRect().top - oldTop;
+
+      if (scrollElement && delta !== 0) {
+        scrollElement.scrollTop += delta;
+        await tick();
+        measureAllHeights();
+        computeCumulativeHeights();
+        await updateVisibleMessages(true);
+
+        if (isDragging) {
+          startScrollTop += delta;
+        }
       }
-    }
+    };
 
-    try {
-      if (!initialized || isInitial) {
-        const { error, messages: syncedMessages } = await $API.getMessages(chat.id);
-        if (error) throw new Error(error);
-        messages.set(syncedMessages);
+    const decodeMessagesBatch = async (list) => {
+      const decoded = {};
 
-        const decoded = {};
-        await Promise.all(syncedMessages.map(async (msg) => {
+      await Promise.all(
+        list.map(async msg => {
           const res = await decode_msg(msg);
           if (res) decoded[msg.id] = res;
-        }));
-        decodedMessages.set(decoded);
+        })
+      );
 
-        if (syncedMessages.length < BATCH_SIZE) all_loaded = true;
-        $API.savedMessages[chat.id] = syncedMessages;
-        initialized = true;
-      } else {
-        const oldestMsg = $messages[0];
+      decodedMessages.update(old => ({
+        ...old,
+        ...decoded
+      }));
+    };
 
-        const fromTime = oldestMsg ? oldestMsg.time : undefined;
+    const mergeMessages = async (
+      incoming,
+      updateCache = false
+    ) => {
+      if (!incoming?.length) return;
 
+      const map = new Map(
+        get(messages).map(m => [m.id, m])
+      );
+
+      const changed = [];
+
+      for (const msg of incoming) {
+        const old = map.get(msg.id);
+
+        if (!old || JSON.stringify(old) !== JSON.stringify(msg)) {
+          map.set(msg.id, msg);
+          changed.push(msg);
+        }
+      }
+
+      if (!changed.length) return;
+
+      await decodeMessagesBatch(changed);
+
+      messages.set(
+        [...map.values()].sort(
+          (a,b) => a.time - b.time
+        )
+      );
+
+      if (updateCache) {
+        chatCache.updateMessages(changed);
+      }
+
+      await restoreAnchor();
+    };
+
+    try {
+      if (!isInitial) saveAnchor();
+
+      const cached = await chatCache.loadMessages(
+        from,
+        BATCH_SIZE
+      );
+
+      await mergeMessages(cached, false);
+
+      if (!initialized || isInitial) {
         const {
           error,
-          messages: syncedMessages
-        } = await $API.getMessages(chat.id, fromTime);
+          messages: serverMessages
+        } = await $API.getMessages(chat.id);
 
-        console.log("Loaded " + syncedMessages.length + " messages")
+        if (error) throw new Error(error);
 
-        if (syncedMessages.length < BATCH_SIZE) {
+        messages.set(
+          serverMessages.sort(
+            (a,b) => a.time - b.time
+          )
+        );
+
+        await decodeMessagesBatch(serverMessages);
+        chatCache.updateMessages(serverMessages);
+
+        if (serverMessages.length < BATCH_SIZE) {
           all_loaded = true;
         }
 
-        if (!error && syncedMessages.length > 0) {
-          const currentMsgs = get(messages);
-          const existingIds = new Set(currentMsgs.map(m => m.id));
-          const newUnique = syncedMessages.filter(m => !existingIds.has(m.id));
-          if (newUnique.length > 0) {
-            const newDecoded = {};
-            await Promise.all(newUnique.map(async (msg) => {
-              const res = await decode_msg(msg);
-              if (res) newDecoded[msg.id] = res;
-            }));
-            decodedMessages.update(d => ({ ...d, ...newDecoded }));
+        initialized = true;
+      } else {
+        const oldest = get(messages)[0];
 
-            messages.update(msgs => [...newUnique, ...msgs]);
+        const {
+          error,
+          messages: olderMessages
+        } = await $API.getMessages(
+          chat.id,
+          oldest?.time ?? from
+        );
 
-            await tick();
-            await new Promise(requestAnimationFrame);
+        if (error) throw new Error(error);
 
-            const anchorEl = anchorId
-              ? document.getElementById(`m-${anchorId}`)
-              : null;
-
-            const newTop = anchorEl?.getBoundingClientRect().top;
-
-            if (
-              scrollElement &&
-              oldTop != null &&
-              newTop != null
-            ) {
-              const delta = newTop - oldTop;
-
-              scrollElement.scrollTop += delta;
-
-              await tick();
-              measureAllHeights();
-              computeCumulativeHeights();
-              await updateVisibleMessages(true);
-
-              if (isDragging) {
-                startScrollTop += delta;
-              }
-            }
-          }
+        if (olderMessages.length < BATCH_SIZE) {
+          all_loaded = true;
         }
+
+        await mergeMessages(
+          olderMessages,
+          true
+        );
       }
-    } catch (e) {
-      console.error(e);
+      //$API.savedMessages[chat.id] = get(messages);
+    } catch(e) {
+      console.error("loadHistory error:", e);
     } finally {
       loading = false;
     }
@@ -456,7 +514,9 @@
     }, 500);
   }
 
-  receivedMessage.subscribe(async (message) => {
+  $: chatCache = getChat(chat.id);
+
+  $: chatCache.receivedMessage.subscribe(async (message) => {
     if (!message || message.chatId !== chat?.id) return;
 
     let wasAtBottom = false;
@@ -487,14 +547,10 @@
     checkForEncryptionRequest(chat, chatSettings, [message]);
   });
 
-  onMount(async () => {
-    if (chat?.id === 0) {
-      title = "Избранное";
-    } else if (chat) {
-      if (chat.id < 0) title = chat.title;
-      else title = $currentSessionContacts?.[avatarUserId]?.names?.[0]?.name;
-    }
+  $: cachedContact = chat.type === "DIALOG" ? getContact(avatarUserId) : writable(undefined);
+  $: title = chat.id === 0 ? "Избранное" : (chat.title || $cachedContact?.names?.[0]?.name);
 
+  onMount(async () => {
     setupResizeObserver();
     startAutoScrollIfAtBottom();
 
@@ -711,10 +767,10 @@
           else $Session.profile = { chatId: chat.id };
         }}
       >
-        <Avatar size={36} {chat} style="margin-left: -8px" />
+        <Avatar size={36} {chat} contactId={avatarUserId} style="margin-left: -8px"/>
         <div class="info">
           <a class="title">{title}</a>
-          <a class="presence"><Signature {chat} /></a>
+          <a class="presence"><Signature {chat} contactId={avatarUserId} /></a>
         </div>
       </div>
     </div>

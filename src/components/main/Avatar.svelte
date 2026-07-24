@@ -1,26 +1,32 @@
 <script>
-  import { currentUser, currentSessionContacts } from "$lib/stores/api";
+  import { writable } from "svelte/store";
+
+  import {
+    currentUser
+  } from "$lib/stores/api";
+  import {
+    getContact
+  } from "$lib/utils/caching";
   import Image from "$components/main/Image.svelte";
 
   export let size;
   export let selectionMode;
   export let isSelected;
   export let chat = {};
-  export let contact = {};
+  export let contactId;
   export let title;
   export let style;
 
+  $: contact = getContact(contactId);
+
   if (!size) size = 50;
-  if (!contact.id)
-    contact = $currentSessionContacts?.[$currentUser ^ chat.id] || {};
   if (!title)
     title =
       chat.id === 0
         ? "Избранное"
         : chat.title || contact?.names?.[0]?.name || "Без названия";
 
-  $: avatarUrl =
-    chat.avatar || (contact?.avatar || contact?.baseUrl);
+  $: avatarUrl = chat?.avatar || $contact?.avatar || $contact?.baseUrl;
 
   function getAvatarPlaceholder(id) {
     const colors = [
@@ -81,13 +87,13 @@
     {:else}
       <div
         class="avatar-placeholder"
-        style="background: {getAvatarPlaceholder(contact.id || chat.id)}; font-size: {size / 2.5}px;"
+        style="background: {getAvatarPlaceholder($contact?.id || chat.id)}; font-size: {size / 2.5}px;"
       >
         {getInitials(title)}
       </div>
     {/if}
 
-    {#if contact?.online && !selectionMode}
+    {#if $contact?.online && !selectionMode}
       <span class="online-badge"></span>
     {/if}
   </div>

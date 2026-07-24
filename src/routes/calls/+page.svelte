@@ -1,45 +1,40 @@
 <script>
-  import { onMount } from "svelte";
-  import API, {
-    currentSessionCalls,
-    currentUser,
-    currentSessionContacts,
-    currentSessionChats,
-  } from "$lib/stores/api";
+  import { onDestroy } from "svelte";
+  import { getContact } from "$lib/stores/contacts";
+  import { currentSessionCalls, currentSessionChats, currentUser } from "$lib/stores/api";
 
-  $: callsWithInfo = $currentSessionCalls?.history.map((call) => {
-    const attach = call.message.attaches[0];
-    const duration = formatSeconds(attach.duration);
+  let contacts = {}, unsub = {};
 
-    console.log(call)
-
-    if (call.chatType === "CHAT") {
-      const chat = $currentSessionChats.find((x) => x.id === call.chatId);
-      let avatar = chat.avatar || chat.baseUrl;
-      if (!avatar && call.message) avatar = $currentSessionContacts[call.message.sender]?.avatar;
-      return {
-        name: chat.title,
-        duration,
-        avatar,
-      };
-    } else if (call.chatType === "DIALOG") {
-      const cid = call.chatId ^ $currentUser;
-      const contact = $currentSessionContacts[cid] || {};
-      const type =
-        attach.callType === "AUDIO" ? "Аудиозвонок " : "Видеозвонок ";
-      return {
-        name: type + contact.names[0].firstName,
-        avatar: contact.avatar,
-        duration,
-      };
-    }
+  $: $currentSessionCalls?.history.forEach(({ chatId, chatType, message }) => {
+    const id = chatType === "CHAT" ? message?.sender : chatId ^ $currentUser;
+    if (id && !unsub[id])
+      unsub[id] = getContact(id).subscribe(v => (contacts[id] = v, contacts = contacts));
   });
 
-  function formatSeconds(seconds) {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-  }
+  onDestroy(() => Object.values(unsub).forEach(f => f()));
+
+  $: callsWithInfo = $currentSessionCalls?.history.map(call => {
+    const a = call.message.attaches[0], duration = formatSeconds(a.duration);
+
+    if (call.chatType === "CHAT") {
+      const chat = $currentSessionChats.find(x => x.id === call.chatId);
+      const c = contacts[call.message.sender];
+      return {
+        name: chat.title,
+        avatar: chat.avatar || chat.baseUrl || c?.avatar,
+        duration
+      };
+    }
+
+    const c = contacts[call.chatId ^ $currentUser];
+    return {
+      name: `${a.callType === "AUDIO" ? "Аудиозвонок" : "Видеозвонок"} ${c?.names?.[0]?.firstName ?? ""}`,
+      avatar: c?.avatar,
+      duration
+    };
+  }) || [];
+
+  const formatSeconds = s => `${`${s / 60 | 0}`.padStart(2, 0)}:${`${s % 60}`.padStart(2, 0)}`;
 </script>
 
 <div class="calls">

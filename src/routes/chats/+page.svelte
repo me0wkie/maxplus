@@ -10,14 +10,19 @@
   import { openChat } from "$lib/stores/session.js";
   import API, {
     currentSessionChats,
-    currentSessionContacts,
     currentSessionCalls,
     currentRealChats,
     currentlySyncing,
     currentFolders,
     currentUser,
-    receivedMessage,
   } from "$lib/stores/api.js";
+  import {
+    getChat,
+  } from "$lib/stores/messages";
+  import {
+    getContact,
+    updateContact
+  } from "$lib/stores/contacts";
 
   let localFolders = [];
   $: if ($currentFolders) {
@@ -46,7 +51,7 @@
   let searchPublic = [];
   let searchMsg = [];
 
-  receivedMessage.subscribe((msg) => {//TODO перенести в layout
+  /*receivedMessage.subscribe((msg) => {//TODO перенести в layout
     if (!msg || !msg.chatId) return;
 
     currentSessionChats.update((chats) => {
@@ -77,7 +82,7 @@
 
       return newChats;
     });
-  });
+  });*/
 
   function handleChatLongPress(event) {
     const chat = event.detail;
@@ -361,7 +366,7 @@
         {#each searchPublic as result, i ((result.chat || result.contact).id)}
           <ChatItem
             chat={result.chat || result.contact}
-            on:open={() => {
+            on:open={async () => {
               let chatId;
 
               if (result.chat) chatId = result.chat.id;
@@ -370,9 +375,7 @@
 
                 chatId = $currentUser ^ contact.id;
 
-                if (!$currentSessionContacts[contact.id]) {
-                  $currentSessionContacts[contact.id] = contact;
-                }
+                await updateContact(contact);
               }
 
               openChat(chatId);

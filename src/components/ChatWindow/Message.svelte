@@ -1,10 +1,14 @@
 <script>
   import { createEventDispatcher, onMount } from "svelte";
+  import { writable } from "svelte/store";
   import { openPath } from "@tauri-apps/plugin-opener";
-  import API, { currentUser, currentUserDetails, currentSessionContacts } from "$lib/stores/api";
+  import API, { currentUser, currentUserDetails } from "$lib/stores/api";
+  import { getContact } from "$lib/utils/caching";
   import { openChat } from "$lib/stores/session";
-  import { getAttachText, getSystemText } from "$lib/utils/attachs";
-  import { scrollTo } from '$lib/utils/scroll.js';
+  import {
+    getAttachText, getSystemText
+  } from "$lib/utils/attachs";
+  import { scrollTo } from '$lib/utils/scroll';
   import MessagePreview from "$components/main/MessagePreview.svelte";
   import Avatar from "$components/main/Avatar.svelte";
   import Reactions from "$components/ChatWindow/Reactions.svelte";
@@ -70,7 +74,9 @@
 
   $: linkedType = msg.link ? msg.link.type : "REPLY";
   $: forwardLines = linkedMsg?.text?.split("\n");
-  $: linkedMsgContact = linkedMsg && $currentSessionContacts[linkedMsg.sender];
+
+  const cachedLinkedContact = linkedMsg && getContact(linkedMsg.sender);
+  $: linkedMsgContact = cachedLinkedContact && $cachedLinkedContact;
 
   $: column =
     msg.text?.length > 20 ||
@@ -80,9 +86,8 @@
 
   $: showAvatar =
     chat.type !== "CHANNEL" &&
-    !isMe &&
-    !isSystem ||
-    (!isSystem && innerWidth > 500);
+    (!isMe || innerWidth > 500) &&
+    !isSystem;
 </script>
 
 <svelte:window bind:innerWidth={innerWidth} />
@@ -97,7 +102,7 @@
 >
   <div class="indent">
     {#if showAvatar}
-      <Avatar size={32} chat={isMe ? currentUserDetails : chat} />
+      <Avatar size={32} contactId={msg.sender} style="chat" />
     {/if}
   </div>
 

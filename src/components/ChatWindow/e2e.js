@@ -1,7 +1,5 @@
 import API, {
   currentUser,
-  currentSessionContacts,
-  receivedMessage,
 } from "$lib/stores/api";
 import {
   createIdentity,

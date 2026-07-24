@@ -1,15 +1,21 @@
 <script>
   import { createEventDispatcher } from "svelte";
+  import { get } from "svelte/store";
   import {
     currentUser,
     currentSessionChats,
-    currentSessionContacts
   } from "$lib/stores/api";
+  import {
+    getContact
+  } from "$lib/stores/contacts";
   import {
     getAttachText,
     getSystemText,
   } from "$lib/utils/attachs";
-  import { openChat } from "$lib/stores/session";
+  import {
+    openChat,
+    get as sessionGet
+  } from "$lib/stores/session";
   import Avatar from "$components/main/Avatar.svelte";
 
   export let chat;
@@ -24,12 +30,12 @@
   $: peerId =
     chat.type === "DIALOG" ? $currentUser ^ chat.id : null;
 
-  $: contact = peerId ? $currentSessionContacts[peerId] : {};
+  $: contact = getContact(peerId);
 
   $: title =
     chat.id === 0
       ? "Избранное"
-      : chat.title || contact?.names?.[0]?.name || "Без названия";
+      : chat.title || $contact?.names?.[0]?.name || "Без названия";
 
   $: shownMessage = replace?.message || chat.lastMessage;
   $: attaches = getAttachText(chat, shownMessage);
@@ -44,21 +50,21 @@
 
   $: timeDisplay = (() => {
     if (!shownMessage?.time) return "";
-    const msgDate = new Date(shownMessage.time);
+    const msgDate = new Date(shownMessage.time + sessionGet("drift"));
     const now = new Date();
     const isToday =
       msgDate.getDate() === now.getDate() &&
       msgDate.getMonth() === now.getMonth() &&
       msgDate.getFullYear() === now.getFullYear();
     if (isToday)
-      return msgDate.toLocaleTimeString([], {
+      return msgDate.toLocaleTimeString("ru", {
         hour: "2-digit",
         minute: "2-digit",
       });
     const yesterday = new Date(now);
     yesterday.setDate(now.getDate() - 1);
     if (msgDate.getDate() === yesterday.getDate()) return "Вчера";
-    return msgDate.toLocaleDateString([], { day: "2-digit", month: "2-digit" });
+    return msgDate.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" });
   })();
 
   $: isMe = shownMessage?.sender === $currentUser;
@@ -106,7 +112,12 @@
   on:click={handleClick}
   on:contextmenu|preventDefault={() => dispatch("longpress", chat)}
 >
-  <Avatar {chat} {selectionMode} {isSelected} />
+  <Avatar
+    {chat}
+    contactId={peerId}
+    {selectionMode}
+    {isSelected}
+  />
 
   <div class="content">
     <div class="row top">

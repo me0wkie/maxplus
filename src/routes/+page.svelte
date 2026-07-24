@@ -10,12 +10,6 @@
   import * as Caching from "$lib/utils/caching";
   import Session from "$lib/stores/session";
   import { page } from "$app/stores";
-  import API, {
-    currentSessionChats,
-    currentSessionContacts,
-    currentlySyncing,
-    currentUser,
-  } from "$lib/stores/api.js";
 
   const pages = [
     { name: "Контакты", icon: "contacts", component: Contacts },

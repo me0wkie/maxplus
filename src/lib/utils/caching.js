@@ -1,10 +1,15 @@
 import {
   currentSessionChats,
-  currentSessionContacts,
 } from "$lib/stores/api";
+import {
+  updateContact,
+  getCachedContacts,
+  getContact as getContactStore
+} from "$lib/stores/contacts";
 import { invoke } from "$lib/utils/invoke";
-import { get } from "svelte/store";
+import { get, writable } from "svelte/store";
 
+// TODO отказаться от этой хуйни?
 export const cacheChat = (chat, chats = null) => {
   const normalized = normalizeChat(chat);
 
@@ -71,11 +76,10 @@ const normalizeChat = (chat) => {
   };
 };
 
-export const syncContacts = async (contacts, currentContacts, requireInfo) => {
+export const syncContacts = async (contacts, requireInfo) => {
   contacts.forEach((raw) => {
-    const contact = normalizeContact(raw);
-    upsertContact(currentContacts, contact);
-    requireInfo.delete(+contact.id);
+    updateContact(normalizeContact(raw));
+    requireInfo.delete(+raw.id);
   });
 
   if (requireInfo.size) {
@@ -86,58 +90,49 @@ export const syncContacts = async (contacts, currentContacts, requireInfo) => {
     });
 
     response.contacts.forEach(raw => {
-      const contact = normalizeContact(raw);
-
-      upsertContact(currentContacts, contact);
+      updateContact(normalizeContact(raw));
     });
   }
 };
 
-const contactBatch = [];
-let getContactPromise;
+const empty = writable(null);
+let contactBatch = null;
 
-export const getContact = async contactId => {
-  const contacts = get(currentSessionContacts);
+export const getContact = contactId => {
+  if (!+contactId) return empty;
 
-  if (!contacts[contactId]) {
-    contactBatch.push(contactId);
-    if (!getContactPromise)
-      getContactPromise = new Promise(r => setTimeout(r, 300));
-    await getContactPromise;
-    // накапливает запросы за 300мс
+  getCachedContacts().then(async contacts => {
+    if (!contacts.includes(+contactId)) {
+      if (!contactBatch) {
+        contactBatch = {
+          ids: [],
+          promise: new Promise(resolve =>
+            setTimeout(resolve, 300)
+          )
+        };
+      }
 
-    const userIds = [...contactBatch];
-    contactBatch.length = 0;
-    getContactPromise = null;
+      contactBatch.ids.push(+contactId);
 
-    const response = await invoke("fetch_contacts", { userIds });
+      const batch = contactBatch;
 
-    response.contacts.forEach(raw => {
-      const contact = normalizeContact(raw);
-      currentSessionContacts.update(contacts => ({
-        ...contacts,
-        [raw.id]: contact,
-      }));
-    });
-  }
+      await batch.promise;
 
-  return contacts[contactId];
-}
+      if (contactBatch === batch) {
+        contactBatch = null;
 
-const upsertContact = (store, contact) => {
-  const id = contact.id;
-  const existing = store[id];
+        const response = await invoke("fetch_contacts", {
+          userIds: [...new Set(batch.ids)]
+        });
 
-  if (!existing) {
-    store[id] = contact;
-    return;
-  }
-
-  for (const key in contact) {
-    if (contact[key] !== existing[key]) {
-      existing[key] = contact[key];
+        for (const raw of response.contacts) {
+          updateContact(normalizeContact(raw));
+        }
+      }
     }
-  }
+  });
+
+  return getContactStore(+contactId);
 };
 
 const normalizeContact = (contact) => {

@@ -1,7 +1,9 @@
 import API, {
   currentUser,
-  receivedMessage,
 } from "$lib/stores/api";
+import {
+  getChat,
+} from "$lib/stores/messages";
 import { xorEncrypt } from "$lib/crypto/symmetric";
 import { deflate, obfuscate, detectObfuscation } from "$lib/crypto/messages";
 import { buildHeader, parseHeader } from "$components/ChatWindow/e2e";
@@ -99,7 +101,9 @@ export async function sendMessage(
     const msgId = message.id;
     message.status = 1;
 
-    receivedMessage.set(message);
+    const chatCache = getChat(chat.id);
+    chatCache.receivedMessage.set(message);
+    chatCache.updateMessages([ message ]);
 
     /*messages.update((msgs) => {
       const element = msgs.indexOf(displayMessageEarlyEntry);

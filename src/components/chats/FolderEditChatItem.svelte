@@ -1,5 +1,12 @@
 <script>
-  import { currentUser, currentSessionContacts } from "$lib/stores/api";
+  import { get } from "svelte/store";
+
+  import {
+    currentUser
+  } from "$lib/stores/api";
+  import {
+    getContact
+  } from "$lib/stores/contacts";
 
   export let includedChats;
   export let toggleChat;
@@ -10,7 +17,7 @@
       ? +Object.keys(chat.participants || {}).find((id) => +id !== $currentUser)
       : null;
 
-  $: contact = peerId ? $currentSessionContacts?.[peerId] : null;
+  $: contact = peerId ? get(getContact(peerId)) : null;
 
   $: title =
     chat.id === 0
