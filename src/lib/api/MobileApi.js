@@ -7,6 +7,7 @@ import {
   currentUser,
   currentUserDetails,
   currentSessionChats,
+  currentSessionCalls,
   currentRealChats,
   currentRealContacts,
   currentFolders,
@@ -27,6 +28,7 @@ import {
   removeAccountByUserId,
   getCurrentAccount,
   setCurrentAccount,
+  setAccountContact,
 } from "$lib/stores/accounts";
 import {
   getChat
@@ -60,6 +62,8 @@ export default class MobileApi extends BaseAPI {
   }
 
   async startListener() {
+    if (this.unlisten) this.unlisten();
+
     this.unlisten = await listen("max", async (event) => {
       const { payload } = event;
 
@@ -182,20 +186,17 @@ export default class MobileApi extends BaseAPI {
   }
 
   async _handleLoginResponse(payload) {
-    if (!payload || !payload.profile) return payload; // failed
-
-    const { profile, tokenAttrs } = payload;
-    const userId = profile.contact.id;
+    console.log(payload);
+    if (!payload?.tokenAttrs?.LOGIN) return payload; // failed
 
     const accountEntry = await addAccount(
-      profile.contact,
-      tokenAttrs.LOGIN.token,
+      payload.tokenAttrs.LOGIN.token,
       sessionGet("device")
     );
 
-    currentUserDetails.set(profile.contact); // TODO remove
     await setCurrentAccount(accountEntry.id);
-    currentUser.set(userId);
+
+    await this.sync();
 
     return {
       success: true,
@@ -206,13 +207,7 @@ export default class MobileApi extends BaseAPI {
   async checkPassword(password, trackId) {
     const response = await invoke("check_password", { password, trackId });
 
-    const success = !!response.tokenAttrs;
-    if (!success) return response;
-
-    return {
-      success: true,
-      payload: response
-    }
+    return this._handleLoginResponse(response);
   }
 
   async logout(userId = get(currentUser), redirect = true) {
@@ -277,14 +272,18 @@ export default class MobileApi extends BaseAPI {
       // сдвиг системного времени относительно серверного
       sessionSet("drift", offset);
 
-      const { chats, contacts, config } = res;
+      const { profile, chats, contacts, config } = res;
 
       console.log("Ответ sync", res);
 
+      const account = await getCurrentAccount();
+      await setAccountContact(account.id, profile.contact);
+
+      currentUser.set(profile.contact.id);
       currentFolders.set(config.chatFolders?.FOLDERS || []);
       currentPresence.set(res.presence);
       currentRealChats.set(chats.map((x) => x.id));
-      currentUserDetails.set(res.profile.contact);
+      currentUserDetails.set(profile.contact);
       currentRealContacts.set(contacts.map((x) => x.id));
 
       //if (!this.getUser()) this.setUser(res.profile.contact.id);
@@ -323,6 +322,9 @@ export default class MobileApi extends BaseAPI {
     } finally {
       this.resolve_sync();
       console.log("Синхронизация завершена!");
+
+      const calls = await this.getCalls();
+      currentSessionCalls.set(calls);
     }
   }
 
@@ -536,6 +538,8 @@ export default class MobileApi extends BaseAPI {
     }
 
     currentUserDetails.set(details);
+    await setAccountContact(account.id, details);
+
     return result;
   }
 

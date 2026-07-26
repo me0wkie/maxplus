@@ -2,6 +2,10 @@ import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { error } from "$lib/stores/logs";
 import { get } from "svelte/store";
 import API from "$lib/stores/api";
+import {
+  removeAccount,
+  getCurrentAccount,
+} from "$lib/stores/accounts";
 
 export const invoke = async (command, args) => {
   try {
@@ -23,7 +27,10 @@ export const invoke = async (command, args) => {
 
     if (str.includes("login.token")) {
       alert("Выкинуло из аккаунта!");
-      return get(API).logout();
+      const current = await getCurrentAccount();
+      if (current) await removeAccount(current.id);
+      goto("/auth/login");
+      return;
     }
 
     try {

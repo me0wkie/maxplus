@@ -31,6 +31,7 @@
 
     try {
       const response = await $API.checkPassword(password, challenge.trackId);
+      console.log(response);
       if (response.error) {
         error = response.localizedMessage;
       } else {
@@ -42,10 +43,10 @@
   }
 </script>
 
-<div class="auth-page">
+<div class="page">
   <h1>2FA</h1>
   <p>Ваш аккаунт защищен паролем, помните его?</p>
-  <form on:submit|preventDefault={handleVerify}>
+  <div class="form">
     <div class="error">{error}</div>
     <input
       type="text"
@@ -53,13 +54,13 @@
       placeholder={challenge.hint || "Пароль"}
       required
     />
-    <ActionButton text="Проверить" verify={verify}/>
-  </form>
+    <ActionButton text="Проверить" action={verify}/>
+  </div>
   <BackButton path="/auth/login"/>
 </div>
 
 <style>
-  .auth-page {
+  .page {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -69,11 +70,11 @@
     color: #ddd;
   }
 
-  .auth-page h1 {
+  .page h1 {
     margin: 0;
   }
 
-  .auth-page p {
+  .page p {
     margin: 10px 0;
     font-size: 14px;
   }

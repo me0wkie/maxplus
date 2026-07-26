@@ -27,6 +27,7 @@ export const currentRealContacts = writable([]);
 currentUser.subscribe(async userId => {
   if (userId === undefined) {
     const account = await Accounts.getCurrentAccount();
+    if (!account) return currentUser.set(null);
     const data = await Accounts.getAccount(account.id);
     console.log('Loaded current account =', data);
     if (!data) {
@@ -41,8 +42,8 @@ currentUser.subscribe(async userId => {
       sessionSet("loaded", true);
     } else {
       if (!data?.contact?.id) { // TODO pin request
-        currentUser.set(null);
-        alert("Ошибка получения данных! (очистите данные)")
+        if (!sessionGet("connected")) await API.init();
+        await API.sync();
       } else {
         currentUserDetails.set(data.contact);
         currentUser.set(data.contact.id);
@@ -57,13 +58,8 @@ currentUser.subscribe(async userId => {
     // account init
     try {
       if (sessionGet("sync")) return; // already synced
-
       if (!sessionGet("connected")) await API.init();
-
       await API.sync();
-
-      const calls = await API.getCalls();
-      currentSessionCalls.set(calls);
     } catch (e) {
       console.error(e);
     } finally {

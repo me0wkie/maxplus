@@ -505,7 +505,6 @@ pub fn accounts_get(
 #[tauri::command]
 pub fn accounts_add(
     app: AppHandle,
-    account: Value,
     token: Value,
     device: Value,
 ) -> Result<Value, String> {
@@ -525,25 +524,25 @@ pub fn accounts_add(
         "key": null
     });
 
-    let account_dir = app.path().app_data_dir().unwrap().join("data").join(entry["id"].as_str().unwrap());
+    let account_dir = app
+        .path()
+        .app_data_dir()
+        .unwrap()
+        .join("data")
+        .join(id.to_string());
 
     fs::create_dir_all(account_dir).map_err(|e| e.to_string())?;
 
     let storage = Storage::new(None);
 
     storage.save(
-        account_path(&app, entry["id"].as_str().unwrap(), "meta"),
+        account_path(&app, &id.to_string(), "meta"),
         &json!({
             "version": 1,
             "token": token,
             "device": device,
             "added": chrono::Utc::now().timestamp_millis()
         }),
-    )?;
-
-    storage.save(
-        account_path(&app, entry["id"].as_str().unwrap(), "self"),
-        &account,
     )?;
 
     store["accounts"].as_array_mut().unwrap().push(entry.clone());
@@ -590,7 +589,7 @@ pub fn account_get(
 #[tauri::command]
 pub fn account_delete(
     app: AppHandle,
-    id: String,
+    id: u64,
 ) -> Result<(), String> {
     let mut store = load_accounts(&app);
 
@@ -602,7 +601,7 @@ pub fn account_delete(
 
     save_accounts(&app,&store)?;
 
-    let path = app.path().app_data_dir().unwrap().join("data").join(id);
+    let path = app.path().app_data_dir().unwrap().join("data").join(id.to_string());
 
     if path.exists() {
         fs::remove_dir_all(path)
@@ -621,22 +620,29 @@ pub fn account_delete_by_uid(
     let store = load_accounts(&app);
 
     let id = store["accounts"].as_array().unwrap()
-        .iter().find(|x| x["uid"] == uid).and_then(|x| x["id"].as_str())
-        .ok_or("Account not found")?.to_string();
+        .iter().find(|x| x["uid"] == uid).and_then(|x| x["id"].as_u64())
+        .ok_or("Account not found")?;
 
-    account_delete(app,id)
+    account_delete(app, id)
 }
 
 
 #[tauri::command]
 pub fn account_contact(
     app: AppHandle,
-    id: String,
+    id: u64,
+    data: Option<Value>
 ) -> Result<Value, String> {
-    let account: u64 = id.parse().map_err(|_|"Invalid id")?;
-    let key = crypto_key(&app, account);
-    Ok(Storage::new(key)
-        .load(account_path(&app, &id, "self"))
+    let key = crypto_key(&app, id);
+
+    let storage = Storage::new(key);
+
+    if data.is_some() {
+        storage.save(account_path(&app, &id.to_string().as_str(), "self"), &data.unwrap());
+    }
+
+    Ok(storage
+        .load(account_path(&app, &id.to_string().as_str(), "self"))
         .unwrap_or(Value::Null)
     )
 }
