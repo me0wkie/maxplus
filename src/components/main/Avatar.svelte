@@ -16,6 +16,7 @@
   export let contactId;
   export let title;
   export let style;
+  export let seed;
 
   $: contact = getContact(contactId);
 
@@ -87,7 +88,7 @@
     {:else}
       <div
         class="avatar-placeholder"
-        style="background: {getAvatarPlaceholder($contact?.id || chat.id)}; font-size: {size / 2.5}px;"
+        style="background: {getAvatarPlaceholder($contact?.id || chat?.id || seed)}; font-size: {size / 2.5}px;"
       >
         {getInitials(title)}
       </div>

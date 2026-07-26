@@ -38,17 +38,6 @@
       <div
         on:click={() => {
           sessionSet("devSettings", false);
-          goto("/auth/pincode");
-        }}
-        class="button"
-      >
-        <a>Проверка пин-кода</a>
-      </div>
-    </div>
-    <div class="group">
-      <div
-        on:click={() => {
-          sessionSet("devSettings", false);
           goto("/");
         }}
         class="button"

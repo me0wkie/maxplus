@@ -24,13 +24,20 @@
     return await Promise.all(encrypted.map(entry => getAccount(entry.id)));
   }
 
-  async function select(account) {
+  async function select(selected) {
     // TODO pincode
-    console.log('Selecting', account.uid, 'current', $currentUser)
+    console.log('Selecting', selected.uid, 'current', $currentUser)
+    const account = await getAccount(selected.id);
+    console.log('Selected data', account);
 
-    if ($currentUser !== account.uid || !$currentUser) {
+    if (account.encryption && !account.contact) {
       await setCurrentAccount(account.id);
-      await currentUser.set(account.uid);
+      return goto("/auth/lock")
+    }
+
+    if ($currentUser !== account.contact.id || !$currentUser) {
+      await setCurrentAccount(account.id);
+      await currentUser.set(account.contact.id);
       await $API.init(true);
     }
 
@@ -63,8 +70,8 @@
     {:then accounts}
       {#each accounts as account}
         <div on:click={_ => select(account)} class="account">
-          <Avatar contactId={account.contact.id} size=72/>
-          <a>{ account.contact.names[0].firstName }</a>
+          <Avatar contactId={account.contact?.id} seed={account.id} size=72/>
+          <a>{ account.contact?.names[0]?.firstName || "Зашифр." }</a>
           <div on:click={e => logout(e, account)} class="logout"><a>✕</a></div>
         </div>
       {/each}

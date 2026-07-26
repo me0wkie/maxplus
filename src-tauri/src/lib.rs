@@ -1,15 +1,12 @@
 mod commands;
 mod files;
-mod secure;
 mod state;
 mod stores;
 mod video;
 
-use crate::secure::{CryptoManager, EncType};
 use state::AppState;
 use std::sync::Arc;
 use tauri::{Emitter, Manager};
-use tokio::sync::RwLock;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -35,8 +32,6 @@ pub fn run() {
 
     builder
         .setup(|app| {
-            let crypto = CryptoManager::init(EncType::None, "system", None);
-
             let (client, mut event_stream) = tauri::async_runtime::block_on(async {
                 let client = rumax::MaxClient::new();
                 let stream = client.subscribe();
@@ -44,7 +39,9 @@ pub fn run() {
             });
 
             app.manage(AppState {
-                crypto: Arc::new(RwLock::new(crypto)),
+                crypto: Arc::new(
+                    std::sync::RwLock::new(None::<state::CryptoSession>)
+                ),
                 client,
             });
 
@@ -106,11 +103,11 @@ pub fn run() {
             stores::account_get,
             stores::account_delete,
             stores::account_delete_by_uid,
-            stores::account_meta,
             stores::account_contact,
             stores::current_get,
             stores::current_set,
             stores::current_account,
+            stores::current_account_meta,
             stores::current_account_set,
             stores::get_contact,
             stores::set_contact,
@@ -119,6 +116,8 @@ pub fn run() {
             stores::set_chat_settings,
             stores::load_messages,
             stores::update_messages,
+            stores::set_encryption,
+            stores::decrypt_account,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

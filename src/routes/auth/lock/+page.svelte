@@ -1,13 +1,24 @@
 <script>
+  import { goto } from "$app/navigation";
+  import { page } from "$app/stores";
   import {
-    generateSaltHashPair,
-    getHash
-  } from "$lib/crypto/symmetric";
-  import { setEncryption } from "$lib/stores/accounts";
+    getCurrentAccount,
+    setEncryption,
+    decrypt,
+  } from "$lib/stores/accounts";
+  import {
+    currentUser,
+    currentUserDetails,
+  } from "$lib/stores/api";
+  import {
+    set as sessionSet
+  } from "$lib/stores/session";
 
   import BackButton from "$components/main/auth/BackButton.svelte";
 
-  export let mode = "create";
+  $: from = $page.url.searchParams.get("from");
+  $: mode = $page.url.searchParams.get("mode");
+
   export let savedCode = null;
 
   let points = [];
@@ -128,46 +139,80 @@
           selected = [];
           dragPoints = [];
           repeat = null;
-          const { salt, hash } = await getHashes();
-          // setEncryption(id, "pin", hash);
-          // salt must be saved in accounts.json
-          setTimeout(() => { text = hash; }, 1000)
+
+          const account = await getCurrentAccount();
+
+          const response = await setEncryption(
+            account.id,
+            str,
+            true
+          )
+
+          goBack();
         }
       }
-
-    } else {
-
     }
+    else if (mode === "disable") {
+      const account = await getCurrentAccount();
 
-    /*const code = encrypt(selected.map(p => p.id).join(""));
-
-    else {
-      if (code !== savedCode) {
-        text = "Неверный PIN";
-        selected = [];
-        dragPoints = [];
+      try {
+        await setEncryption(
+          account.id,
+          str,
+          false
+        )
+      } catch (e) {
+        console.log(e.toString());
+        text = "Неверный ключ!";
+        return;
       }
-    }*/
-  }
 
-  const getHashes = async () => {
-    const password = selected.map(p => p.id).join("");
-    const { salt, hash } = await generateSaltHashPair(password);
+      goBack();
+    }
+    else {
+      const account = await getCurrentAccount();
 
-    console.log(salt, hash);
+      try {
+        await decrypt(
+          account.id,
+          str
+        )
+      } catch (e) {
+        console.log(e.toString());
+        text = "Неверный ключ!";
+        return;
+      }
 
-    return {
-      salt,
-      hash,
+      const retry = await getCurrentAccount();
+      console.log(retry);
+
+      if (!retry.contact) {
+        text = "Ошибка получения данных!";
+        return;
+      }
+
+      currentUserDetails.set(retry.contact);
+      currentUser.set(retry.contact.id);
+      //sessionSet("loaded", false);
+      goto("/");
     }
   }
 
   const dragPath = () => dragPoints.map(p => `${p.x},${p.y}`).join(" ");
+
+  function goBack() {
+    if (mode === "decrypt") goto("/auth/select");
+    else history.back();
+  }
 </script>
 
 <div class="auth-page">
   <h1>
-    { mode === "create" ? "Задайте PIN-код" : "Помните PIN-код?" }
+    {
+      mode === "create" ? "Нарисуйте графический ключ" :
+      mode === "decrypt" ? "Помните рисунок?" :
+      "Повторите графический ключ"
+    }
   </h1>
 
   {#if mode === "check"}
@@ -222,7 +267,7 @@
 
   <div class="text">{text}</div>
 
-  <BackButton top={10} path="/auth/select"/>
+  <BackButton top={10} path={from}/>
 </div>
 
 <style>

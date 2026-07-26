@@ -24,15 +24,29 @@ export default writable(API);
 export const currentRealChats = writable([]);
 export const currentRealContacts = writable([]);
 
-currentUser.subscribe(async (userId) => {
+currentUser.subscribe(async userId => {
   if (userId === undefined) {
-    const data = await Accounts.getCurrentAccount();
-    console.log('Accounts.getCurrentAccount() =', data);
-    if (!data || !data.uid) { // TODO pin request
+    const account = await Accounts.getCurrentAccount();
+    const data = await Accounts.getAccount(account.id);
+    console.log('Loaded current account =', data);
+    if (!data) {
       currentUser.set(null);
+    }
+    else if (data.encryption && !data.contact) {
+      const enc = data.encryption;
+
+      if (enc.type !== "pin-1") return alert("Данные зашифрованы неизвестным способом!");
+
+      goto("/auth/lock?mode=decrypt&from=/auth/select")
+      sessionSet("loaded", true);
     } else {
-      currentUserDetails.set(data.contact);
-      currentUser.set(data.uid);
+      if (!data?.contact?.id) { // TODO pin request
+        currentUser.set(null);
+        alert("Ошибка получения данных! (очистите данные)")
+      } else {
+        currentUserDetails.set(data.contact);
+        currentUser.set(data.contact.id);
+      }
     }
   }
   else if (userId === null) {

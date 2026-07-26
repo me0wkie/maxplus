@@ -1,11 +1,14 @@
 use rumax::MaxClient;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
-use crate::secure::CryptoManager;
+#[derive(Clone)]
+pub struct CryptoSession {
+    pub account: u64,
+    pub key: [u8;32],
+}
 
 #[derive(Clone)]
 pub struct AppState {
     pub client: MaxClient,
-    pub crypto: Arc<RwLock<CryptoManager>>,
+    pub crypto: Arc<RwLock<Option<CryptoSession>>>,
 }

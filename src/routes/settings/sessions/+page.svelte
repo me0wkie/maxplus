@@ -5,7 +5,7 @@
   import { flip } from "svelte/animate";
   import { page } from "$app/stores";
 
-  import { getAccounts, getAccountMeta } from "$lib/stores/accounts";
+  import { getCurrentAccount } from "$lib/stores/accounts";
   import API, { currentUser } from "$lib/stores/api";
 
   let sessions = [];
@@ -33,13 +33,11 @@
   };
 
   async function handleTerminateAll() {
-    const accounts = await getAccounts();
-    const current = accounts.find(x => x.uid === $currentUser);
-    if (!current) throw new Error("Ошибка получения данных аккаунта");
-    const accountMeta = await getAccountMeta(current.id);
-    console.log(accountMeta);
+    const account = await getCurrentAccount();
+    if (!account) throw new Error("Ошибка получения данных аккаунта");
+    console.log(account);
 
-    if (accountMeta.added + 1000 * 60 * 60 * 24 > Date.now()) {
+    if (account.meta.added + 1000 * 60 * 60 * 24 > Date.now()) {
       alert("Должно пройти 24 часа со входа в аккаунт!")
       return;
     }

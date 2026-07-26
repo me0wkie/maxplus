@@ -6,6 +6,11 @@
   export let top = 75;
 
   const _condition = condition || (() => true);
+
+  function goBack() {
+    if (path) goto(path);
+    else history.back();
+  }
 </script>
 
 {#await _condition()}
@@ -14,7 +19,7 @@
       <div
       class="back"
       style:top={`${top}px`}
-      on:click={_ => goto(path)}
+      on:click={goBack}
       ><a>←</a></div>
   {/if}
 {/await}

@@ -47,24 +47,24 @@
       {
         icon: "profile.svg",
         text: "Настроить профиль",
-        action: () => goto("settings/profile?from=/?card=3"),
+        action: () => goto("/settings/profile?from=/?card=3"),
       },
-      /*{
+      {
         icon: "crypto.svg",
-        text: "Настройки шифрования",
-        action: () => goto("setup/tokens?from=/?card=3"),
-      },*/
+        text: "Защита пин-кодом", // TODO "шифрование данных" может быть непонятно, перефразировать?
+        action: () => goto("/settings/lock?from=/?card=3"),
+      },
       {
         icon: "book.svg",
         text: "Словарь шифрования",
-        action: () => goto("settings/e2e/dictionary?from=/?card=3"),
+        action: () => goto("/settings/e2e/dictionary?from=/?card=3"),
       },
     ],
     [
       {
         icon: "logs.svg",
         text: "Сетевые логи",
-        action: () => goto("settings/logs?from=/?card=3"),
+        action: () => goto("/settings/logs?from=/?card=3"),
       },
       {
         icon: "debug.svg",
@@ -74,19 +74,19 @@
       {
         icon: "about.svg",
         text: "О приложении",
-        action: () => goto("settings/about?from=/?card=3"),
+        action: () => goto("/settings/about?from=/?card=3"),
       },
     ],
     [
       {
         icon: "devices.png",
         text: "Активные сессии",
-        action: () => goto("settings/sessions?from=/?card=3"),
+        action: () => goto("/settings/sessions?from=/?card=3"),
       },
       {
         icon: "logout.svg",
         text: "Сменить аккаунт",
-        action: () => goto("auth/select")
+        action: () => goto("/auth/select")
       },
     ],
   ];

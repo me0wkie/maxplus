@@ -102,7 +102,8 @@ export const getContact = contactId => {
   if (!+contactId) return empty;
 
   getCachedContacts().then(async contacts => {
-    if (!contacts.includes(+contactId)) {
+    // TODO return only ids (that are cached)
+    if (!contacts.some(x => x.id === +contactId)) {
       if (!contactBatch) {
         contactBatch = {
           ids: [],

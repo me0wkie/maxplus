@@ -67,7 +67,7 @@
     />
     <ActionButton text="Подтвердить" action={verify}/>
   </div>
-  <BackButton path="/auth/login"/>
+  <BackButton/>
 </div>
 
 <style>
