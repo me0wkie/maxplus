@@ -4,7 +4,7 @@
 
 <h1>Max+ Client</h1>
 
-**Неофициальный клиент Макс с поддержкой сквозного E2E-шифрования.**
+**Неофициальный клиент «Макс» с поддержкой сквозного E2E-шифрования.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/Rust-red?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
@@ -13,7 +13,7 @@
 </div>
 
 <b>Что НЕ реализовано:</b>  
-➖ Уведомления, звонки, поддержка WebApps, в том числе сферум, отправка файлов, стикеры, скачивание чатов, работа с папками, настройки приватности, аппаратное шифрование
+➖ Уведомления, звонки, поддержка WebApps, в том числе сферум, стикеры, скачивание чатов, работа с папками, настройки приватности
 
 <b>Что реализовано:</b>  
 ➕ Вход, регистрация, работа с контактами, каналы и чаты, функции сообщений, сохранение удаленных сообщений, включение шифрования
@@ -35,6 +35,17 @@
 ### ✨ Стать тестером Max+ (.apk, .ipa)
 
 [![Download APK](https://img.shields.io/badge/Скачать_Pre--release-APK-blue?style=for-the-badge&logo=android&logoColor=white)](https://github.com/me0wkie/maxplus/releases/latest)
+
+### 💖 Поддержи проект!
+
+Понравился Max+ или хочешь поддержать его развитие?  
+Твоя поддержка помогает мне уделять больше времени разработке, добавлять новые функции и поддерживать проект.
+
+⭐ **Если проект оказался полезным — поставь звезду!**
+
+- ☕ **Boosty:** https://boosty.to/catsoft
+- 💰 **BTC:** `1FsDaiMXPtEjtfiAoTPDG5s2GXzMSJY5G9`
+- 💳 **ETH:** `0x8F6eD9e232dD06b87a68DdD1AF8b1B5AE5aAa070`
 
 ## Содержание
 
