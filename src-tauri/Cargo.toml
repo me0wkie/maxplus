@@ -70,3 +70,7 @@ strip = true
 tauri-plugin-barcode-scanner = "2"
 tauri-plugin-biometric = "2"
 tauri-plugin-keystore = "2.1.0-alpha.1"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+tauri-plugin-safe-area-insets-css = "0.2"
+tauri-plugin-ios-webview-insets = "0.1"
