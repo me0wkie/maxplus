@@ -18,6 +18,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:fitsSystemWindows="true"
+            <!-- Trying to fix video player on Android -->
+            android:usesCleartextTraffic="true"
             android:enableOnBackInvokedCallback="true"
             android:requestLegacyExternalStorage="true"
             android:windowSoftInputMode="adjustResize">

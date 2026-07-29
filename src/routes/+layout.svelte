@@ -29,11 +29,13 @@
     const system = type();
 
     if (system === "android" || system === "ios") {
-      await onBackButtonPress((payload) => {
-        if (onBack.chatSettings) onBack.chatSettings();
+      await onBackButtonPress(payload => {
+        if (onBack.profileModal) onBack.profileModal();
+        else if (onBack.chatSettings) onBack.chatSettings();
         else if (onBack.dropout) onBack.dropout();
         else if (onBack.chat) onBack.chat();
         else if (onBack.addContact) onBack.addContact();
+        else if (onBack.settings) onBack.settings();
       });
     }
   });

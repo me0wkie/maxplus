@@ -87,14 +87,9 @@ pub async fn upload(
 
     #[cfg(target_os = "android")]
     let file: File = {
-        use tauri_plugin_android_fs::{ AndroidFsExt, FileUri };
+        use tauri_plugin_android_fs::{ AndroidFsExt, FsUri };
         let api = app.android_fs_async();
-
-        if !api.public_storage().request_permission().await.map_err(|e| e.to_string())? {
-            return Err("Permission denied by user".into())
-        }
-
-        let uri = FileUri::from_uri(path.clone());
+        let uri = FsUri::from_uri(path.clone());
         let std_file = api.open_file_readable(&uri).await.map_err(|e| e.to_string())?;
         tokio::fs::File::from_std(std_file)
     };
@@ -129,6 +124,10 @@ pub async fn pick(
     {
         use tauri_plugin_android_fs::AndroidFsExt;
         use serde_json::json;
+        use std::path::PathBuf;
+        use tauri::Manager;
+        use tokio::fs;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
         let api = app.android_fs_async();
 
@@ -139,7 +138,7 @@ pub async fn pick(
         };
 
         let files = api
-        .file_picker()
+        .picker()
         .pick_files(None, &mime_filter, false)
         .await
         .map_err(|e| e.to_string())?;
@@ -150,15 +149,43 @@ pub async fn pick(
 
         let file = files.into_iter().next().unwrap();
 
-        let uri = file.uri.to_string();
-
         let mime_type = api
         .get_mime_type(&file)
         .await
         .map_err(|e| e.to_string())?;
 
+        // cache/local/<uuid>
+        let cache_dir = app
+        .path()
+        .app_cache_dir()
+        .map_err(|e| e.to_string())?
+        .join("local");
+
+        fs::create_dir_all(&cache_dir)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        let id = uuid::Uuid::new_v4().to_string();
+        let dst = cache_dir.join(&id);
+
+        let mut reader = api
+        .open_file_readable(&file)
+        .await
+        .map_err(|e| e.to_string())?;
+
+        let dst_clone = dst.clone();
+
+        tokio::task::spawn_blocking(move || -> Result<(), std::io::Error> {
+            let mut writer = std::fs::File::create(dst_clone)?;
+            std::io::copy(&mut reader, &mut writer)?;
+            Ok(())
+        })
+        .await
+        .map_err(|e| e.to_string())?
+        .map_err(|e| e.to_string())?;
+
         Ok(json!({
-            "uri": uri,
+            "uri": dst.to_string_lossy(),
             "mime_type": mime_type
         }))
     }

@@ -78,11 +78,11 @@ jobs:
         run: |
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
-      - name: Generate Icons
-        run: bun run tauri icon static/favicon.png
-
       - name: Init Tauri Android
         run: bunx tauri android init
+
+      - name: Generate Icons
+        run: bun run tauri icon static/favicon.png
 
       - name: Patch Cargo.toml for CI
         run: |
