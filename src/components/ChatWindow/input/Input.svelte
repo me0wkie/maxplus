@@ -65,15 +65,16 @@
     }
   }
 
+  let lines = 0;
+
   async function autoResize(e) {
-    e.target.style.height = "auto";
-    e.target.style.height = e.target.scrollHeight + "px";
-    const maxScrollTop =
-      scrollElement.scrollHeight - scrollElement.clientHeight - scrollElement.scrollTop;
-    if (maxScrollTop < 80) {
-      await tick();
-      scrollToBottom(scrollElement, false);
-    }
+    const el = e.target;
+
+    let newLines = (el.value.match(/\n/g) || []).length + 1;
+    if (newLines < lines) el.style.height = "auto";
+    else el.style.height = el.scrollHeight + "px";
+
+    lines = newLines;
   }
 
   function toggleAttachesDropout() {
@@ -206,13 +207,11 @@
 
     {#if newMessage.length || attaches.length}
       <button class="button" on:click={onSend}>
-        <svg viewBox="0 0 24 24"
-          ><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg
-        >
+        <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" /></svg>
       </button>
     {:else}
       <button class="button">
-        <img src="icons/voice.svg" style="transform: scale(1.15, 1)" />
+        <img src="icons/voice.svg" style="transform: scale(1.1, 1)" />
       </button>
     {/if}
   </div>
@@ -220,7 +219,7 @@
 
 <style>
   .input-area {
-    padding: 8px;
+    padding: 8px 0;
     flex-shrink: 0;
     background-color: #1e2024;
     z-index: 5;
@@ -229,7 +228,6 @@
   .input-controls {
     display: flex;
     align-items: flex-end;
-    gap: 4px;
   }
 
   .input-container {
@@ -238,7 +236,7 @@
     background-color: #17191d;
     border-radius: 12px;
     flex-grow: 1;
-    min-height: 42px;
+    min-height: 50px;
     box-sizing: border-box;
     border: 1px solid transparent;
   }
@@ -277,9 +275,9 @@
     border: none;
     resize: none;
     overflow-y: hidden;
-    min-height: 42px;
+    min-height: 45px;
     max-height: 120px;
-    font-size: 16px;
+    font-size: 17px;
     line-height: 24px;
     padding: 8px 12px;
     outline: none;
@@ -295,7 +293,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    padding: 10px;
+    padding: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -308,7 +306,7 @@
 
   .emoji-btn img {
     width: 22px;
-    height: 22px;
+    height: 25px;
     transform: scale(1.2);
     margin-right: 2px;
   }
@@ -319,8 +317,8 @@
 
   .button {
     border: none;
-    width: 42px;
-    height: 42px;
+    width: 60px;
+    height: 50px;
     flex-shrink: 0;
     display: flex;
     align-items: center;

@@ -50,7 +50,7 @@
   const clickReaction = async (emoji) => {
     handleReaction(chat, activeAt.msg, emoji);
 
-    dispatch("close", { update: true });
+    dispatch("close", { action: "reaction" });
 
     if (onBack.dropout) delete onBack["dropout"];
   };
@@ -78,11 +78,11 @@
   async function handleDeleteMessage() {
     const response = await $API.deleteMessage(chat.id, activeAt.msg.id, false);
 
-    $API.savedMessages[chat.id] = $API.savedMessages[chat.id].filter(
+    /*$API.savedMessages[chat.id] = $API.savedMessages[chat.id].filter(
       (x) => x.id !== activeAt.msg.id,
-    );
+    );*/
 
-    dispatch("close", { update: true });
+    dispatch("close", { action: "delete" });
     if (onBack.dropout) delete onBack["dropout"];
   }
 </script>

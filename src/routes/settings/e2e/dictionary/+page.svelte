@@ -76,7 +76,10 @@
     {#await dictionary}
     {:then data}
       <div class="info">
-        <div class="icon">{ !downloading ? "🖹" : "⟳" }</div>
+        <img
+        src={ downloading ? "/icons/reload.svg" : "/icons/crypto.svg" }
+        class:spin={downloading}
+        class="icon"/>
         <div class="text">Слов: <b>{ data ? (data.dict8?.length + data.dict16?.length) : 0 }</b></div>
       </div>
     {/await}
@@ -197,6 +200,19 @@
   .info .icon {
     font-size: 42px;
     padding: 0;
+  }
+
+  .info .icon.spin {
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   input,

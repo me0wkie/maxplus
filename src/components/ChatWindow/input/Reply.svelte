@@ -35,7 +35,7 @@
   .reply-preview {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     background: #17191d;
     border-radius: 10px;
     padding: 8px 10px;
@@ -54,16 +54,18 @@
   .reply-content {
     flex-grow: 1;
     overflow: hidden;
+    padding: 3px 0;
   }
 
   .reply-author {
-    font-size: 12px;
+    font-size: 13px;
     color: #4a90e2;
     font-weight: 500;
   }
 
   .reply-text {
-    font-size: 13px;
+    margin-top: 2px;
+    font-size: 14px;
     color: #ccc;
     white-space: nowrap;
     overflow: hidden;
@@ -75,7 +77,7 @@
     border: none;
     color: #aaa;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 18px;
     opacity: 0.6;
     transition: 0.2s;
   }

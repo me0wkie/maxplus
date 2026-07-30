@@ -18,6 +18,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:fitsSystemWindows="true"
+            android:usesCleartextTraffic="true"
             android:enableOnBackInvokedCallback="true"
             android:requestLegacyExternalStorage="true"
             android:windowSoftInputMode="adjustResize">

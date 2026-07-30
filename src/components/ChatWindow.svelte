@@ -77,12 +77,6 @@
   const messages = writable([]);
   let initialized = false;
 
-  messages.subscribe(async (_messages) => {
-    if (_messages.length && chat?.id) {
-      //await chatMessages.set(chat.id, _messages);
-    }
-  });
-
   const BATCH_SIZE = 40;
 
   $: avatarUserId = chat?.type === "DIALOG" ? (chat.id ^ $currentUser) : undefined;
@@ -104,8 +98,8 @@
     if (resizeObserver) resizeObserver.disconnect();
   });
 
-  const DEFAULT_HEIGHT = 60;
-  const OVERSCAN = 1000;
+  const DEFAULT_HEIGHT = 120;
+  const OVERSCAN = 1500;
 
   const messageHeights = writable({});
   let cumulativeHeights = [];
@@ -177,40 +171,46 @@
   }
 
   function captureScrollAnchor() {
-    if (!scrollElement || !$messages.length) return;
-    const st = scrollElement.scrollTop;
-    for (let i = 0; i < $messages.length; i++) {
-      const msg = $messages[i];
-      const top = i === 0 ? 0 : cumulativeHeights[i - 1];
-      const bottom = cumulativeHeights[i];
-      if (bottom > st && top < st + scrollElement.clientHeight) {
-        scrollAnchor = { messageId: msg.id, offset: st - top };
+    if (!scrollElement) return;
+
+    const containerRect = scrollElement.getBoundingClientRect();
+
+    for (const id in visibleMessages) {
+      const el = visibleMessages[id];
+      if (!el) continue;
+
+      const rect = el.getBoundingClientRect();
+
+      if (rect.bottom > containerRect.top) {
+        scrollAnchor = {
+          id: el.id,
+          offset: rect.top - containerRect.top
+        };
         return;
       }
     }
-    scrollAnchor = { messageId: $messages[0]?.id, offset: st };
   }
 
   function restoreScrollAnchor() {
-    if (!scrollAnchor.messageId || !scrollElement) return;
-    const idx = $messages.findIndex(m => m.id === scrollAnchor.messageId);
-    if (idx === -1) return;
-    const top = idx === 0 ? 0 : cumulativeHeights[idx - 1];
-    scrollElement.scrollTop = top + scrollAnchor.offset;
+    if (!scrollAnchor || !scrollElement) return;
+
+    const el = document.getElementById(scrollAnchor.id);
+    if (!el) return;
+
+    const containerRect = scrollElement.getBoundingClientRect();
+    const rect = el.getBoundingClientRect();
+
+    const delta = rect.top - containerRect.top - scrollAnchor.offset;
+
+    if (delta !== 0) {
+      scrollElement.scrollTop += delta;
+    }
   }
 
-  async function updateVisibleMessages(skipAnchor = false) {
+  async function updateVisibleMessages() {
     if (!scrollElement) return;
 
     applyPendingHeights();
-
-    const shouldUseAnchor =
-      !skipAnchor &&
-      !isDragging;
-
-    if (shouldUseAnchor) {
-      captureScrollAnchor();
-    }
 
     const { scrollTop, clientHeight } = scrollElement;
     const totalHeight = cumulativeHeights.length ? cumulativeHeights[cumulativeHeights.length - 1] : 0;
@@ -244,13 +244,6 @@
     }
     visibleMessages = newVisible;
 
-    if (shouldUseAnchor) {
-      await tick();
-      restoreScrollAnchor();
-    } else {
-      await tick();
-    }
-
     await scheduleRead();
   }
 
@@ -280,41 +273,6 @@
     if (!chat) return;
 
     loading = true;
-
-    let anchorId = null;
-    let oldTop = null;
-
-    const saveAnchor = () => {
-      if (!scrollElement) return;
-      const node = scrollElement.querySelector(".message-wrapper");
-      if (!node) return;
-      anchorId = node.id.replace("m-", "");
-      oldTop = node.getBoundingClientRect().top;
-    };
-
-    const restoreAnchor = async () => {
-      await tick();
-      await new Promise(requestAnimationFrame);
-
-      if (!anchorId || oldTop == null) return;
-
-      const element = document.getElementById(`m-${anchorId}`);
-      if (!element) return;
-
-      const delta = element.getBoundingClientRect().top - oldTop;
-
-      if (scrollElement && delta !== 0) {
-        scrollElement.scrollTop += delta;
-        await tick();
-        measureAllHeights();
-        computeCumulativeHeights();
-        await updateVisibleMessages(true);
-
-        if (isDragging) {
-          startScrollTop += delta;
-        }
-      }
-    };
 
     const decodeMessagesBatch = async (list) => {
       const decoded = {};
@@ -366,19 +324,20 @@
       if (updateCache) {
         chatCache.updateMessages(changed);
       }
-
-      await restoreAnchor();
     };
 
     try {
-      if (!isInitial) saveAnchor();
-
       const cached = await chatCache.loadMessages(
         from,
         BATCH_SIZE
       );
 
+      captureScrollAnchor();
+
       await mergeMessages(cached, false);
+
+      restoreScrollAnchor();
+      captureScrollAnchor();
 
       if (!initialized || isInitial) {
         const {
@@ -428,8 +387,11 @@
     } catch(e) {
       console.error("loadHistory error:", e);
     } finally {
+      restoreScrollAnchor();
       loading = false;
     }
+
+    restoreScrollAnchor();
   };
 
   let scrollTimeout = null;
@@ -664,9 +626,25 @@
   }
 
   function handleDropout(e) {
+    const msgId = dropoutActiveAt.msg.id;
     dropoutActiveAt = null;
-    if (e.detail?.update) {
-      messages.set($API.savedMessages[chat.id]);
+
+    const action = e.detail?.action
+
+    if (action === "delete") {
+      messages.update(x => {
+        return x.filter(x => x.id !== msgId);
+      });
+
+      if (visibleMessages[msgId]) delete visibleMessages[msgId];
+
+      let wasAtBottom = false;
+      if (scrollElement) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollElement;
+        wasAtBottom = scrollHeight - scrollTop - clientHeight < 150;
+      }
+    } else if (action === "reaction") {
+      messages.update(x => x);
     }
   }
 
@@ -757,7 +735,7 @@
         class="icon-button"
         on:click|stopPropagation={() => closeChat(chat.id)}
       >
-        <img src="icons/arrow.svg" style="transform: scale(-1.5)" />
+        <img src="icons/arrow.svg" style="transform: scale(-1.7)" />
       </button>
       <div
         class="row"
@@ -767,7 +745,7 @@
           else $Session.profile = { chatId: chat.id };
         }}
       >
-        <Avatar size={36} {chat} contactId={avatarUserId} style="margin-left: -8px"/>
+        <Avatar size={42} {chat} contactId={avatarUserId} style="margin-left: -8px"/>
         <div class="info">
           <a class="title">{title}</a>
           <a class="presence"><Signature {chat} contactId={avatarUserId} /></a>
@@ -876,6 +854,7 @@
       out:fade={{ duration: 100 }}
       class="scroll-down-btn"
       class:nije={chat.type === "CHANNEL"}
+      class:vise={!!replyTo}
       on:click={() => scrollToBottom(scrollElement, true)}
     >
       <svg viewBox="0 0 640 640"
@@ -909,7 +888,7 @@
   header {
     display: flex;
     padding: 11px 0;
-    height: 32px;
+    height: 40px;
     cursor: grab;
     flex-shrink: 0;
     background-color: #1e2024;
@@ -934,7 +913,7 @@
   }
 
   header .info .presence {
-    font-size: 12px;
+    font-size: 14px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -944,7 +923,7 @@
 
   header .title {
     color: white;
-    font-size: 16px;
+    font-size: 18px;
     flex: 1;
     min-width: 0;
     white-space: nowrap;
@@ -972,12 +951,16 @@
     border: none;
     color: white;
     cursor: pointer;
-    height: 48px;
+    height: 452px;
     width: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: background-color 0.2s;
+  }
+
+  .icon-button img {
+    transform: scale(1.1) translateX(-5px);
   }
 
   .scroll-down-btn {
@@ -1008,6 +991,10 @@
 
   .scroll-down-btn.nije {
     bottom: 20px;
+  }
+
+  .scroll-down-btn.vise {
+    bottom: 140px;
   }
 
   .message-list-container {

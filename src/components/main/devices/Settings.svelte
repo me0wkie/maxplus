@@ -81,7 +81,7 @@
     ["Версия OS", "osVersion"],
     ["Часовой пояс", "timezone"],
     ["Размер экрана", "screen"],
-    ["Архитектура процессора", "arch"],
+    ["Архитектура", "arch"],
     ["Язык", "locale"],
     ["Версия сборки", "buildNumber"],
     ["Название устройства", "deviceName"],
@@ -202,11 +202,11 @@
         <div class="row">
           <div class="label">{label}</div>
 
-          <a
+          <div
             id={id}
             class="value"
             class:glow={glow}
-          ></a>
+          ></div>
         </div>
       {/each}
     </div>
@@ -228,9 +228,9 @@
   }
 
   .modal {
-    width: min(420px, 80%);
+    width: min(420px, 100%);
     max-width: 95%;
-    max-height: 95vh;
+    max-height: 80vh;
     overflow-y: auto;
 
     background: #1f1f23;
@@ -239,6 +239,13 @@
     margin-top: auto;
     padding: 0 20px 20px 20px;
     color: white;
+  }
+
+  @media(max-height: 600px) {
+    .modal {
+      max-height: 100vh;
+      border-radius: 0;
+    }
   }
 
   .header {
@@ -304,7 +311,7 @@
 
   .row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
 
     padding: 6px 0;
@@ -318,8 +325,11 @@
   }
 
   .value {
-    flex: 1;
+    flex: 2;
     text-align: right;
+
+    min-width: 0;
+    overflow-wrap: anywhere;
 
     background: transparent;
     border: none;

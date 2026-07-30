@@ -11,7 +11,6 @@
   let saveTimeout;
   let showPassword = false;
   let hasDictionary = (async() => !!(await dict.getDictionary()))();
-  let reader = $chatSettings.reader;
 
   function onPasswordInput(event) {
     const password = event.target.value;
@@ -80,7 +79,7 @@
         { !$chatSettings.keys.current ? "Новая сессия" : "Отключить" }
       </button>
     </div>
-    <div class="group" in:fade={{ delay: 120, duration: 220 }}>
+    <div class="group">
       <div class="row">
         <div class="row-title">
           Статус
@@ -93,8 +92,7 @@
       </div>
     </div>
 
-    <div
-    class="footer" in:fade={{ delay: 160, duration: 220 }}>
+    <div class="footer">
       Когда включено, только вы и собеседник сможете читать сообщения.
 
       <span class="warning">
@@ -103,7 +101,7 @@
     </div>
 
     <div class="subtitle">Общий секрет</div>
-    <div class="group" in:fade={{ delay: 200, duration: 220 }}>
+    <div class="group">
       <div class="row password-row">
         <input
           type={showPassword ? "text" : "password"}
@@ -122,7 +120,7 @@
       </div>
     </div>
 
-    <div class="footer" in:fade={{ delay: 240, duration: 220 }}>
+    <div class="footer">
       Использует XOR для симметричного шифрования.
     </div>
 
@@ -174,18 +172,15 @@
     </div>
 
     <div class="subtitle">Остальное</div>
-    <div class="group" in:fade={{ delay: 280, duration: 220 }}>
+    <div class="group">
       <div class="row">
         <div class="row-title">Помечать прочитанным</div>
-        {#await reader}
-        {:then value}
           <button
             class="row-action"
             on:click={swapReader}
           >
-            { value ? "Включить" : "Отключить" }
+            { $chatSettings.reader ? "Включить" : "Отключить" }
           </button>
-        {/await}
       </div>
       <div class="row">
         <div class="row-title">
@@ -203,7 +198,6 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(1px);
     display: flex;
     align-items: flex-end;
     justify-content: center;

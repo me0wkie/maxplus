@@ -3,6 +3,8 @@
   import { getContact } from "$lib/stores/contacts";
   import { currentSessionCalls, currentSessionChats, currentUser } from "$lib/stores/api";
 
+  import Avatar from "$components/main/Avatar.svelte";
+
   let contacts = {}, unsub = {};
 
   $: $currentSessionCalls?.history.forEach(({ chatId, chatType, message }) => {
@@ -43,11 +45,7 @@
   <div class="container">
     {#each callsWithInfo as call}
       <div class="call">
-        {#if call.avatar}
-          <img class="avatar" src={call.avatar} />
-        {:else}
-          <div class="avatar"></div>
-        {/if}
+        <Avatar size={46} chat={call}/>
 
         <a>{call.name}</a>
 
@@ -69,6 +67,7 @@
   .calls {
     color: #999;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
     display: flex;
     flex-direction: column;
@@ -127,15 +126,6 @@
     position: absolute;
   }
 
-  .call .avatar {
-    min-width: 46px;
-    min-height: 46px;
-    max-width: 46px;
-    max-height: 46px;
-    border-radius: 32px;
-    background-color: #222;
-  }
-
   .call .duration {
     font-size: 13px;
     font-weight: 600;
@@ -145,7 +135,7 @@
   }
 
   .placeholder-call {
-    position: absolute;
+    position: fixed;
     height: 50px;
     width: 50px;
     bottom: calc(85px + env(safe-area-inset-bottom));

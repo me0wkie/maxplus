@@ -1,30 +1,55 @@
 <script>
+import { goto } from "$app/navigation";
   import {
-    currentUserDetails,
-  } from "$lib/stores/api";
+    getContext,
+    onMount,
+    onDestroy
+  } from "svelte";
+
+  import {
+    platform as getPlatform
+  } from "@tauri-apps/plugin-os";
+  import {
+    readFile
+  } from "@tauri-apps/plugin-fs";
+  import {
+    open
+  } from "@tauri-apps/plugin-dialog";
+  import jsQR from "jsqr";
   import {
     scan,
     Format,
+    cancel,
     checkPermissions,
     requestPermissions,
     openAppSettings,
   } from "@tauri-apps/plugin-barcode-scanner";
-  import Avatar from "$components/main/Avatar.svelte";
+
   import { set as sessionSet } from "$lib/stores/session";
-  import { platform as getPlatform } from "@tauri-apps/plugin-os";
-  import { readFile } from "@tauri-apps/plugin-fs";
+  import { currentUserDetails } from "$lib/stores/api";
+  import Avatar from "$components/main/Avatar.svelte";
   import API, { currentUser } from "$lib/stores/api";
-  import { open } from "@tauri-apps/plugin-dialog";
   import Settings from "$lib/stores/settings";
-  import { goto } from "$app/navigation";
-  import { onMount } from "svelte";
-  import jsQR from "jsqr";
 
   let platform;
 
   let contact;
   let phone;
   let name;
+
+  // android qr scanner fix
+  let closeScanner = null;
+
+  const onBack = getContext("onBack");
+
+  onBack["settings"] = () => {
+    if (closeScanner) closeScanner();
+    else {}
+  }
+
+  onDestroy(() => {
+    delete onBack["settings"];
+  })
 
   currentUserDetails.subscribe(updateSelf);
 
@@ -51,7 +76,7 @@
       },
       {
         icon: "crypto.svg",
-        text: "Защита пин-кодом", // TODO "шифрование данных" может быть непонятно, перефразировать?
+        text: "Защита пин-кодом",
         action: () => goto("/settings/lock?from=/?card=3"),
       },
       {
@@ -112,9 +137,17 @@
 
       if ((await checkPermissions()) !== "granted") return;
 
-      const scanned = await scan({ formats: [Format.QRCode] });
-      if (!scanned.content) return;
-      content = scanned.content;
+      closeScanner = cancel();
+      const scanned = await scan({
+        formats: [Format.QRCode]
+      });
+
+      try {
+        if (!scanned.content) return;
+        content = scanned.content;
+      } catch (e) {
+        console.error(e);
+      }
     } else {
       const image = await open({
         multiple: false,

@@ -1,12 +1,18 @@
 <script>
   import { fly, fade, scale } from "svelte/transition";
   import { cubicOut } from "svelte/easing";
-  import { createEventDispatcher } from "svelte";
+  import {
+    createEventDispatcher,
+    getContext,
+    onDestroy
+  } from "svelte";
   import { get } from "svelte/store";
+
   import ConfirmModal from "$components/main/ConfirmModal.svelte";
   import InputModal from "$components/main/InputModal.svelte";
   import Signature from "$components/main/Signature.svelte";
   import Avatar from "$components/main/Avatar.svelte";
+
   import { getContact } from "$lib/utils/caching";
   import { formatMs } from "$lib/utils/time";
   import Session, {
@@ -21,6 +27,19 @@
     currentRealContacts,
     currentRealChats,
   } from "$lib/stores/api";
+
+  const onBack = getContext("onBack");
+
+  onBack.profileModal = () => {
+    if (showDeleteConfirm) showDeleteConfirm = false;
+    else if (showInputs) showInputs = false;
+    else if (showMenu) showMenu = false;
+    else closeModal();
+  }
+
+  onDestroy(() => {
+    delete onBack["profileModal"];
+  })
 
   $: userId = (() => {
     const value = $Session.profile.userId;

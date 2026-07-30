@@ -34,13 +34,13 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Generate Icons
-        run: bun run tauri icon static/favicon.png
-
       - name: Prepare Tauri iOS
         run: |
           rm -rf src-tauri/gen/apple
           bun tauri ios init
+
+      - name: Generate Icons
+        run: bun run tauri icon static/favicon.png
 
       - name: Patch Cargo.toml for CI
         run: |
