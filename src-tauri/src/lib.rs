@@ -27,6 +27,11 @@ pub fn run() {
         .plugin(tauri_plugin_biometric::init())
         .plugin(tauri_plugin_barcode_scanner::init());
 
+    #[cfg(target_os = "ios")]
+    let builder = builder
+        .plugin(tauri_plugin_safe_area_insets_css::init())
+        .plugin(tauri_plugin_ios_webview_insets::init());
+
     #[cfg(any(target_os = "android"))]
     let builder = builder.plugin(tauri_plugin_android_fs::init());
 
