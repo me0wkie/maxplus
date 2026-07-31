@@ -118,6 +118,8 @@ pub fn run() {
             stores::update_messages,
             stores::set_encryption,
             stores::decrypt_account,
+            stores::get_cached_file,
+            stores::set_cached_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

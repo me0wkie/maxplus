@@ -6,9 +6,10 @@
   import { onDestroy } from 'svelte';
 
   import {
-    getCachedImage,
-    setCachedImage
+    getCachedFile,
+    setCachedFile
   } from "$lib/stores/cache";
+  import { getCurrentAccount } from "$lib/stores/accounts";
 
   export let getFile;
   export let attaches;
@@ -47,7 +48,8 @@
     let observer;
 
     async function load() {
-      let path = await getCachedImage(src);
+      const account = await getCurrentAccount();
+      let path = await getCachedFile(account.id, src);
 
       if (!path) {
         const response = await fetch(src, {
@@ -59,7 +61,7 @@
         }
 
         const blob = await response.blob();
-        path = await setCachedImage(src, blob);
+        path = await setCachedFile(account.id, src, blob);
       }
 
       url = convertFileSrc(path);

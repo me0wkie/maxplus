@@ -5,10 +5,11 @@
   import { fetch } from '@tauri-apps/plugin-http';
   import { createEventDispatcher } from "svelte";
 
+  import { getCurrentAccount } from "$lib/stores/accounts";
   import API from "$lib/stores/api";
   import {
-    getCachedImage,
-    setCachedImage
+    getCachedFile,
+    setCachedFile
   } from "$lib/stores/cache";
 
   export let index = 0;
@@ -54,6 +55,7 @@
     paused = true;
   }
 
+  // TODO Use caching
   async function loadVideo(videoId) {
     if (videoCache[videoId] || isLoading) return;
     isLoading = true;
@@ -101,7 +103,7 @@
   function handleSync(e) {
     const el = e.target;
     duration = el.duration || 0;
-    console.log(el.duration, el);
+    console.log(el.duration, el); // TODO fix video duration
     isMetadataLoaded = duration > 0 && !isNaN(duration);
   }
 
@@ -307,7 +309,8 @@
   }
 
   async function load(url) {
-    let path = await getCachedImage(url);
+    const account = await getCurrentAccount();
+    let path = await getCachedFile(account.id, url);
 
     if (!path) {
       const response = await fetch(url, {
@@ -319,7 +322,7 @@
       }
 
       const blob = await response.blob();
-      path = await setCachedImage(url, blob);
+      path = await setCachedFile(account.id, url, blob);
     }
 
     return convertFileSrc(path);

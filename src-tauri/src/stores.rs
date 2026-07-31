@@ -124,7 +124,6 @@ impl Storage {
             result.sort();
             result
     }
-
 }
 
 fn crypto_key(
@@ -142,6 +141,7 @@ fn crypto_key(
 
 struct Paths {
     root: PathBuf,
+    cache: PathBuf,
 }
 
 impl Paths {
@@ -151,6 +151,7 @@ impl Paths {
     ) -> Self {
         Self {
             root: app.path().app_data_dir().unwrap().join("data").join(account.to_string()),
+            cache: app.path().app_cache_dir().unwrap().join(account.to_string()),
         }
     }
 
@@ -169,23 +170,28 @@ impl Paths {
         self.root.join("chats")
     }
 
-    fn chat(
-        &self, id: i64,
-    ) -> PathBuf {
+    fn chat(&self, id: i64) -> PathBuf {
         self.chats().join(id.to_string())
     }
 
-    fn settings(
-        &self, chat: i64,
-    ) -> PathBuf {
+    fn settings(&self, chat: i64) -> PathBuf {
         self.chat(chat).join("settings")
     }
 
-    fn messages(
-        &self,
-        chat: i64,
-    ) -> PathBuf {
+    fn messages(&self, chat: i64) -> PathBuf {
         self.chat(chat).join("messages")
+    }
+
+    fn cache_index(&self) -> PathBuf {
+        self.cache.join("index")
+    }
+
+    fn cache_files(&self) -> PathBuf {
+        self.cache.join("files")
+    }
+
+    fn cache_file(&self, name: &str) -> PathBuf {
+        self.cache_files().join(name)
     }
 }
 
@@ -469,22 +475,6 @@ fn save_accounts(
     data:&Value,
 )->Result<(),String>{
     Storage::new(None).save(accounts_path(app), data)
-}
-
-fn get_account_key(
-    app: &AppHandle,
-    account: u64,
-) -> Result<[u8;32], String>{
-    app.state::<AppState>()
-        .crypto
-        .read()
-        .unwrap()
-        .as_ref()
-        .filter(|x|x.account==account)
-        .map(|x|x.key)
-        .ok_or(
-            "Account locked".into()
-        )
 }
 
 fn account_path(
@@ -954,4 +944,109 @@ fn hash_key(key: &[u8; 32]) -> String {
 
 fn verify_hash(key: &[u8; 32], hash: &str) -> bool {
     hash_key(key) == hash
+}
+
+/* file cache */
+
+#[tauri::command]
+pub fn get_cached_file(
+    app: AppHandle,
+    account: u64,
+    src: String,
+) -> Result<Option<String>, String> {
+    let key = crypto_key(&app, account);
+    let storage = Storage::new(key);
+
+    let paths = Paths::new(&app, account);
+
+    let mut index = storage
+        .load(paths.cache_index())
+        .unwrap_or(json!({}));
+
+    let Some(entry) = index.get(&src) else {
+        return Ok(None);
+    };
+
+    let path = entry[0]
+        .as_str()
+        .ok_or("Invalid cache entry")?;
+
+    let full = PathBuf::from(path);
+
+    if !full.exists() {
+        if let Some(map) = index.as_object_mut() {
+            map.remove(&src);
+        }
+
+        storage.save(paths.cache_index(), &index)?;
+
+        return Ok(None);
+    }
+
+    Ok(Some(path.to_string()))
+}
+
+#[tauri::command]
+pub fn set_cached_file(
+    app: AppHandle,
+    account: u64,
+    src: String,
+    bytes: Vec<u8>,
+) -> Result<String, String> {
+    let key = crypto_key(&app, account);
+
+    let storage = Storage::new(key);
+
+    let paths = Paths::new(&app, account);
+
+    fs::create_dir_all(paths.cache_files())
+        .map_err(|e| e.to_string())?;
+
+    let file = paths.cache_file(&hash(&src));
+
+    fs::write(&file, &bytes)
+        .map_err(|e| e.to_string())?;
+
+    let mut index = storage
+        .load(paths.cache_index())
+        .unwrap_or(json!({}));
+
+    index[&src] = json!([
+        file.to_string_lossy(),
+        (bytes.len() + 1023) / 1024
+    ]);
+
+    storage.save(paths.cache_index(), &index)?;
+
+    Ok(file.to_string_lossy().to_string())
+}
+
+fn hash(src: &str) -> String {
+    let mut hash: u32 = 2166136261;
+
+    for b in src.bytes() {
+        hash ^= b as u32;
+        hash = hash.wrapping_mul(16777619);
+    }
+
+    base36(hash)
+}
+
+fn base36(mut value: u32) -> String {
+    const CHARS: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
+
+    if value == 0 {
+        return "0".into();
+    }
+
+    let mut out = Vec::new();
+
+    while value > 0 {
+        out.push(CHARS[(value % 36) as usize]);
+        value /= 36;
+    }
+
+    out.reverse();
+
+    String::from_utf8(out).unwrap()
 }
