@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "ios-safe-area",
+  "description": "Allow the iOS frontend to read native safe-area insets",
+  "windows": ["main"],
+  "platforms": ["iOS"],
+  "permissions": ["safe-area-insets-css:default"]
+}
