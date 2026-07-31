@@ -26,6 +26,10 @@ export default defineConfig(async () => ({
     },
   },
 
+  define: {
+    __BUILD_DATE__: JSON.stringify(new Date().toLocaleDateString("ru-RU"))
+  },
+
   build: {
     cssCodeSplit: false,
 

@@ -184,7 +184,8 @@
   .footer-panel {
     display: flex;
     justify-content: flex-end;
-    padding-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #2c2c35;
   }
 
   .back-btn {
@@ -194,7 +195,7 @@
     background: #6366f1;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 10px 40px;
     border-radius: 8px;
     font-weight: 600;
     font-size: 0.92rem;
@@ -209,6 +210,7 @@
   .logs-container::-webkit-scrollbar {
     width: 6px;
   }
+
   .logs-container::-webkit-scrollbar-thumb {
     background: #444;
     border-radius: 10px;

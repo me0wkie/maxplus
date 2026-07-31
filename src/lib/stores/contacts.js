@@ -16,21 +16,12 @@ export const getContact = contactId => {
   cache[contactId] = { store };
 
   getCurrentAccount().then(async account => {
-    /*const dir = await join(await appDataDir(), "data", account.id + "", "contacts", contactId + "");
-    const path = await join(dir, "meta");
-
-    try {
-      const data = JSON.parse(await readTextFile(path));
-      store.set(data);
-    } catch (e) {}*/
     // TODO retrieve current account in stores.rs
     const cached = await invoke("get_contact", { account: +account.id, contactId });
     if (cached) store.set(cached);
 
     cache[contactId].unsubscribe = store.subscribe(async data => {
       if (data !== undefined) {
-        /*await mkdir(dir, { recursive: true });
-        await writeTextFile(path, JSON.stringify(updated));*/
         getCurrentAccount().then(async _account => {
           invoke("set_contact", { account: +_account.id, contactId, data });
         });

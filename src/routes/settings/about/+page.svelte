@@ -2,26 +2,48 @@
   import { platform, version as getVersion } from "@tauri-apps/plugin-os";
   import { openUrl } from "@tauri-apps/plugin-opener";
   import { goto } from "$app/navigation";
-  import Settings from "$lib/stores/settings";
   import { onMount } from "svelte";
   import { app } from "@tauri-apps/api";
   import { page } from "$app/stores";
 
+  import Settings from "$lib/stores/settings";
+  import ActionButton from "$components/main/auth/ActionButton.svelte";
+
   let autoCheck = true;
-  let version = "неизвестно";
+  let version = "...";
   let environment = "...";
+
+  let doingStuff = "";
+  let checking = false;
 
   $: from = $page.url.searchParams.get("from") || "/auth/login";
 
   async function checkUpdates() {
-    const response = await fetch(
-      "https://api.github.com/repos/me0wkie/maxplus/releases/latest",
-    );
-    const data = await response.json();
-    if (!data.tag_name) alert("Не удалось узнать последнюю версию!");
-    else {
-      if (data.tag_name !== version) openUrl(data.html_url);
-      else alert("Установлена последняя версия!");
+    if (checking) return;
+    checking = true;
+    const pointAnimation = setInterval(() => {
+      if (doingStuff.length === 3) doingStuff = "";
+      else doingStuff += ".";
+    }, 100);
+    try {
+      const response = await fetch(
+        "https://api.github.com/repos/me0wkie/maxplus/releases/latest",
+      );
+      const data = await response.json();
+      if (!data.tag_name) alert("Не удалось соединиться с GitHub!");
+      else {
+        if (data.tag_name !== version) openUrl(data.html_url);
+        else alert("Установлена последняя версия!");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Не удалось соединиться с GitHub!");
+    } finally {
+      setTimeout(() => {
+        checking = false;
+        clearInterval(pointAnimation);
+        doingStuff = "";
+      }, 400);
     }
   }
 
@@ -38,91 +60,174 @@
       " " +
       (await getVersion());
   });
+
+  function openGit() {
+    openUrl("https://github.com/me0wkie/maxplus");
+  }
+
+  function openBerg() {
+    openUrl("https://codeberg.org/meowkie/maxplus");
+  }
+
+  function getPhrase() {
+    const phrases = [
+      "для любителей шифров.",
+      "с минимумом функций.",
+      "для нетакусек."
+    ]
+
+    return phrases[Math.floor(Math.random() * phrases.length)]
+  }
 </script>
 
-<div class="about-page">
-  <div class="center">
-    <h1>Max+</h1>
-    <p>Разработчик: me0wkie</p>
-  </div>
-  <p>
-    <a href="https://github.com/me0wkie/maxplus" target="_blank"
-      >Репозиторий GitHub</a
-    >
-  </p>
+<div class="page">
+  <h1>Max+</h1>
+  <a class="description">Клиент «Макс» {getPhrase()}</a>
 
-  <div class="center">
-    <p>Версия приложения: {version}</p>
-    <p>{environment}</p>
+  <div class="sources">
+    <p class="text" style="margin-bottom: 10px;">Исходный код:</p>
+    <div class="source github" on:click={openGit}>
+      <img class="icon" src="/icons/web/github.svg">
+      <a>GitHub</a>
+    </div>
+    <div class="source berg" on:click={openBerg}>
+      <img class="icon" src="/icons/web/codeberg.svg">
+      <a>Codeberg</a>
+    </div>
+  </div>
+  <div class="about">
+    <div class="version">
+      <p>Версия приложения: <a>{version}</a></p>
+      <p><a>{environment}</a></p>
+      <p>Собрано <a>{__BUILD_DATE__}</a></p>
+    </div>
   </div>
 
   <div class="actions-panel">
-    <button class="btn" on:click={checkUpdates}>Проверить обновления</button>
-    <!--<label class="auto-check">
-            <input type="checkbox" bind:checked={autoCheck} on:change={toggleAutoCheck}/>
-            Автоматически проверять обновления
-        </label>-->
-    <button class="btn" on:click={() => goto(from)}>Назад</button>
+    <button class="check-btn" on:click={checkUpdates}>
+      Обновить{doingStuff}
+    </button>
+    <button class="back-btn" on:click={() => goto(from)}>Назад</button>
   </div>
 </div>
 
 <style>
-  .about-page {
-    color: #bbb;
+  .page {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    padding: 20px;
+    height: 100vh;
+    overflow: hidden;
+    background-color: #1a1a1f;
+    color: #ddd;
   }
 
   h1 {
     color: #6366f1;
     font-size: 28px;
     margin-bottom: 5px;
+    text-align: center;
+    margin-bottom: 0;
+  }
+
+  .description {
+    color: #ddd;
+    margin: 20px 0;
+    text-align: center;
+    max-width: 80%;
+    align-self: center;
+  }
+
+  .sources {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+    font-size: 16px;
+    font-weight: 500;
   }
 
   a {
     color: #3ff;
-    text-decoration: underline;
+    text-decoration: none;
   }
 
-  .center {
+  p {
+    margin: 0;
+    text-align: center;
+  }
+
+  .source {
+    display: flex;
+    align-items: center;
+    margin: 10px 0;
+    gap: 10px;
+    font-weight: 400;
+  }
+
+  .github {
+    position: relative;
+    right: 10px;
+  }
+
+  .github img {
+    background-color: #fff;
+    clip-path: circle(48%);
+  }
+
+  .source img {
+    height: 32px;
+  }
+
+  .about {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 0;
+    margin: 10px 0;
+    flex: 1;
   }
 
-  .center p {
-    margin: 0;
+  .version {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .version a {
+    color: white;
   }
 
   .actions-panel {
+    padding: 20px;
+    flex-shrink: 0;
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    max-width: 300px;
     justify-content: flex-end;
-    position: fixed;
-    bottom: 20px;
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+    gap: 20px;
   }
 
-  .btn {
-    display: flex;
-    justify-content: center;
-    background: #6366f1;
+  button {
+    gap: 8px;
     color: white;
     border: none;
-    padding: 10px 20px;
+    padding: 10px 40px;
     border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.92rem;
     cursor: pointer;
-    font-weight: 500;
     transition: background 0.2s;
   }
 
-  .btn:hover {
+  .check-btn {
+    background: #f25527dd;
+    flex: 1;
+  }
+
+  .check-btn:hover {
+    background: #f25527bb;
+  }
+
+  .back-btn {
+    background: #6366f1;
+  }
+
+  .back-btn:hover {
     background: #4f46e5;
   }
 

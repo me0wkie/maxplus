@@ -42,8 +42,14 @@ currentUser.subscribe(async userId => {
       sessionSet("loaded", true);
     } else {
       if (!data?.contact?.id) { // TODO pin request
-        if (!sessionGet("connected")) await API.init();
-        await API.sync();
+        try {
+          if (!sessionGet("connected")) await API.init();
+          await API.sync();
+        } catch (e) {
+          console.error(e);
+        } finally {
+          sessionSet("loaded", true);
+        }
       } else {
         currentUserDetails.set(data.contact);
         currentUser.set(data.contact.id);

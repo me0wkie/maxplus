@@ -204,7 +204,8 @@
     flex-shrink: 0;
     display: flex;
     gap: 20px;
-    height: 40px;
+    padding: 16px;
+    border-top: 1px solid #2c2c35;
   }
 
   .back-btn {

@@ -286,7 +286,7 @@
     min-width: 120px;
     background: #6366f1;
     color: white;
-    padding: 0 20px;
+    padding: 10 40px;
   }
 
   .back-btn:hover {
@@ -296,16 +296,6 @@
   @media (max-width: 640px) {
     .actions-panel {
       gap: 10px;
-    }
-
-    .back-btn {
-      min-width: 100px;
-      padding: 0 16px;
-    }
-
-    .save-btn,
-    .back-btn {
-      font-size: 0.88rem;
     }
   }
 </style>
