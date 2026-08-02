@@ -1,19 +1,19 @@
 use crate::state::AppState;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use rumax::models::{Identity, FetchHistoryOptions};
+use rumax::{Error, models::{Identity, FetchHistoryOptions}};
 use tauri::State;
 
-fn p(s: String) -> Result<u64, String> {
-    s.parse().map_err(|_| "Invalid ID".into())
+fn p(s: String) -> Result<u64, Value> {
+    s.parse().map_err(|_| Error::Other("Invalid ID".into()).to_json())
 }
 
 macro_rules! delegate_cmd {
     ($name:ident($($arg:ident: $ty:ty),*) => $client_method:ident($($pass_arg:expr),*)) => {
         #[tauri::command]
-        pub async fn $name(state: State<'_, AppState>, $($arg: $ty),*) -> Result<Value, String> {
-            let r = state.client.$client_method($($pass_arg),*).await.map_err(|e| e.to_string())?;
-            serde_json::to_value(r.payload).map_err(|e| e.to_string())
+        pub async fn $name(state: State<'_, AppState>, $($arg: $ty),*) -> Result<Value, Value> {
+            let r = state.client.$client_method($($pass_arg),*).await.map_err(|e| e.to_json())?;
+            Ok(r.payload)
         }
     };
 }
@@ -69,7 +69,7 @@ pub async fn init(
     identity: Identity,
     user_id: Option<u64>,
     token: Option<String>,
-) -> Result<Value, String> {
+) -> Result<Value, Value> {
     state.client.disconnect().await;
 
     if let Some(uid) = user_id {
@@ -80,17 +80,21 @@ pub async fn init(
         state.client.set_token(t).await;
     }
 
-    state
+    let r = state
         .client
         .connect(identity, true)
         .await
-        .map(|r| json!({ "success": true, "payload": r.payload }))
-        .map_err(|e| format!("Ошибка подключения: {}", e))
+        .map_err(|e| e.to_json())?;
+
+    Ok(r.payload)
 }
 
 #[tauri::command]
-pub async fn sync_client(state: State<'_, AppState>) -> Result<Value, String> {
-    let r = state.client.sync().await.map_err(|e| e.to_string())?;
+pub async fn sync_client(state: State<'_, AppState>) -> Result<Value, Value> {
+    let r = match state.client.sync().await {
+        Ok(r) => r,
+        Err(e) => return Err(e.to_json()),
+    };
 
     if let Some(id) = r
         .payload
@@ -101,7 +105,7 @@ pub async fn sync_client(state: State<'_, AppState>) -> Result<Value, String> {
         state.client.spawn_telemetry_task().await;
     }
 
-    serde_json::to_value(r.payload).map_err(|e| e.to_string())
+    Ok(r.payload)
 }
 
 #[tauri::command]

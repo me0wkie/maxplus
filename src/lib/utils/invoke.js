@@ -1,5 +1,8 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
-import { error } from "$lib/stores/logs";
+import {
+  error as logError,
+  add as addLog,
+} from "$lib/stores/logs";
 import { get } from "svelte/store";
 import API from "$lib/stores/api";
 import {
@@ -11,32 +14,26 @@ export const invoke = async (command, args) => {
   try {
     const response = await tauriInvoke(command, args);
     return response;
-  } catch (e) {
-    console.error(command, args);
-    console.error(e);
+  } catch (error) {
+    console.error(error);
+    logError(error);
 
-    const str = e.toString();
-    error(str);
+    const { type, text } = error;
 
-    if (str.includes("Таймаут запроса"))
+    if (type === "RequestTimeout")
       return restart("Сервер не отвечает!\nПереподключение...", command, args);
-    if (str.includes("proto.state"))
-      return restart("Сломалась сессия!\nПереподключение...", command, args);
-    if (str.includes("TCP Error"))
+    if (type === "ConnectionFailed")
       return restart("Откис интернет!\nПереподключение...", command, args);
+    if (text.includes("proto.state"))
+      return restart("Сломалась сессия!\nПереподключение...", command, args);
 
-    if (str.includes("login.token")) {
+    if (text.includes("login.token")) {
       alert("Выкинуло из аккаунта!");
       const current = await getCurrentAccount();
       if (current) await removeAccount(current.id);
       goto("/auth/login");
       return;
     }
-
-    try {
-      const error = e.toString().slice(e.toString().indexOf(":") + 2);
-      return JSON.parse(error);
-    } catch (e) {}
   }
 
   return null;

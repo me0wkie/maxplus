@@ -2,7 +2,6 @@ import { invoke } from "$lib/utils/invoke";
 import { listen } from "@tauri-apps/api/event";
 import BaseAPI from "./BaseApi";
 import { get } from "svelte/store";
-import { add as addLog } from "$lib/stores/logs";
 import {
   currentUser,
   currentUserDetails,
@@ -66,10 +65,6 @@ export default class MobileApi extends BaseAPI {
 
     this.unlisten = await listen("max", async (event) => {
       const { payload } = event;
-
-      addLog(payload);
-
-      console.log(payload);
 
       if (payload.type === "log") {
         if (payload.response === "closed") {

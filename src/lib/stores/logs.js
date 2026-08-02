@@ -1,36 +1,37 @@
 import { writable, get as getStoreValue } from "svelte/store";
+import { listen } from "@tauri-apps/api/event";
 
-const logs = writable([]);
-const total = writable(0);
+export const logs = writable([]);
+export const total = writable(0);
 
 let logCounter = 0;
 
-function _add(data, type) {
+function _add(data, type, preview) {
   logs.update((current) => {
     const newLog = {
       id: logCounter++,
       timestamp: new Date().toLocaleTimeString(),
       data,
       type,
-      preview: JSON.stringify(data).slice(data.request ? 20 : 21),
+      preview,
     };
 
     const next = [newLog, ...current];
     return next.slice(0, 100);
   });
+
   total.update((x) => x + 1);
 }
 
-const add = (data) => _add(data, data.request ? "request" : "response");
-
-function error(text) {
-  _add(text, "error");
+export const add = data => {
+  const type = data.request ? "request" : "response";
+  _add(data, type, JSON.stringify(data).slice(0, 200));
 }
 
-function get() {
-  return getStoreValue(logs);
+export function error(data) {
+  _add(data, "error", data.type + " " + data.text);
 }
 
-export { add, get, total, error };
+export const get = () => getStoreValue(logs);
 
 export default logs;

@@ -19,12 +19,43 @@
     return "generic";
   };
 
-  $: preparedLogs = $logs.map((log) => ({
+  async function copy() {
+    try {
+      const log = $logs.find(x => x.id === expandedId);
+      await navigator.clipboard.writeText(JSON.stringify(log.data, null, 2));
+      console.log("Лог скопирован");
+    } catch (err) {
+      console.error("Ошибка копирования:", err);
+    }
+  }
+
+  let logsContainer;
+  let previousScrollTop = 0;
+
+  $: preparedLogs = $logs.map(log => ({
     ...log,
     formatted: JSON.stringify(log.data, null, 1),
   }));
 
-  // !!! не отображается актуальный messageId из-за обрезки integer
+  logs.subscribe(x => {
+    if (logsContainer?.scrollTop) {
+      logsContainer.scrollTop += 47;
+    }
+  });
+
+  $: {
+    $logs;
+
+    if (logsContainer) {
+      console.log(logsContainer.scrollTop)
+      /*
+      previousScrollTop = logsContainer.scrollTop;
+
+      requestAnimationFrame(() => {
+        logsContainer.scrollTop = previousScrollTop;
+      });*/
+    }
+  }
 </script>
 
 <div class="logs-page">
@@ -33,16 +64,16 @@
     <span class="count">Всего {$total} запросов</span>
   </header>
 
-  <div class="logs-container">
+  <div class="logs-container" bind:this={logsContainer}>
     {#each preparedLogs as log (log.id)}
       <div
-        in:fly={{ x: 30, duration: 300, opacity: 0 }}
-        out:fade={{ duration: 100 }}
+        in:fade={{ duration: 300 }}
         class="log-item {log.type}"
         class:expanded={expandedId === log.id}
-        on:click={() => toggleLog(log.id)}
       >
-        <div class="log-header">
+        <div
+          class="log-header"
+          on:click={() => toggleLog(log.id)}>
           <span class="badge">{log.type.toUpperCase()}</span>
           <span class="preview">{log.timestamp} | {log.preview}...</span>
         </div>
@@ -50,6 +81,10 @@
         {#if expandedId === log.id}
           <div class="log-content" transition:fade={{ duration: 100 }}>
             <pre>{log.formatted}</pre>
+            <img
+              class="copy"
+              on:click={copy}
+              src="/icons/copy.svg">
           </div>
         {/if}
       </div>
@@ -69,7 +104,6 @@
     color: #ddd;
     padding: 20px;
     box-sizing: border-box;
-    overflow-x: hidden;
   }
 
   header {
@@ -115,7 +149,6 @@
   .log-item:hover {
     background: #32323b;
     border-color: #4a4a55;
-    transform: translateX(4px);
   }
 
   .log-item.expanded {
@@ -154,31 +187,49 @@
     background: #3b82f6;
     color: white;
   }
+
   .response .badge {
     background: #10b981;
     color: white;
   }
+
   .error .badge {
     background: #f22727;
     color: white;
   }
+
   .generic .badge {
     background: #6b7280;
     color: white;
   }
 
   .log-content {
-    padding: 0 15px 15px 15px;
+    padding: 10px 15px 25px 15px;
     border-top: 1px solid #3a3a42;
     background: #1e1e24;
+    overflow: auto;
+    position: relative;
+    cursor: default;
   }
 
   pre {
     margin: 10px 0 0;
     font-size: 0.85rem;
     color: #a5b4fc;
-    overflow-x: auto;
     line-height: 1.4;
+  }
+
+  .copy {
+    position: absolute;
+    right: 10px;
+    bottom: 20px;
+    opacity: 0.6;
+    transition: opacity 0.05s transform 0.2s;
+  }
+
+  .copy:active {
+    opacity: 0.5;
+    transform: scale(0.95);
   }
 
   .footer-panel {
@@ -186,6 +237,7 @@
     justify-content: flex-end;
     padding-top: 16px;
     border-top: 1px solid #2c2c35;
+    z-index: 1;
   }
 
   .back-btn {
