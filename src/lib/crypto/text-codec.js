@@ -1,30 +1,27 @@
-import { LazyStore } from "@tauri-apps/plugin-store";
+import { invoke } from "@tauri-apps/api/core";
 import { writable, get } from "svelte/store";
 
 import { ready } from "$lib/crypto/sodium";
 import { gzipSync, gunzipSync, strToU8 } from "fflate";
 
-const dictSettings = new LazyStore("dict-settings.json");
-const dictStore = new LazyStore("dict.json");
 const dictionary = writable(undefined);
 
 export const dict = {
-  get: async (key) => {
-    return await dictSettings.get(`1-${key}`); // in future there might be multiple dicts?
-  },
-  set: async (key, value) => {
-    return await dictSettings.set(`1-${key}`, value);
-  },
+  getUrl: () => invoke("get_dictionary_url"),
+  setUrl: url => invoke("set_dictionary_url", { url }),
   getDictionary: async () => {
     const cached = get(dictionary);
     if (cached) return cached;
 
-    const loaded = await dictStore.get("current");
+    const loaded = await loadDictionary();
     dictionary.set(loaded);
 
     return loaded;
   },
 };
+
+const loadDictionary = () => invoke("load_dictionary");
+const saveDictionary = data => invoke("save_dictionary", { data });
 
 export async function makeDictionary(text) {
   const sodium = await ready();
@@ -89,7 +86,7 @@ export async function makeDictionary(text) {
     dict16,
   };
 
-  await dictStore.set("current", json);
+  saveDictionary(json);
   dictionary.set(json);
 
   return JSON.stringify(json, null, 2);
