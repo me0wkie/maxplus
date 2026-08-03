@@ -14,9 +14,20 @@ key.properties
 
 /app/src/main/assets
 /app/src/main/jniLibs
-/app/src/main/res
+/app/src/main/res/*
+/app/src/main/java/org/meowkie/max/generated
+/app/src/main/jniLibs/**/*.so
+/app/src/main/assets/tauri.conf.json
 /app/buildSrc/
+/app/tauri.build.gradle.kts
+/app/proguard-tauri.pro
+/app/tauri.properties
+/app/keystore.jks
 /gradle**
 /settings.gradle
 /.idea
 /keystore.properties
+
+!/app/src/main/res/drawable
+!/app/src/main/res/drawable-v24
+!/app/src/main/res/mipmap-anydpi-v26

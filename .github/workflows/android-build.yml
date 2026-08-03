@@ -84,6 +84,9 @@ jobs:
       - name: Generate Icons
         run: bun run tauri icon static/favicon.png
 
+      - name: Remove duplicate icon resource
+        run: rm -f src-tauri/gen/android/app/src/main/res/drawable/ic_launcher_background.xml
+
       - name: Patch Cargo.toml for CI
         run: |
           sed -i 's|path = "../../rumax"|git = "https://github.com/me0wkie/rumax.git", branch = "main"|g' src-tauri/Cargo.toml
