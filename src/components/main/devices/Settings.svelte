@@ -1,8 +1,6 @@
 <script>
-  import { readFile, writeFile } from "@tauri-apps/plugin-fs";
   import { open, save } from "@tauri-apps/plugin-dialog";
   import { join, appDataDir } from '@tauri-apps/api/path';
-  import { load } from "@tauri-apps/plugin-store";
   import { invoke } from "@tauri-apps/api/core";
   import { fade } from "svelte/transition";
   import { onMount } from "svelte";
@@ -23,19 +21,8 @@
     }, 2000);
   });
 
-  async function globalUnsafeSave(device) { // TODO ???????
-    const store = await load(await join(await appDataDir(), "data", "device.json"));
-    await store.set("device", device);
-    await store.save().catch(e => {}); // ???????!
-    await store.close().catch(e => {});
-  }
-
-  async function globalUnsafeGet() { // TODO ?????????????????????????????
-    const store = await load(await join(await appDataDir(), "data", "device.json"));//?????
-    const device = await store.get("device");// ???????????????
-    await store.close().catch(e => {});//  ??????????
-    return device;// ?????  ????!
-  }// ???????????????
+  const getDevice = () => invoke("get_device");
+  const saveDevice = device => invoke("save_device", { device });
 
   function update(device, animate = false) {
     console.log('Device', device);

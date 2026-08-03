@@ -6,7 +6,6 @@
   import { app } from "@tauri-apps/api";
   import { page } from "$app/stores";
 
-  import Settings from "$lib/stores/settings";
   import ActionButton from "$components/main/auth/ActionButton.svelte";
 
   let autoCheck = true;

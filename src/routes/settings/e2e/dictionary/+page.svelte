@@ -1,9 +1,9 @@
 <script>
   import { download as getFile } from '@tauri-apps/plugin-upload';
-  import { remove, readTextFile, BaseDirectory } from '@tauri-apps/plugin-fs';
   import { appCacheDir, join } from '@tauri-apps/api/path';
-  import { goto } from "$app/navigation";
+  import { invoke } from "@tauri-apps/api/core";
   import { fade, fly, slide } from "svelte/transition";
+  import { goto } from "$app/navigation";
   import { page } from "$app/stores";
 
   import { makeDictionary, dict } from "$lib/crypto/text-codec";
@@ -15,12 +15,12 @@
   $: from = $page.url.searchParams.get("from") || "/auth/login";
 
   $: url = (async() => {
-    const entry = await dict.get("url");
+    const entry = await dict.getUrl();
     if (!entry) return basicUrl;
     return entry;
   })();
 
-  $: downloaded = dict.get("url");
+  $: downloaded = dict.getUrl();
   let dictionary = dict.getDictionary();
 
   async function download() {
@@ -43,20 +43,19 @@
         }, { 'Content-Type': 'text/plain' }
       );
 
-      const text = await readTextFile('raw.txt', { baseDir: BaseDirectory.AppCache });
+      const text = await invoke("read_file", { path: filePath });
 
       await makeDictionary(text);
       dictionary = dict.getDictionary();
 
       downloaded = entry;
-      await dict.set("url", entry);
+      await dict.setUrl(entry);
     } catch (e) {
       alert(e)
     } finally {
       downloading = false;
       status.total = 0;
       status.perc = 0;
-      await remove("raw.txt", { baseDir: BaseDirectory.AppCache });
     }
   }
 

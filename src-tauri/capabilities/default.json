@@ -6,87 +6,12 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "store:default",
     "dialog:default",
     "upload:default",
     "upload:allow-download",
-    "fs:default",
-    "fs:allow-download-write",
     {
       "identifier": "http:default",
       "allow": [{ "url": "https://**" }]
-    },
-    {
-      "identifier": "fs:allow-read",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-write-text-file",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-read-text-file",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-write-file",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-read-file",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-read-dir",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-mkdir",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-remove",
-      "allow": [
-        { "path": "**/*" },
-        { "path": "$APPCACHE/**" },
-        { "path": "$APPDATA/**" }
-      ]
     }
   ]
 }

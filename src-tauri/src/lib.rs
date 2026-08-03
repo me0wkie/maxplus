@@ -15,12 +15,10 @@ pub fn run() {
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_upload::init())
         .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_store::Builder::new().build());
+        .plugin(tauri_plugin_opener::init());
 
     #[cfg(any(target_os = "android", target_os = "ios"))]
     let builder = builder
@@ -125,6 +123,13 @@ pub fn run() {
             stores::decrypt_account,
             stores::get_cached_file,
             stores::set_cached_file,
+            stores::load_dictionary,
+            stores::save_dictionary,
+            stores::set_dictionary_url,
+            stores::get_dictionary_url,
+            stores::get_device,
+            stores::save_device,
+            stores::read_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

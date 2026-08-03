@@ -9,9 +9,10 @@ import { goto } from "$app/navigation";
   import {
     platform as getPlatform
   } from "@tauri-apps/plugin-os";
-  import {
+  /*import {
     readFile
-  } from "@tauri-apps/plugin-fs";
+  } from "@tauri-apps/plugin-fs";*/
+  import { invoke } from "@tauri-apps/api/core";
   import {
     open
   } from "@tauri-apps/plugin-dialog";
@@ -29,7 +30,6 @@ import { goto } from "$app/navigation";
   import { currentUserDetails } from "$lib/stores/api";
   import Avatar from "$components/main/Avatar.svelte";
   import API, { currentUser } from "$lib/stores/api";
-  import Settings from "$lib/stores/settings";
 
   let platform;
 
@@ -178,7 +178,9 @@ import { goto } from "$app/navigation";
   }
 
   async function readQRCode(filePath) {
-    const data = await readFile(filePath);
+    console.log(filePath);
+    const data = await invoke("read_file", { path: filePath });
+    console.log(data);
     const blob = new Blob([new Uint8Array(data)], { type: "image/png" });
     const url = URL.createObjectURL(blob);
 

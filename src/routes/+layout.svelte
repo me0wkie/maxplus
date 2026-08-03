@@ -13,7 +13,6 @@
   import DevicesSettings from "$components/main/devices/Settings.svelte";
 
   import Session from "$lib/stores/session.js";
-  import * as Settings from "$lib/stores/settings.js";
 
   let settings;
   const onBack = {};
@@ -37,12 +36,6 @@
         console.warn("Native safe-area insets are unavailable", error);
       }
     }
-
-    settings = await Settings.keys();
-
-    /*if (!settings.includes("tokenEncType")) {
-      goto("/setup/tokens");
-    }*/
 
     if (system === "android" || system === "ios") {
       await onBackButtonPress(payload => {

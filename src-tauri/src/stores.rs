@@ -151,7 +151,7 @@ impl Paths {
     ) -> Self {
         Self {
             root: app.path().app_data_dir().unwrap().join("data").join(account.to_string()),
-            cache: app.path().app_cache_dir().unwrap().join(account.to_string()),
+            cache: app.path().app_data_dir().unwrap().join("cache").join(account.to_string()),
         }
     }
 
@@ -1049,4 +1049,110 @@ fn base36(mut value: u32) -> String {
     out.reverse();
 
     String::from_utf8(out).unwrap()
+}
+
+// settings
+
+#[tauri::command]
+pub fn get_device(app: AppHandle) -> Value {
+    Storage::new(None)
+    .load(app.path().app_data_dir().unwrap().join("data").join("device"))
+    .unwrap_or_else(|| {
+        json!(null)
+    })
+}
+
+#[tauri::command]
+pub fn save_device(
+    app: AppHandle,
+    device: Value,
+)->Result<(), String>{
+    Storage::new(None)
+    .save(app.path().app_data_dir().unwrap().join("data").join("device"), &device)
+}
+
+#[tauri::command]
+pub fn save_dictionary(
+    app: AppHandle,
+    data: Value,
+) -> Result<(), String> {
+    let path = app.path().app_data_dir().unwrap()
+    .join("data")
+    .join("dictionary");
+
+    let mut store = Storage::new(None)
+    .load(&path)
+    .unwrap_or_else(|| json!({
+        "url": null,
+        "data": null
+    }));
+
+    store["data"] = data.clone();
+
+    Storage::new(None).save(&path, &store)
+}
+
+#[tauri::command]
+pub fn load_dictionary(app: AppHandle) -> Value {
+    let path = app.path().app_data_dir().unwrap()
+    .join("data")
+    .join("dictionary");
+
+    Storage::new(None)
+    .load(&path)
+    .unwrap_or_else(|| {
+        json!({
+            "url": null,
+            "data": null
+        })
+    })
+}
+
+#[tauri::command]
+pub fn get_dictionary_url(app: AppHandle) -> Value {
+    let path = app.path().app_data_dir().unwrap()
+    .join("data")
+    .join("dictionary");
+
+    let store = Storage::new(None)
+    .load(&path)
+    .unwrap_or_else(|| {
+        json!({
+            "url": null,
+            "data": null
+        })
+    });
+
+    store.get("url").cloned().unwrap_or(json!(null))
+}
+
+#[tauri::command]
+pub fn set_dictionary_url(
+    app: AppHandle,
+    url: Value,
+) -> Result<(), String> {
+    let path = app.path().app_data_dir().unwrap()
+    .join("data")
+    .join("dictionary");
+
+    let mut store = Storage::new(None)
+    .load(&path)
+    .unwrap_or_else(|| {
+        json!({
+            "url": null,
+            "data": null
+        })
+    });
+
+    store["url"] = url.clone();
+
+    Storage::new(None).save(&path, &store)
+}
+
+// TODO !!! currently unsafe, add wrappers
+#[tauri::command]
+pub async fn read_file(path: String) -> Result<Vec<u8>, String> {
+    tokio::fs::read(path)
+    .await
+    .map_err(|e| e.to_string())
 }
