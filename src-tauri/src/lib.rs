@@ -104,6 +104,7 @@ pub fn run() {
             stores::accounts_get,
             stores::accounts_add,
             stores::account_get,
+            stores::account_meta,
             stores::account_delete,
             stores::account_delete_by_uid,
             stores::account_contact,
@@ -130,6 +131,8 @@ pub fn run() {
             stores::get_device,
             stores::save_device,
             stores::read_file,
+            stores::write_file_string,
+            stores::write_file_bytes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

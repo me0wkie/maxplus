@@ -23,6 +23,8 @@
 
   const getDevice = () => invoke("get_device");
   const saveDevice = device => invoke("save_device", { device });
+  const readFile = path => invoke("read_file", { path });
+  const writeFile = (path, content) => invoke("write_file_string", { path, content });
 
   function update(device, animate = false) {
     console.log('Device', device);
@@ -104,9 +106,7 @@
     if (!path) return;
 
     const json = JSON.stringify(dataToSave, null, 2);
-    const bytes = new TextEncoder().encode(json);
-
-    await writeFile(path, new Uint8Array(bytes));
+    await writeFile(path, json);
   }
 
   async function importDevice() {

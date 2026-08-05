@@ -69,7 +69,7 @@
 {#if localUrl}
   <img src={localUrl} {alt} {...props} />
 {:else if error}
-  <img src="missing.jpg" class="missing" {...props} />
+  <img src="/missing.jpg" class="missing" {...props} />
 {/if}
 
 <style>
