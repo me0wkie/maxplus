@@ -1,12 +1,19 @@
 <script>
+  import { open } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
   import { goto } from "$app/navigation";
 
-  import { getAccounts } from "$lib/stores/accounts";
+  import {
+    getAccounts,
+    addAccount,
+    setCurrentAccount,
+  } from "$lib/stores/accounts";
   import {
     get as sessionGet,
   } from "$lib/stores/session.js";
-  import API from "$lib/stores/api";
+  import API, {
+    currentUser
+  } from "$lib/stores/api";
 
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
   import OpenDevicesButton from "$components/main/devices/OpenButton.svelte";
@@ -37,6 +44,46 @@
   async function showBackButton() {
     return !!(await getAccounts()).length;
   }
+
+  const readFile = path => invoke("read_file", { path });
+
+  async function importAccount() {
+    console.log(1)
+    const path = await open({
+      multiple: false,
+      directory: false,
+      filters: [
+        {
+          name: "Аккаунт с токеном (.json)",
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (!path) return;
+
+    const data = await readFile(path);
+    const text = new TextDecoder().decode(new Uint8Array(data));
+
+    let json;
+    try {
+      json = JSON.parse(text);
+    } catch (e) {
+      return alert("JSON-файл содержит ошибки!")
+    }
+
+    if (!json.version || json.type !== "account") return alert("Неверный файл - это не конфиг аккаунта!");
+
+    if (json.version === 1) {
+      const { meta } = json;
+      const response = await addAccount(meta.token, meta.device);
+      await setCurrentAccount(response.id);
+      currentUser.set(undefined);
+      goto("/");
+    } else {
+      return alert("Это конфиг для более новой версии Max+!")
+    }
+  }
 </script>
 
 <div class="auth-page">
@@ -52,6 +99,7 @@
     <ActionButton text="Получить код" action={login}/>
   </div>
   <a href="/auth/register" class="link">Создать аккаунт</a>
+  <a on:click={importAccount} class="link">Импорт аккаунта</a>
   <BackButton condition={showBackButton} path="/auth/select"/>
 </div>
 

@@ -683,6 +683,16 @@ pub fn current_account_meta(
 }
 
 #[tauri::command]
+pub fn account_meta(
+    app: AppHandle,
+    id: u64
+) -> Result<Value, String> {
+    account_get(
+        app, id
+    )
+}
+
+#[tauri::command]
 pub fn current_account(
     app:AppHandle,
 )->Result<Value,String>{
@@ -1153,6 +1163,20 @@ pub fn set_dictionary_url(
 #[tauri::command]
 pub async fn read_file(path: String) -> Result<Vec<u8>, String> {
     tokio::fs::read(path)
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn write_file_string(path: String, content: String) -> Result<(), String> {
+    tokio::fs::write(path, content)
+    .await
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn write_file_bytes(path: String, content: Vec<u8>) -> Result<(), String> {
+    tokio::fs::write(path, content)
     .await
     .map_err(|e| e.to_string())
 }

@@ -1,17 +1,29 @@
 <script>
+  import { save } from "@tauri-apps/plugin-dialog";
   import { invoke } from "@tauri-apps/api/core";
+  import {
+    onMount,
+    onDestroy,
+    getContext,
+  } from "svelte";
   import { goto } from "$app/navigation";
-  import { onMount } from "svelte";
   import API, { currentUser } from "$lib/stores/api";
   import {
     getAccounts,
     getAccount,
-    setCurrentAccount
+    getAccountMeta,
+    setCurrentAccount,
   } from "$lib/stores/accounts";
 
   import "$lib/styles/AnimatedPanel.css";
   import Avatar from "$components/main/Avatar.svelte";
   import OpenDevSettingsButton from "$components/main/dev/OpenButton.svelte";
+
+  let menu = null;
+  let longPressed = false;
+  let holdTimer;
+
+  const onBack = getContext("onBack");
 
   let accountsPromise;
   onMount(() => {
@@ -20,15 +32,11 @@
 
   async function updateAccounts() {
     const encrypted = await getAccounts();
-    console.log(encrypted)
     return await Promise.all(encrypted.map(entry => getAccount(entry.id)));
   }
 
   async function select(selected) {
-    // TODO pincode
-    console.log('Selecting', selected.uid, 'current', $currentUser)
     const account = await getAccount(selected.id);
-    console.log('Selected data', account);
 
     if (account.encryption && !account.contact) {
       await setCurrentAccount(account.id);
@@ -44,11 +52,15 @@
     return goto("/")
   }
 
-  async function logout(e, account) {
-    e.stopPropagation();
+  async function logout(account) {
     console.log('Logging out', account.id, 'current', $currentUser)
 
-    await $API.logout(account.uid, false);
+    try {
+      await $API.logout(account.uid, false);
+    } catch (e) {
+      console.error(e);
+    }
+
     await updateAccounts();
 
     if (!accountsPromise.length) {
@@ -57,22 +69,141 @@
   }
 
   async function addNew(e) {
-    await $API.disconnect();
+    try {
+      await $API.disconnect();
+    } catch (e) {
+      console.error(e);
+    }
     goto("/auth/login");
   }
+
+  /* new: holding */
+
+  function startHold(e, account) {
+    clearTimeout(holdTimer);
+
+    longPressed = false;
+
+    const { clientX, clientY } = e.touches?.[0] || e;
+
+    holdTimer = setTimeout(() => {
+      longPressed = true;
+      openContext(account, clientX, clientY);
+    }, 500);
+  }
+
+  function cancelHold() {
+    clearTimeout(holdTimer);
+
+    setTimeout(() => {
+      longPressed = false;
+    }, 10);
+  }
+
+  function openContext(account, x, y) {
+    menu = {
+      account, x, y
+    };
+
+    onBack["dropout"] = () => {
+      closeMenu();
+      delete onBack["dropout"];
+    };
+  }
+
+  const writeFile = (path, content) => invoke("write_file_string", { path, content });
+
+  async function exportAccount(account) {
+    closeMenu();
+    let meta;
+
+    try {
+      const data = await getAccountMeta(account.id);
+      meta = data.meta;
+    } catch (e) {
+      console.error(e);
+      alert("Ошибка!\nВозможно, вы не расшифровали аккаунт.")
+      return;
+    }
+
+    const dataToSave = {
+      version: 1,
+      type: "account",
+      meta
+    };
+
+    const path = await save({
+      defaultPath: "account.json",
+      filters: [
+        {
+          name: "Аккаунт с токеном (.json)",
+          extensions: ["json"],
+        },
+      ],
+    });
+
+    if (!path) return;
+
+    const json = JSON.stringify(dataToSave, null, 2);
+    await writeFile(path, json);
+  }
+
+  async function deleteAccount(account) {
+    closeMenu();
+    await logout(account);
+  }
+
+  function closeMenu() {
+    menu = null;
+  }
+
+  function handleClick(e) {
+    if (menu && !longPressed && !e.target.closest(".context-menu")) {
+      closeMenu();
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener("pointerdown", handleClick);
+  });
+
+  onDestroy(() => {
+    window.removeEventListener("pointerdown", handleClick);
+  });
 </script>
 
-<div class="auth-page">
+<div class="page" on:click={handleClick}>
   <h1>Выберите аккаунт</h1>
+  <a class="hint">Зажми для открытия меню действий.</a>
 
   <div class="accounts">
     {#await accountsPromise}
     {:then accounts}
       {#each accounts as account}
-        <div on:click={_ => select(account)} class="account">
+        <div
+          class="account"
+          on:click={() => {
+            if (longPressed) return;
+
+            if (!menu) select(account);
+          }}
+          on:contextmenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            setTimeout(() => {
+              openContext(account, e.clientX, e.clientY);
+            }, 0);
+          }}
+          on:touchstart={(e) => startHold(e, account)}
+          on:touchend={cancelHold}
+          on:touchmove={cancelHold}
+          on:mousedown={(e) => e.button === 0 && startHold(e, account)}
+          on:mouseup={cancelHold}
+          on:mouseleave={cancelHold}
+        >
           <Avatar contactId={account.contact?.id} seed={account.id} size=72/>
           <a>{ account.contact?.names[0]?.firstName || "Зашифр." }</a>
-          <div on:click={e => logout(e, account)} class="logout"><a>✕</a></div>
         </div>
       {/each}
     {/await}
@@ -81,12 +212,31 @@
       <a>Новый</a>
     </div>
   </div>
+
+  {#if menu}
+  <div
+    class="context-menu"
+    style="left:{menu.x}px; top:{menu.y}px"
+    on:click|stopPropagation
+  >
+    <button on:click={() => exportAccount(menu.account)}>
+      Экспортировать
+    </button>
+
+    <button
+      class="danger"
+      on:click={() => deleteAccount(menu.account)}
+    >
+      Удалить
+    </button>
+  </div>
+{/if}
 </div>
 
 <OpenDevSettingsButton />
 
 <style>
-  .auth-page {
+  .page {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -94,12 +244,17 @@
     min-height: 98vh;
     text-align: center;
     color: #ddd;
-    gap: 25px;
   }
 
-  .auth-page h1 {
-    margin-bottom: 0px;
+  h1 {
+    margin: 0;
     font-size: 23px;
+  }
+
+  .hint {
+    font-size: 14px;
+    color: #777;
+    margin: 5px 0 20px 0;
   }
 
   form {
@@ -158,33 +313,16 @@
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
+    display: flex;
   }
 
   .account .avatar * {
     font-size: 64px;
     font-weight: 500;
+    line-height: 0;
+    margin: auto auto;
     position: relative;
-    bottom: 9px;
-    left: 1px;
-  }
-
-  .account .logout {
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 24px;
-    height: 24px;
-    border-radius: 32px;
-    background-color: #f33;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .account .logout a {
-    position: relative;
-    font-size: 12px;
-    font-weight: 1000;
+    bottom: 4px;
   }
 
   .link {
@@ -205,5 +343,68 @@
     word-break: break-all;
     white-space: nowrap;
     text-align: center;
+  }
+
+  .context-menu {
+    position: fixed;
+    z-index: 1000;
+
+    min-width: 210px;
+
+    display: flex;
+    flex-direction: column;
+
+    background: rgba(34, 34, 40, .98);
+    backdrop-filter: blur(18px);
+
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow:
+      0 10px 35px rgba(0,0,0,.45);
+
+    animation: menuAppear .15s ease;
+  }
+
+  .context-menu button {
+    border: none;
+    background: transparent;
+
+    color: #eee;
+
+    padding: 13px 16px;
+
+    font-size: 15px;
+    text-align: left;
+
+    cursor: pointer;
+
+    transition: background .15s;
+  }
+
+  .context-menu button:hover {
+    background: rgba(255,255,255,.06);
+  }
+
+  .context-menu button:active {
+    background: rgba(255,255,255,.1);
+  }
+
+  .context-menu .danger {
+    color: #ff5b5b;
+  }
+
+  @keyframes menuAppear {
+    from {
+      opacity: 0;
+      transform: scale(.96) translateY(6px);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
   }
 </style>
