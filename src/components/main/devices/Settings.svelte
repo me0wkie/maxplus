@@ -13,7 +13,7 @@
 
   onMount(async () => {
     glow = true;
-    const device = await globalUnsafeGet();
+    const device = await getDevice();
     if (device) await update(device, false);
     else await rerollDevice();
     setTimeout(() => {
@@ -83,7 +83,7 @@
   ];
 
   async function exportDevice() {
-    const device = await globalUnsafeGet();
+    const device = await getDevice();
 
     if (!device.deviceId) return alert("Текущий конфиг сломан!");
 
@@ -139,7 +139,7 @@
     if (json.version === 1) {
       const { version, type, ...cut } = json;
       sessionSet("device", cut);
-      globalUnsafeSave(cut);
+      await saveDevice(cut);
       update(cut, true);
     } else {
       return alert("Это конфиг для более новой версии Max+!")
@@ -149,7 +149,7 @@
   async function rerollDevice() {
     const device = generateDevice();
     sessionSet("device", device);
-    globalUnsafeSave(device);
+    await saveDevice(device);
     update(device, true);
   }
 
