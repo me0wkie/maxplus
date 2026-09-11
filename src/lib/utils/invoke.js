@@ -34,15 +34,21 @@ export const invoke = async (command, args) => {
       goto("/auth/login");
       return;
     }
-  }
 
-  return null;
+    if (type !== "ApiResponse") return error;
+
+    return {
+      ...JSON.parse(text),
+      type
+    };
+  }
 };
 
 let recentAlert = 0;
 
 async function restart(text, command, args) {
   if (recentAlert < Date.now() - 5000) {
+    console.log('Showing alert before restart...', text)
     alert(text);
   }
   recentAlert = Date.now();
