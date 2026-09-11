@@ -321,8 +321,8 @@
         throw new Error(`HTTP ${response.status}`);
       }
 
-      const blob = await response.blob();
-      path = await setCachedFile(account.id, url, blob);
+      const buffer = await response.arrayBuffer();
+      path = await setCachedFile(account.id, url, new Uint8Array(buffer));
     }
 
     return convertFileSrc(path);

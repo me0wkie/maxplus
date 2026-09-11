@@ -36,8 +36,8 @@
             throw new Error(`HTTP ${response.status}`);
           }
 
-          const blob = await response.blob();
-          path = await setCachedFile(account.id, src, blob);
+          const buffer = await response.arrayBuffer();
+          path = await setCachedFile(account.id, src, new Uint8Array(buffer));
         }
 
         url = convertFileSrc(path);

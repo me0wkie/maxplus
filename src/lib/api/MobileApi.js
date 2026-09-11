@@ -191,6 +191,10 @@ export default class MobileApi extends BaseAPI {
 
     await setCurrentAccount(accountEntry.id);
 
+    const contact = payload.profile.contact;
+    await setAccountContact(accountEntry.id, contact);
+    currentUser.set(contact.id);
+
     await this.sync();
 
     return {
@@ -253,6 +257,8 @@ export default class MobileApi extends BaseAPI {
         return;
       }
 
+      // TODO multi accounts?
+
       console.warn("Синхронизируем!");
 
       sessionSet("sync", true);
@@ -271,15 +277,16 @@ export default class MobileApi extends BaseAPI {
 
       console.log("Ответ sync", res);
 
-      const account = await getCurrentAccount();
-      await setAccountContact(account.id, profile.contact);
+      // profile.contact
+      //const account = await getCurrentAccount();
+      //await setAccountContact(account.id, profile.contact);
 
-      currentUser.set(profile.contact.id);
+      //currentUser.set(profile.contact.id);
       currentFolders.set(config.chatFolders?.FOLDERS || []);
-      currentPresence.set(res.presence);
+      //currentPresence.set(res.presence);
       currentRealChats.set(chats.map((x) => x.id));
-      currentUserDetails.set(profile.contact);
-      currentRealContacts.set(contacts.map((x) => x.id));
+      //currentUserDetails.set(profile.contact);
+      //currentRealContacts.set(contacts.map((x) => x.id));
 
       //if (!this.getUser()) this.setUser(res.profile.contact.id);
 
@@ -306,12 +313,12 @@ export default class MobileApi extends BaseAPI {
         };
       });
 
-      await syncContacts(contacts, requireInfo);
+      //await syncContacts(contacts, requireInfo);
 
       currentSessionChats.set(currentChats); // TODO store only ids there
     } catch (e) {
+      console.error('Showing error via alert', e);
       alert(e);
-      console.error(e);
       const text = e.toString();
       if (text.includes("login.token")) await this.logout();
     } finally {

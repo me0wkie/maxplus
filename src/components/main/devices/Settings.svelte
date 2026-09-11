@@ -135,7 +135,6 @@
 
     if (!json.version || json.type !== "device") return alert("Неверный файл - это не конфиг девайса!");
 
-
     if (json.version === 1) {
       const { version, type, ...cut } = json;
       sessionSet("device", cut);

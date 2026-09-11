@@ -154,9 +154,12 @@
   .error {
     color: red;
     font-size: 15px;
-    height: 18px;
-    word-break: break-all;
-    white-space: nowrap;
+    min-height: 18px;
     text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 </style>

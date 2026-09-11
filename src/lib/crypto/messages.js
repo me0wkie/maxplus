@@ -70,7 +70,7 @@ class Words extends Obfuscator {
     this.lock = new Promise(r => this.unlock = r);
 
     const cache = await dict.getDictionary();
-    if (cache) {
+    if (cache?.dict16) {
       this.cache = cache;
       this.dict16Map = new Map(cache.dict16.map((w, i) => [w, i]));
       this.dict8Map = new Map(cache.dict8.map((w, i) => [w, i]));// it's so fucking awful
@@ -99,7 +99,7 @@ class Words extends Obfuscator {
     if (text.indexOf(' ') === -1) return false;
 
     const DICT = await this.getDictionary();
-    if (!DICT) return false;
+    if (!DICT || !this.dict8Map) return false;
 
     const idx = text.indexOf(' '); // fuck me
     const word = clean(text.slice(0, idx)).toLowerCase();

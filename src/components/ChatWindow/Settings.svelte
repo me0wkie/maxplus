@@ -41,9 +41,7 @@
   }
 
   async function swapReader() {
-    const value = await reader;
-    reader = !value;
-    $chatSettings.reader = !!reader;
+    $chatSettings.reader = !$chatSettings.reader;
   }
 
   function close() {
